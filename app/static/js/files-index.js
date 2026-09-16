@@ -1771,14 +1771,25 @@ function openFolderColorModal(folderId, folderName, currentColor) {
         }
     }
 
+    let moveOpenGuard = 0;
+
     window.openMoveModal = function openMoveModal(itemType, itemId) {
         if (window.FILES_IS_TRASH) return;
         const type = String(itemType || '').toLowerCase();
         const id = parseInt(itemId, 10);
         if ((type !== 'file' && type !== 'folder') || !Number.isFinite(id)) return;
 
-        // Dropdown / Mobile Action Sheet zuerst schließen (Body-Scroll-Lock lösen)
-        if (typeof closeActiveMenus === 'function') closeActiveMenus();
+        // onclick + data-Listener können denselben Klick doppelt feuern
+        const now = Date.now();
+        if (now - moveOpenGuard < 400) return;
+        moveOpenGuard = now;
+
+        try {
+            if (typeof closeActiveMenus === 'function') closeActiveMenus();
+            else if (window.PrismateamsContextMenu && typeof window.PrismateamsContextMenu.close === 'function') {
+                window.PrismateamsContextMenu.close();
+            }
+        } catch (err) { /* ignore */ }
 
         moveState.itemType = type;
         moveState.itemId = id;
@@ -1788,22 +1799,39 @@ function openFolderColorModal(folderId, folderName, currentColor) {
             labelEl.textContent = type === 'folder' ? labels.item_folder : labels.item_file;
         }
         const modalEl = document.getElementById('filesMoveModal');
-        if (!modalEl) return;
+        if (!modalEl) {
+            console.error('filesMoveModal fehlt im DOM');
+            return;
+        }
         // Außerhalb von .mod-main (z-index:1), sonst liegt das Modal hinter dem Backdrop
         if (modalEl.parentElement !== document.body) {
             document.body.appendChild(modalEl);
         }
-        moveState.modal = bootstrap.Modal.getOrCreateInstance(modalEl);
-        moveState.modal.show();
-        loadDestinations();
+
+        const showModal = () => {
+            try {
+                if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+                    console.error('Bootstrap Modal nicht verfügbar');
+                    return;
+                }
+                moveState.modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                moveState.modal.show();
+                loadDestinations();
+            } catch (err) {
+                console.error('openMoveModal failed', err);
+            }
+        };
+        // Nach Action-Sheet-Close einen Tick warten (Body-Scroll-Lock)
+        window.setTimeout(showModal, 0);
     };
 
-    // Menüführung (Desktop-Dropdown + geklontes Mobile-Sheet): data-* statt inline-onclick
+    // Fallback für Menüklone ohne ausgeführtes onclick (Mobile Action Sheet)
     document.addEventListener('click', (e) => {
         const trigger = e.target.closest('[data-files-move-type][data-files-move-id]');
         if (!trigger) return;
+        // Native onclick am Anchor läuft ggf. parallel — Guard in openMoveModal
+        if (trigger.getAttribute('onclick')) return;
         e.preventDefault();
-        e.stopPropagation();
         window.openMoveModal(
             trigger.getAttribute('data-files-move-type'),
             trigger.getAttribute('data-files-move-id')

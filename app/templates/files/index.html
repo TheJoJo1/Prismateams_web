@@ -84,7 +84,8 @@
 <li>
     <a class="dropdown-item" href="#" role="button"
        data-files-move-type="{{ item_type }}"
-       data-files-move-id="{{ item_id }}">
+       data-files-move-id="{{ item_id }}"
+       onclick="openMoveModal({{ item_type|tojson }}, {{ item_id }}); return false;">
         <i class="bi bi-folder-symlink me-2"></i> {{ _('files.index.actions.move') }}
     </a>
 </li>
