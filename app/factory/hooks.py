@@ -82,7 +82,8 @@ def register_request_hooks(app):
             endpoint.startswith('kanban.onlyoffice') or
             request.path.startswith('/onlyoffice') or
             request.path.startswith('/eurooffice') or
-            '/onlyoffice-callback' in request.path
+            '/onlyoffice-callback' in request.path or
+            '/eurooffice-callback' in request.path
         ):
             return
 
@@ -328,9 +329,11 @@ def register_request_hooks(app):
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
         response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
         # camera/microphone bewusst nicht gesperrt (Meetings / MiroTalk)
+        # unload=(self): Chrome sperrt unload sonst; Euro-Office Document Server
+        # (app.js) und Editor-Seiten registrieren unload/beforeunload-Handler.
         response.headers.setdefault(
             'Permissions-Policy',
-            'geolocation=(), payment=(), usb=()',
+            'geolocation=(), payment=(), usb=(), unload=(self)',
         )
 
         # HSTS nur hinter HTTPS (Proxy: X-Forwarded-Proto)

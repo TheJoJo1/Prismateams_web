@@ -10,6 +10,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="{{ 'dark' if _theme_dark else 'light' }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ drawing.name }} - {{ _('excalidraw.edit.page_title_suffix') }}</title>
 {% include 'partials/vendor_bootstrap_css.html' %}
     <link rel="stylesheet" href="{{ url_for('static', filename='css/excalidraw.css') }}">
@@ -208,6 +209,7 @@ function excalidrawLeaveEditor() {
     window.location.href = (window.EXCALIDRAW_EDITOR_CONFIG && window.EXCALIDRAW_EDITOR_CONFIG.returnUrl) || '/excalidraw/';
 }
 </script>
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
 <script src="{{ url_for('static', filename='vendor/socket.io/socket.io.min.js') }}"></script>
 <script>window.io || document.write('<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"><\/script>');</script>
 <script type="module" src="{{ url_for('static', filename='js/excalidraw-bootstrap.js') }}?v={{ config.ABOUT_BUILD_NUMBER }}"></script>

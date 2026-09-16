@@ -302,6 +302,7 @@ def api_files_presence():
 
 
 @files_bp.route('/api/onlyoffice-presence', methods=['POST'])
+@files_bp.route('/api/eurooffice-presence', methods=['POST'])
 @login_required
 @check_module_access('module_files')
 def api_onlyoffice_presence():
@@ -424,6 +425,7 @@ def api_file_edit_lock():
 
 
 @files_bp.route('/edit-onlyoffice/<int:file_id>')
+@files_bp.route('/edit-eurooffice/<int:file_id>')
 @login_required
 @check_module_access('module_files')
 def edit_onlyoffice(file_id):
@@ -603,6 +605,7 @@ def edit_onlyoffice(file_id):
 
 
 @files_bp.route('/share/<token>/edit-onlyoffice')
+@files_bp.route('/share/<token>/edit-eurooffice')
 def share_edit_onlyoffice(token):
     """Edit a shared file using ONLYOFFICE editor (Gast-Zugriff)."""
     # Check if ONLYOFFICE is enabled

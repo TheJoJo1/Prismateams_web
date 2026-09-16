@@ -105,6 +105,7 @@ from app.blueprints.files._bp import (
 from app.blueprints.files.helpers import *  # noqa: F401,F403
 
 @files_bp.route('/api/onlyoffice-document/<int:file_id>', methods=['GET', 'HEAD', 'OPTIONS'])
+@files_bp.route('/api/eurooffice-document/<int:file_id>', methods=['GET', 'HEAD', 'OPTIONS'])
 def onlyoffice_document(file_id):
     """Serve document to ONLYOFFICE editor."""
     # IMPORTANT: This endpoint must NOT require login, as OnlyOffice Document Server
@@ -246,6 +247,7 @@ def onlyoffice_document(file_id):
 
 
 @files_bp.route('/share/<token>/api/onlyoffice-document/<int:file_id>', methods=['GET', 'HEAD', 'OPTIONS'])
+@files_bp.route('/share/<token>/api/eurooffice-document/<int:file_id>', methods=['GET', 'HEAD', 'OPTIONS'])
 def share_onlyoffice_document(token, file_id):
     """Serve document to ONLYOFFICE editor (Gast-Zugriff)."""
     # Handle OPTIONS request for CORS preflight
@@ -401,6 +403,7 @@ def _onlyoffice_forcesave_response(document_key):
 
 
 @files_bp.route('/api/onlyoffice-forcesave/<int:file_id>', methods=['POST'])
+@files_bp.route('/api/eurooffice-forcesave/<int:file_id>', methods=['POST'])
 @login_required
 @check_module_access('module_files')
 def onlyoffice_forcesave(file_id):
@@ -418,6 +421,7 @@ def onlyoffice_forcesave(file_id):
 
 
 @files_bp.route('/share/<token>/api/onlyoffice-forcesave/<int:file_id>', methods=['POST'])
+@files_bp.route('/share/<token>/api/eurooffice-forcesave/<int:file_id>', methods=['POST'])
 def share_onlyoffice_forcesave(token, file_id):
     """Force-save an open OnlyOffice document for a share guest."""
     item, guest_name, share = _check_share_access(token)
@@ -439,6 +443,7 @@ def share_onlyoffice_forcesave(token, file_id):
 
 
 @files_bp.route('/api/onlyoffice-save/<int:file_id>', methods=['POST'])
+@files_bp.route('/api/eurooffice-save/<int:file_id>', methods=['POST'])
 @login_required
 @check_module_access('module_files')
 def onlyoffice_save(file_id):
@@ -515,6 +520,7 @@ def onlyoffice_save(file_id):
 
 
 @files_bp.route('/share/<token>/api/onlyoffice-save/<int:file_id>', methods=['POST'])
+@files_bp.route('/share/<token>/api/eurooffice-save/<int:file_id>', methods=['POST'])
 def share_onlyoffice_save(token, file_id):
     """Save document from ONLYOFFICE (Gast-Zugriff)."""
     # Check if ONLYOFFICE is enabled
@@ -752,6 +758,7 @@ def _onlyoffice_handle_save_callback(file, payload):
 
 
 @files_bp.route('/onlyoffice-callback', methods=['POST', 'OPTIONS'])
+@files_bp.route('/eurooffice-callback', methods=['POST', 'OPTIONS'])
 def onlyoffice_callback():
     """Handle callbacks from ONLYOFFICE Document Server."""
     if request.method == 'OPTIONS':
@@ -808,6 +815,7 @@ def onlyoffice_callback():
 
 
 @files_bp.route('/share/<token>/onlyoffice-callback', methods=['POST', 'OPTIONS'])
+@files_bp.route('/share/<token>/eurooffice-callback', methods=['POST', 'OPTIONS'])
 def share_onlyoffice_callback(token):
     """Handle callbacks from ONLYOFFICE Document Server (Gast-Zugriff)."""
     if request.method == 'OPTIONS':

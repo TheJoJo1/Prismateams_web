@@ -206,6 +206,7 @@ def _kanban_oo_cors(payload, status_code=200):
 
 
 @kanban_bp.route('/attachments/<int:attachment_id>/edit-onlyoffice')
+@kanban_bp.route('/attachments/<int:attachment_id>/edit-eurooffice')
 @login_required
 @check_module_access('module_kanban')
 def edit_onlyoffice(attachment_id):
@@ -346,6 +347,7 @@ def edit_onlyoffice(attachment_id):
 
 
 @kanban_bp.route('/api/onlyoffice-document/<int:attachment_id>', methods=['GET', 'HEAD', 'OPTIONS'])
+@kanban_bp.route('/api/eurooffice-document/<int:attachment_id>', methods=['GET', 'HEAD', 'OPTIONS'])
 def onlyoffice_document(attachment_id):
     """Serve Kanban attachment binary to OnlyOffice Document Server."""
     from app.utils.onlyoffice import validate_onlyoffice_access_token
@@ -371,6 +373,7 @@ def onlyoffice_document(attachment_id):
 
 
 @kanban_bp.route('/onlyoffice-callback/<int:attachment_id>', methods=['POST', 'OPTIONS'])
+@kanban_bp.route('/eurooffice-callback/<int:attachment_id>', methods=['POST', 'OPTIONS'])
 def onlyoffice_callback(attachment_id):
     """Autosave callback from OnlyOffice for Kanban attachments."""
     import logging
@@ -442,6 +445,7 @@ def onlyoffice_callback(attachment_id):
 
 
 @kanban_bp.route('/api/onlyoffice-forcesave/<int:attachment_id>', methods=['POST'])
+@kanban_bp.route('/api/eurooffice-forcesave/<int:attachment_id>', methods=['POST'])
 @login_required
 @check_module_access('module_kanban')
 def onlyoffice_forcesave(attachment_id):

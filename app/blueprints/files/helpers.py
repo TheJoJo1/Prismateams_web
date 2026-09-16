@@ -822,6 +822,7 @@ def _build_share_gate_preview_context(share, item):
 __all__ = [
     '_paginate_browse_items',
     '_safe_referrer_or',
+    'TEXT_VIEWABLE_EXTS',
     'media_kind',
     'media_mimetype',
     '_file_extension',

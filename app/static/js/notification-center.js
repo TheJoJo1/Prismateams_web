@@ -79,10 +79,19 @@ class NotificationCenter {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 this.stopPolling();
+                // Freigabe von Gunicorn-Threads: Hintergrund-Tabs brauchen kein Live-SSE.
+                try {
+                    if (window.ptDashboardSSE) {
+                        window.ptDashboardSSE.close();
+                        window.ptDashboardSSE = null;
+                    }
+                } catch (_) { /* ignore */ }
+                this.sseLive = false;
                 return;
             }
             this.refreshBadge();
             if (this.isOpen) this.loadList();
+            this.connectSSE();
             if (!this.sseLive) this.startPolling();
         });
     }

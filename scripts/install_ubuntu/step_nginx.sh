@@ -26,11 +26,34 @@ else
     log_info "Connection-Upgrade Map bereits vorhanden in nginx.conf"
 fi
 
+mkdir -p /etc/nginx/snippets
+_ds_extra_src="${LIB_DIR}/nginx-documentserver-extra.conf"
+if [ -f "$_ds_extra_src" ]; then
+    cp "$_ds_extra_src" /etc/nginx/snippets/teamportal-documentserver-extra.conf
+    log_info "Document-Server-Extra-Pfade: /etc/nginx/snippets/teamportal-documentserver-extra.conf"
+else
+    echo '# nginx-documentserver-extra.conf fehlt im Installer-Tree' > /etc/nginx/snippets/teamportal-documentserver-extra.conf
+    log_warning "nginx-documentserver-extra.conf nicht gefunden unter ${LIB_DIR}"
+fi
+
 # Gzip (CSS/JS/JSON) — Ubuntu-Default komprimiert oft nur HTML
+# Ubuntu 24.04+ hat bereits "gzip on;" im http-Block von nginx.conf.
+# Ein zweites "gzip on;" in conf.d lässt nginx -t scheitern (duplicate).
 _gzip_src="${LIB_DIR}/nginx-gzip.conf"
+_gzip_dst="/etc/nginx/conf.d/teamportal-gzip.conf"
 if [ -f "$_gzip_src" ]; then
-    cp "$_gzip_src" /etc/nginx/conf.d/teamportal-gzip.conf
-    log_success "Gzip aktiviert: /etc/nginx/conf.d/teamportal-gzip.conf"
+    cp "$_gzip_src" "$_gzip_dst"
+    if grep -qE '^\s*gzip on;' /etc/nginx/nginx.conf; then
+        sed -i '/^[[:space:]]*gzip on;/d' "$_gzip_dst"
+        log_info "gzip on; bereits in nginx.conf — kein Duplikat in conf.d"
+    elif grep -qE '^\s*#[[:space:]]*gzip on;' /etc/nginx/nginx.conf; then
+        sed -i -E 's/^([[:space:]]*)#[[:space:]]*gzip on;/\1gzip on;/' /etc/nginx/nginx.conf
+        sed -i '/^[[:space:]]*gzip on;/d' "$_gzip_dst"
+        log_success "gzip on; in nginx.conf aktiviert"
+    elif ! grep -qE '^\s*gzip on;' "$_gzip_dst"; then
+        sed -i '1a gzip on;' "$_gzip_dst"
+    fi
+    log_success "Gzip aktiviert: ${_gzip_dst}"
 else
     log_warning "nginx-gzip.conf nicht gefunden unter ${LIB_DIR}"
 fi
@@ -57,6 +80,9 @@ add_header X-XSS-Protection "1; mode=block" always;
 # File upload limit
 client_max_body_size 100M;
 
+# Document Server ohne /eurooffice-Prefix (/sdkjs, /fonts, /doc, Versions-Hash)
+include /etc/nginx/snippets/teamportal-documentserver-extra.conf;
+
 # Document Server Cache (MUSS VOR /onlyoffice und /eurooffice kommen!)
 # Euro-Office / OnlyOffice benötigen diesen Pfad für interne Cache-Dateien
 # Entfernen Sie diesen Block, wenn der Document Server NICHT installiert ist
@@ -69,7 +95,7 @@ location /cache {
     
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+    proxy_set_header Connection \$connection_upgrade;
     
     proxy_connect_timeout 600;
     proxy_send_timeout 600;
@@ -92,12 +118,14 @@ location /onlyoffice {
     
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+    proxy_set_header Connection \$connection_upgrade;
     
     add_header Access-Control-Allow-Origin * always;
     add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
     add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
     add_header Access-Control-Allow-Credentials true always;
+    # Chrome: unload opt-in; Document Server app.js registriert unload-Handler
+    add_header Permissions-Policy "unload=(self)" always;
     
     if (\$request_method = 'OPTIONS') {
         add_header Access-Control-Allow-Origin * always;
@@ -129,12 +157,14 @@ location /eurooffice {
     
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+    proxy_set_header Connection \$connection_upgrade;
     
     add_header Access-Control-Allow-Origin * always;
     add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
     add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
     add_header Access-Control-Allow-Credentials true always;
+    # Chrome: unload opt-in; Document Server app.js registriert unload-Handler
+    add_header Permissions-Policy "unload=(self)" always;
     
     if (\$request_method = 'OPTIONS') {
         add_header Access-Control-Allow-Origin * always;
@@ -216,7 +246,7 @@ location /excalidraw-room/ {
     proxy_set_header X-Forwarded-Proto \$scheme;
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+    proxy_set_header Connection \$connection_upgrade;
     proxy_connect_timeout 600;
     proxy_send_timeout 600;
     proxy_read_timeout 600;
@@ -254,7 +284,7 @@ location / {
     
     proxy_http_version 1.1;
     proxy_set_header Upgrade \$http_upgrade;
-    proxy_set_header Connection "upgrade";
+    proxy_set_header Connection \$connection_upgrade;
 }
 }
 EOF
@@ -312,9 +342,29 @@ if [ -f "$_brotli_src" ]; then
     fi
 fi
 
-# Nginx testen
-if ! nginx -t; then
-    { log_error "Nginx-Konfigurationstest fehlgeschlagen"; return 1; }
+# Nginx testen (if-Form, damit ERR-Trap bei nginx -t nicht den Installer killt)
+_nginx_test_out=""
+if ! _nginx_test_out=$(nginx -t 2>&1); then
+    # Ubuntu 24.04: gzip on; in nginx.conf + conf.d → duplicate
+    if echo "$_nginx_test_out" | grep -qi 'gzip.*duplicate'; then
+        log_warning "Nginx: doppeltes gzip on; — entferne Duplikat in conf.d"
+        sed -i '/^[[:space:]]*gzip on;/d' /etc/nginx/conf.d/teamportal-gzip.conf 2>/dev/null || true
+        if ! _nginx_test_out=$(nginx -t 2>&1); then
+            :
+        else
+            _nginx_test_out=""
+        fi
+    fi
+else
+    _nginx_test_out=""
+fi
+if [ -n "$_nginx_test_out" ]; then
+    log_error "Nginx-Konfigurationstest fehlgeschlagen"
+    local line
+    while IFS= read -r line; do
+        [ -n "$line" ] && log_error "$line"
+    done <<< "$_nginx_test_out"
+    return 1
 fi
 
 # Nginx neu laden

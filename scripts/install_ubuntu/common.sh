@@ -337,6 +337,12 @@ print_manual_onlyoffice_hint() {
     log_manual "  ENV-Keys heißen historisch ONLYOFFICE_* (API-kompatibel)."
     log_manual "  1. Docker installieren (docs/INSTALLATION.md Schritt 2)"
     log_manual "  2. Volumes: mkdir -p /var/lib/eurooffice/DocumentServer/{data,logs,config,fonts}"
+    log_manual "     mkdir -p /var/lib/eurooffice/DocumentServer/logs/{adminpanel,converter,docservice,metrics}"
+    log_manual "     mkdir -p /var/lib/eurooffice/DocumentServer/data/App_Data && chmod -R a+rwX /var/lib/eurooffice/DocumentServer/data /var/lib/eurooffice/DocumentServer/logs"
+    log_manual "     Config MUSS aus dem Image kommen (leeres Mount → jq/local.json-Crash):"
+    log_manual "       docker create --name eurooffice-seed ghcr.io/euro-office/documentserver:latest"
+    log_manual "       docker cp eurooffice-seed:/etc/euro-office/documentserver/. /var/lib/eurooffice/DocumentServer/config/"
+    log_manual "       docker rm eurooffice-seed"
     log_manual "  3. Schriftarten (PDF/Druck): nur ttf-mscorefonts-installer (Arial/Times/…)"
     log_manual "     TTFs nach /var/lib/eurooffice/DocumentServer/fonts kopieren."
     log_manual "     Carlito/Liberation NICHT kopieren (liegen im Image; Duplikate zerlegen Calibri)"
@@ -399,7 +405,7 @@ print_manual_gunicorn_hint() {
     log_manual "  1. cd $INSTALL_DIR && source venv/bin/activate && pip install gunicorn"
     log_manual "  2. FLASK_ENV=production python scripts/init_database.py"
     log_manual "  3. Systemd-Unit /etc/systemd/system/teamportal.service anlegen"
-    log_manual "  4. gunicorn --workers ${GUNICORN_WORKERS:-2} --timeout 180 --max-requests 1000 --bind 127.0.0.1:${GUNICORN_PORT:-5000} wsgi:app"
+    log_manual "  4. gunicorn --worker-class gthread --workers ${GUNICORN_WORKERS:-2} --threads 8 --timeout 180 --max-requests 1000 --bind 127.0.0.1:${GUNICORN_PORT:-5000} wsgi:app"
     log_manual "  5. systemctl enable --now teamportal"
     echo
 }

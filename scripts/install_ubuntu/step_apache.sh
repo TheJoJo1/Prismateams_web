@@ -89,6 +89,32 @@ ProxyRequests Off
     Header always set Access-Control-Allow-Credentials "true"
 </Location>
 
+# Document Server ohne /eurooffice-Prefix (Editor lädt /sdkjs, /fonts, /doc vom Origin)
+<Location /sdkjs/fonts>
+    ProxyPass http://127.0.0.1:8080/fonts
+    ProxyPassReverse http://127.0.0.1:8080/fonts
+</Location>
+<Location /sdkjs>
+    ProxyPass http://127.0.0.1:8080/sdkjs
+    ProxyPassReverse http://127.0.0.1:8080/sdkjs
+</Location>
+<Location /fonts>
+    ProxyPass http://127.0.0.1:8080/fonts
+    ProxyPassReverse http://127.0.0.1:8080/fonts
+</Location>
+<Location /dictionaries>
+    ProxyPass http://127.0.0.1:8080/dictionaries
+    ProxyPassReverse http://127.0.0.1:8080/dictionaries
+</Location>
+<Location /web-apps>
+    ProxyPass http://127.0.0.1:8080/web-apps
+    ProxyPassReverse http://127.0.0.1:8080/web-apps
+</Location>
+<Location /doc>
+    ProxyPass ws://127.0.0.1:8080/doc
+    ProxyPassReverse http://127.0.0.1:8080/doc
+</Location>
+
 # Excalidraw Room (OPTIONAL - nur wenn installiert)
 <Location /excalidraw-room>
     ProxyPass ws://127.0.0.1:8082/

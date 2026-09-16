@@ -135,6 +135,15 @@ sudo -u www-data bash -c "source venv/bin/activate && python migrations/run_all.
 sudo docker stop eurooffice-documentserver
 sudo docker rm eurooffice-documentserver
 sudo docker pull ghcr.io/euro-office/documentserver:latest
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/logs/{adminpanel,converter,docservice,metrics}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/data/App_Data
+sudo chmod -R a+rwX /var/lib/eurooffice/DocumentServer/data /var/lib/eurooffice/DocumentServer/logs
+# Config nur seeden, wenn default.json fehlt (sonst JWT/local.json behalten)
+if [ ! -f /var/lib/eurooffice/DocumentServer/config/default.json ]; then
+    sudo docker create --name eurooffice-seed ghcr.io/euro-office/documentserver:latest
+    sudo docker cp eurooffice-seed:/etc/euro-office/documentserver/. /var/lib/eurooffice/DocumentServer/config/
+    sudo docker rm eurooffice-seed
+fi
 sudo docker run -d --restart=always \
     --name eurooffice-documentserver \
     -p 127.0.0.1:8080:80 \
@@ -242,15 +251,20 @@ sudo systemctl restart teamportal
 
 ```bash
 # In /etc/systemd/system/teamportal.service
-# Produktion: 2–4 Worker (mit Redis). Ein Worker reicht nur ohne Redis.
-# Timeout 180s: hängende Requests geben den Worker frei; Converter/Downloads laufen im Thread.
+# Produktion: worker-class gthread, 2–4 Worker × 8 Threads (mit Redis).
+# sync-Worker + SSE (/sse/events/dashboard u. a.) = Worker-Starvation (Seitenladen mehrere Sekunden).
+# Timeout 180s: hängende Requests geben den Slot frei; Converter/Downloads laufen im Thread.
 sudo nano /etc/systemd/system/teamportal.service
+# --worker-class gthread
 # --workers 2  (oder 3–4 bei mehr CPU/RAM)
+# --threads 8
 # --timeout 180
 # --max-requests 1000 --max-requests-jitter 100
 sudo systemctl daemon-reload
 sudo systemctl restart teamportal
 ```
+
+Symptom bei falscher Klasse (`sync`): `journalctl -u teamportal` zeigt wiederholt `WORKER TIMEOUT` auf `/sse/events/dashboard`.
 
 **Hinweis:** Für mehrere Worker und Kanban-SSE muss Redis installiert und in `.env` konfiguriert sein (`REDIS_ENABLED=True`). Ohne Redis pollt das Kanban-Board inkrementell (kein Full-Redraw).
 

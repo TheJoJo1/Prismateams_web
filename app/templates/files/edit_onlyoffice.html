@@ -13,7 +13,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="{{ 'dark' if _theme_dark else 'light' }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ file.name }} - {{ _('files.onlyoffice.page_title_suffix') }}</title>
+    {% if portal_logo_filename %}
+    <link rel="icon" type="image/png" href="{{ url_for('settings.portal_logo', filename=portal_logo_filename) }}">
+    {% elif app_logo %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename=app_logo) }}">
+    {% else %}
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    {% endif %}
 {% include 'partials/vendor_bootstrap_css.html' %}
     <style>
         :root {
@@ -175,7 +183,7 @@
             background: inherit;
         }
 
-        #onlyoffice-editor {
+        #eurooffice-editor {
             width: 100%;
             height: 100%;
             border: none;
@@ -257,10 +265,12 @@
         </div>
     </div>
     <div class="onlyoffice-editor-content">
-        <div id="onlyoffice-editor"></div>
+        <div id="eurooffice-editor"></div>
     </div>
 </div>
 
+<script src="{{ url_for('static', filename='js/csrf.js') }}"></script>
+<script src="{{ onlyoffice_api_url }}" onerror="window.__eoApiLoadFailed = true"></script>
 <script>
 let docEditor;
 let isEditorReady = false;
@@ -269,6 +279,7 @@ let isLeaving = false;
 let apiLoadAttempts = 0;
 const MAX_API_LOAD_ATTEMPTS = 50; // 5 seconds total (50 * 100ms)
 const PRESENCE_ENABLED = {{ 'true' if presence_enabled|default(false) else 'false' }};
+const PRESENCE_URL = {{ url_for('files.api_onlyoffice_presence')|tojson }};
 const PRESENCE_FILE_ID = {{ file.id }};
 const DOCUMENT_KEY = {{ (document_key or '')|tojson }};
 const FORCESAVE_URL = {{ (forcesave_url|default(''))|tojson }};
@@ -287,7 +298,7 @@ let ooPresenceTimer = null;
 function ooPresenceSend(action, extra) {
     if (!PRESENCE_ENABLED) return Promise.resolve();
     const body = Object.assign({ action: action, file_id: PRESENCE_FILE_ID, session_key: ooPresenceSessionKey || '' }, extra || {});
-    return fetch('/files/api/onlyoffice-presence', {
+    return fetch(PRESENCE_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -306,8 +317,9 @@ function startOoPresence() {
     window.addEventListener('beforeunload', () => {
         if (ooPresenceSessionKey) {
             try {
-                navigator.sendBeacon('/files/api/onlyoffice-presence', new Blob([JSON.stringify({
-                    action: 'leave', session_key: ooPresenceSessionKey, file_id: PRESENCE_FILE_ID
+                const csrfToken = (window.PrismateamsCsrf && window.PrismateamsCsrf.getToken()) || '';
+                navigator.sendBeacon(PRESENCE_URL, new Blob([JSON.stringify({
+                    action: 'leave', session_key: ooPresenceSessionKey, file_id: PRESENCE_FILE_ID, csrf_token: csrfToken
                 })], { type: 'application/json' }));
             } catch (e) {
                 ooPresenceSend('leave');
@@ -316,41 +328,28 @@ function startOoPresence() {
     });
 }
 
-// Load Document Server API script with error handling
-const apiScript = document.createElement('script');
-apiScript.src = "{{ onlyoffice_api_url }}";
-apiScript.onerror = function() {
-    console.error('Fehler beim Laden der Document-Server-API:', "{{ onlyoffice_api_url }}");
-    console.error('Mögliche Ursachen:');
-    console.error('1. Document Server läuft nicht auf Port 8080');
-    console.error('2. Nginx-Konfiguration ist fehlerhaft (proxy_pass sollte ohne trailing slash sein)');
-    console.error('3. Document Server ist nicht unter /eurooffice oder /onlyoffice erreichbar');
-    console.error('4. Firewall blockiert Port 8080');
-    
-    // Show user-friendly error message
-    const editorDiv = document.getElementById('onlyoffice-editor');
+function showEuroOfficeApiError(title) {
+    console.error(title, "{{ onlyoffice_api_url }}");
+    const editorDiv = document.getElementById('eurooffice-editor');
     if (editorDiv) {
-        editorDiv.innerHTML = '<div style="padding: 2rem; text-align: center; color: #dc3545;"><h3>Euro-Office konnte nicht geladen werden</h3><p>Bitte überprüfen Sie:</p><ul style="text-align: left; display: inline-block;"><li>Document Server läuft auf Port 8080</li><li>Nginx-Konfiguration ist korrekt</li><li>Pfad /eurooffice oder /onlyoffice ist erreichbar</li></ul><p style="margin-top: 1rem;">API-URL: {{ onlyoffice_api_url }}</p></div>';
+        editorDiv.innerHTML = '<div style="padding: 2rem; text-align: center; color: #dc3545;"><h3>' + title + '</h3><p>Bitte prüfen Sie, dass der Document Server unter /eurooffice erreichbar ist.</p><p style="margin-top: 1rem;">API-URL: {{ onlyoffice_api_url }}</p></div>';
     }
-};
-document.head.appendChild(apiScript);
+}
 
 function waitForOnlyOfficeAPI(callback) {
     if (typeof DocsAPI !== 'undefined' && typeof DocsAPI.DocEditor !== 'undefined') {
         callback();
         return;
     }
+
+    if (window.__eoApiLoadFailed) {
+        showEuroOfficeApiError('Euro-Office konnte nicht geladen werden');
+        return;
+    }
     
     apiLoadAttempts++;
     if (apiLoadAttempts >= MAX_API_LOAD_ATTEMPTS) {
-        console.error('Document Server API konnte nicht geladen werden. Bitte stellen Sie sicher, dass der Document Server unter {{ onlyoffice_url }} erreichbar ist.');
-        console.error('API-URL, die geladen werden sollte:', "{{ onlyoffice_api_url }}");
-        
-        // Show user-friendly error message
-        const editorDiv = document.getElementById('onlyoffice-editor');
-        if (editorDiv) {
-            editorDiv.innerHTML = '<div style="padding: 2rem; text-align: center; color: #dc3545;"><h3>Euro-Office API konnte nicht geladen werden</h3><p>Die API-Datei konnte nach 5 Sekunden nicht geladen werden.</p><p>Bitte überprüfen Sie die Browser-Konsole für weitere Details.</p><p style="margin-top: 1rem;">API-URL: {{ onlyoffice_api_url }}</p></div>';
-        }
+        showEuroOfficeApiError('Euro-Office API konnte nicht geladen werden');
         return;
     }
     
@@ -369,6 +368,7 @@ document.addEventListener('DOMContentLoaded', function() {
             url: "{{ document_url }}"
         },
         documentType: "{{ document_type }}",
+        type: "desktop",
         editorConfig: {
             callbackUrl: "{{ callback_url }}",
             mode: "edit",
@@ -431,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Wait for ONLYOFFICE API to load
     waitForOnlyOfficeAPI(function() {
         try {
-            docEditor = new DocsAPI.DocEditor("onlyoffice-editor", config);
+            docEditor = new DocsAPI.DocEditor("eurooffice-editor", config);
             if (!docEditor) {
                 console.error('OnlyOffice editor object is null');
             }

@@ -54,6 +54,60 @@ _onlyoffice_dump_logs() {
     docker logs --tail 60 "${ONLYOFFICE_CONTAINER}" 2>&1 || true
 }
 
+# Leeres Bind-Mount auf /etc/euro-office/documentserver verdeckt default.json/local.json
+# im Image. Der Entrypoint crasht dann (jq: Could not open file local.json) im Restart-Loop.
+_onlyoffice_seed_eurooffice_config() {
+    local dest="${ONLYOFFICE_DATA_ROOT}/config"
+    mkdir -p "$dest"
+    if [ -f "${dest}/default.json" ] && [ -s "${dest}/local.json" ]; then
+        log_info "Document-Server-Config bereits vorhanden (${dest})"
+        return 0
+    fi
+
+    log_info "Kopiere Document-Server-Config aus dem Image (leeres Volume würde den Start crashen)..."
+    local seed="eurooffice-config-seed"
+    docker rm -f "$seed" >/dev/null 2>&1 || true
+    if ! docker create --name "$seed" "${ONLYOFFICE_IMAGE}" >/dev/null; then
+        log_error "Seed-Container konnte nicht erzeugt werden"
+        return 1
+    fi
+    rm -f "${dest}/local.json.tmp" 2>/dev/null || true
+    if ! docker cp "${seed}:/etc/euro-office/documentserver/." "${dest}/"; then
+        docker rm -f "$seed" >/dev/null 2>&1 || true
+        log_error "docker cp der Document-Server-Config fehlgeschlagen"
+        return 1
+    fi
+    docker rm -f "$seed" >/dev/null 2>&1 || true
+    chmod -R a+rX "$dest" 2>/dev/null || true
+    if [ ! -f "${dest}/local.json" ] || [ ! -f "${dest}/default.json" ]; then
+        log_error "Config-Seed unvollständig (local.json/default.json fehlen in ${dest})"
+        return 1
+    fi
+    log_success "Config aus Image nach ${dest} kopiert"
+    return 0
+}
+
+# Leeres Logs-Volume verdeckt adminpanel/converter/docservice/metrics.
+# Supervisord bricht sonst ab: "directory .../adminpanel/out.log does not exist".
+_onlyoffice_prepare_eurooffice_log_dirs() {
+    local dest="${ONLYOFFICE_DATA_ROOT}/logs"
+    mkdir -p "$dest"/{adminpanel,converter,docservice,metrics}
+    chmod -R a+rwX "$dest" 2>/dev/null || true
+    log_info "Document-Server-Logverzeichnisse: ${dest}/{adminpanel,converter,docservice,metrics}"
+}
+
+# Data-Volume als root 0755 → Node-User ds kann App_Data nicht anlegen (EACCES, Editor-Fehler -4).
+_onlyoffice_prepare_eurooffice_data_dir() {
+    local dest="${ONLYOFFICE_DATA_ROOT}/data"
+    mkdir -p "${dest}/App_Data"
+    chmod -R a+rwX "$dest" 2>/dev/null || true
+    log_info "Document-Server-Datenverzeichnis beschreibbar: ${dest}"
+}
+
+_onlyoffice_container_status() {
+    docker inspect -f '{{.State.Status}}' "${ONLYOFFICE_CONTAINER}" 2>/dev/null || echo "missing"
+}
+
 # Host-Fonts für PDF/Druck im Document Server (Volume …/fonts).
 # Nur Microsoft Core Fonts kopieren (Arial, Times New Roman, …) – die fehlen im Image.
 # Carlito/Liberation/DejaVu liegen bereits im Document-Server-Image. Dieselben Familien
@@ -244,6 +298,15 @@ step_onlyoffice() {
         return 1
     fi
 
+    if _onlyoffice_is_eurooffice_image; then
+        if ! _onlyoffice_seed_eurooffice_config; then
+            log_error "Ohne Image-Config crasht der Document-Server-Entrypoint"
+            return 1
+        fi
+        _onlyoffice_prepare_eurooffice_log_dirs
+        _onlyoffice_prepare_eurooffice_data_dir
+    fi
+
     log_info "Starte Document Server (JWT aktiv, Port ${ONLYOFFICE_HOST_PORT})..."
     local run_err cid
     run_err="$(mktemp)"
@@ -262,34 +325,40 @@ step_onlyoffice() {
     log_info "Warte auf Document Server (bis 180s)..."
     local OO_READY=0
     local i
+    local restarting_for=0
+    local oo_status
     for i in $(seq 1 180); do
-        if ! _onlyoffice_container_running; then
-            log_error "Container ${ONLYOFFICE_CONTAINER} ist unerwartet gestoppt"
+        oo_status=$(_onlyoffice_container_status)
+        if [ "$oo_status" = "missing" ] || [ "$oo_status" = "exited" ] || [ "$oo_status" = "dead" ]; then
+            log_error "Container ${ONLYOFFICE_CONTAINER} ist unerwartet gestoppt (Status ${oo_status})"
             _onlyoffice_dump_logs
             return 1
         fi
-        if curl -sf "http://127.0.0.1:${ONLYOFFICE_HOST_PORT}/healthcheck" >/dev/null 2>&1 \
-            || curl -sf "http://127.0.0.1:${ONLYOFFICE_HOST_PORT}/welcome/" >/dev/null 2>&1; then
+        if [ "$oo_status" = "restarting" ]; then
+            restarting_for=$((restarting_for + 1))
+            if [ "$restarting_for" -ge 20 ]; then
+                log_error "Container ${ONLYOFFICE_CONTAINER} im Restart-Loop (oft leeres Config-Volume)"
+                _onlyoffice_dump_logs
+                return 1
+            fi
+        else
+            restarting_for=0
+        fi
+        if curl -sf "http://127.0.0.1:${ONLYOFFICE_HOST_PORT}/healthcheck" 2>/dev/null | grep -qi true; then
             OO_READY=1
             log_success "Document Server ist bereit (${i}s)"
             break
         fi
         if [ $((i % 30)) -eq 0 ]; then
-            log_info "Noch kein Ready-Signal (${i}/180s)..."
+            log_info "Noch kein Ready-Signal (${i}/180s, Status ${oo_status})..."
         fi
         sleep 1
     done
 
     if [ "$OO_READY" -eq 0 ]; then
-        if _onlyoffice_container_running; then
-            log_warning "Document Server antwortet noch nicht nach 180s – Container läuft weiter"
-            log_warning "Später prüfen: curl -s http://127.0.0.1:${ONLYOFFICE_HOST_PORT}/healthcheck"
-            _onlyoffice_dump_logs
-        else
-            log_error "Document-Server-Container nicht mehr aktiv"
-            _onlyoffice_dump_logs
-            return 1
-        fi
+        log_error "Document Server antwortet nach 180s nicht auf /healthcheck"
+        _onlyoffice_dump_logs
+        return 1
     fi
 
     # Font-Index: Der Container-Entrypoint indexiert /usr/share/fonts/truetype/custom

@@ -55,6 +55,9 @@ step_gunicorn() {
     fi
 
     GUNICORN_WORKERS="${GUNICORN_WORKERS:-2}"
+    # gthread: SSE/lange Streams blockieren nicht den ganzen Worker-Prozess
+    GUNICORN_WORKER_CLASS="${GUNICORN_WORKER_CLASS:-gthread}"
+    GUNICORN_THREADS="${GUNICORN_THREADS:-8}"
     GUNICORN_TIMEOUT="${GUNICORN_TIMEOUT:-180}"
     GUNICORN_MAX_REQUESTS="${GUNICORN_MAX_REQUESTS:-1000}"
     GUNICORN_MAX_REQUESTS_JITTER="${GUNICORN_MAX_REQUESTS_JITTER:-100}"
@@ -83,7 +86,9 @@ Environment="PATH=${INSTALL_DIR}/venv/bin"
 Environment="FLASK_ENV=production"
 Environment="PRISMATEAMS_SKIP_BACKGROUND_JOBS=0"
 ExecStart=${INSTALL_DIR}/venv/bin/gunicorn \\
+    --worker-class ${GUNICORN_WORKER_CLASS} \\
     --workers ${GUNICORN_WORKERS} \\
+    --threads ${GUNICORN_THREADS} \\
     --bind 127.0.0.1:${GUNICORN_PORT} \\
     --timeout ${GUNICORN_TIMEOUT} \\
     --graceful-timeout 30 \\
@@ -110,7 +115,7 @@ EOF
 
     sleep 3
     if systemctl is-active --quiet teamportal; then
-        log_success "Gunicorn Service läuft (${GUNICORN_WORKERS} Worker, Timeout ${GUNICORN_TIMEOUT}s, Port ${GUNICORN_PORT})"
+        log_success "Gunicorn Service läuft (${GUNICORN_WORKER_CLASS}, ${GUNICORN_WORKERS}×${GUNICORN_THREADS} Threads, Timeout ${GUNICORN_TIMEOUT}s, Port ${GUNICORN_PORT})"
     else
         log_warning "Service-Status unklar: systemctl status teamportal"
     fi

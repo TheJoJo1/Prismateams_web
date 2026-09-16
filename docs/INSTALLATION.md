@@ -157,9 +157,19 @@ Standard-Image: `ghcr.io/euro-office/documentserver:latest`. ENV-Keys heißen hi
 ```bash
 # Volumes (Euro-Office Layout)
 sudo mkdir -p /var/lib/eurooffice/DocumentServer/{data,logs,config,fonts}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/logs/{adminpanel,converter,docservice,metrics}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/data/App_Data
+sudo chmod -R a+rwX /var/lib/eurooffice/DocumentServer/data /var/lib/eurooffice/DocumentServer/logs
 
-# Neueste Docs-Version laden und starten (JWT aktiv, nur localhost)
+# Config aus dem Image seeden — ein leeres Bind-Mount auf
+# /etc/euro-office/documentserver verdeckt default.json/local.json.
+# Der Entrypoint crasht dann (jq: Could not open file local.json) im Restart-Loop.
 sudo docker pull ghcr.io/euro-office/documentserver:latest
+sudo docker create --name eurooffice-seed ghcr.io/euro-office/documentserver:latest
+sudo docker cp eurooffice-seed:/etc/euro-office/documentserver/. /var/lib/eurooffice/DocumentServer/config/
+sudo docker rm eurooffice-seed
+
+# Neueste Docs-Version starten (JWT aktiv, nur localhost)
 sudo docker run -d --restart=always \
     --name eurooffice-documentserver \
     -p 127.0.0.1:8080:80 \
@@ -521,7 +531,8 @@ sudo -u www-data bash -c "source venv/bin/activate && FLASK_ENV=production PRISM
 sudo nano /etc/systemd/system/teamportal.service
 ```
 
-Produktion: **2 Worker** (mit Redis), Timeout 180s. Ein hängender Request blockiert dann nicht das ganze Portal. Converter/Media-Downloads laufen bereits in Hintergrund-Threads.
+Produktion: **`gthread`**, 2–4 Worker × 8 Threads (mit Redis), Timeout 180s.
+**Wichtig:** Default-`sync`-Worker werden von SSE (`/sse/events/...`) komplett blockiert — dann warten Seitenaufrufe mehrere Sekunden (Worker-Queue), obwohl CPU/DB idle sind.
 
 ```ini
 [Unit]
@@ -535,7 +546,9 @@ WorkingDirectory=/var/www/teamportal
 Environment="PATH=/var/www/teamportal/venv/bin"
 Environment="FLASK_ENV=production"
 ExecStart=/var/www/teamportal/venv/bin/gunicorn \
+    --worker-class gthread \
     --workers 2 \
+    --threads 8 \
     --bind 127.0.0.1:5000 \
     --timeout 180 \
     --graceful-timeout 30 \
@@ -614,6 +627,8 @@ Zusätzlich Gzip für CSS/JS/JSON (Ubuntu komprimiert sonst oft nur HTML). Entwe
 sudo cp /var/www/teamportal/scripts/install_ubuntu/nginx-gzip.conf /etc/nginx/conf.d/teamportal-gzip.conf
 ```
 
+Ubuntu **24.04+** hat bereits `gzip on;` in `/etc/nginx/nginx.conf`. Das Snippet in `conf.d` darf `gzip on;` **nicht** erneut im `http`-Kontext setzen, sonst schlägt `nginx -t` mit `"gzip" directive is duplicate` fehl. `gzip on;` im `server { }`-Block (unten) ist ein anderer Kontext und bleibt gültig.
+
 Optional Brotli, wenn das Nginx-Modul installiert ist (`libnginx-mod-http-brotli`):
 
 ```bash
@@ -655,6 +670,9 @@ server {
     gzip_min_length 256;
     gzip_types text/plain text/css text/xml text/javascript
                application/javascript application/json application/xml image/svg+xml;
+
+    # Document Server ohne /eurooffice-Prefix (/sdkjs, /fonts, /doc, Versions-Hash)
+    include /etc/nginx/snippets/teamportal-documentserver-extra.conf;
 
     # Document Server Cache (MUSS VOR /onlyoffice und /eurooffice kommen!)
     # Euro-Office / OnlyOffice benötigen diesen Pfad für interne Cache-Dateien

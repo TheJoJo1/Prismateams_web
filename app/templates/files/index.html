@@ -82,7 +82,9 @@
 {% macro files_move_menu_item(item_type, item_id) %}
 {% if not is_trash_view %}
 <li>
-    <a class="dropdown-item" href="#" onclick="openMoveModal({{ item_type|tojson }}, {{ item_id }}); return false;">
+    <a class="dropdown-item" href="#" role="button"
+       data-files-move-type="{{ item_type }}"
+       data-files-move-id="{{ item_id }}">
         <i class="bi bi-folder-symlink me-2"></i> {{ _('files.index.actions.move') }}
     </a>
 </li>
@@ -1165,30 +1167,6 @@
     </div>
 </div>
 
-<!-- Verschieben Modal -->
-<div class="modal fade" id="filesMoveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ _('files.index.modals.move.title') }}</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.cancel') }}"></button>
-            </div>
-            <div class="modal-body">
-                <p class="small text-muted mb-3" id="filesMoveItemLabel"></p>
-                <div id="filesMoveLoading" class="text-muted small py-3">{{ _('files.index.modals.move.loading') }}</div>
-                <div id="filesMoveTree" class="files-move-tree" hidden></div>
-                <div id="filesMoveError" class="alert alert-danger py-2 small mb-0" hidden></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
-                <button type="button" class="btn btn-accent" id="filesMoveConfirmBtn" disabled>
-                    <i class="bi bi-folder-symlink me-1"></i>{{ _('files.index.modals.move.confirm') }}
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Upload-Konflikt Modal -->
 <div class="modal fade" id="uploadConflictModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1248,6 +1226,30 @@
 </div>
 
 </div></div><!-- /files-shell -->
+
+<!-- Verschieben Modal: außerhalb der Shell (sonst hinter Backdrop wegen Stacking-Context) -->
+<div class="modal fade" id="filesMoveModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ _('files.index.modals.move.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.cancel') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3" id="filesMoveItemLabel"></p>
+                <div id="filesMoveLoading" class="text-muted small py-3">{{ _('files.index.modals.move.loading') }}</div>
+                <div id="filesMoveTree" class="files-move-tree" hidden></div>
+                <div id="filesMoveError" class="alert alert-danger py-2 small mb-0" hidden></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-accent" id="filesMoveConfirmBtn" disabled>
+                    <i class="bi bi-folder-symlink me-1"></i>{{ _('files.index.modals.move.confirm') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 {% if not current_user.is_guest and webdav_url %}
 <div class="modal fade" id="webdavConnectModal" tabindex="-1" aria-labelledby="webdavConnectModalLabel" aria-hidden="true">

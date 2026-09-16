@@ -1773,21 +1773,48 @@ function openFolderColorModal(folderId, folderName, currentColor) {
 
     window.openMoveModal = function openMoveModal(itemType, itemId) {
         if (window.FILES_IS_TRASH) return;
-        moveState.itemType = itemType;
-        moveState.itemId = itemId;
+        const type = String(itemType || '').toLowerCase();
+        const id = parseInt(itemId, 10);
+        if ((type !== 'file' && type !== 'folder') || !Number.isFinite(id)) return;
+
+        // Dropdown / Mobile Action Sheet zuerst schließen (Body-Scroll-Lock lösen)
+        if (typeof closeActiveMenus === 'function') closeActiveMenus();
+
+        moveState.itemType = type;
+        moveState.itemId = id;
         const labels = moveLabels();
         const labelEl = document.getElementById('filesMoveItemLabel');
         if (labelEl) {
-            labelEl.textContent = itemType === 'folder' ? labels.item_folder : labels.item_file;
+            labelEl.textContent = type === 'folder' ? labels.item_folder : labels.item_file;
         }
         const modalEl = document.getElementById('filesMoveModal');
         if (!modalEl) return;
+        // Außerhalb von .mod-main (z-index:1), sonst liegt das Modal hinter dem Backdrop
+        if (modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
         moveState.modal = bootstrap.Modal.getOrCreateInstance(modalEl);
         moveState.modal.show();
         loadDestinations();
     };
 
+    // Menüführung (Desktop-Dropdown + geklontes Mobile-Sheet): data-* statt inline-onclick
+    document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-files-move-type][data-files-move-id]');
+        if (!trigger) return;
+        e.preventDefault();
+        e.stopPropagation();
+        window.openMoveModal(
+            trigger.getAttribute('data-files-move-type'),
+            trigger.getAttribute('data-files-move-id')
+        );
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
+        const modalEl = document.getElementById('filesMoveModal');
+        if (modalEl && modalEl.parentElement !== document.body) {
+            document.body.appendChild(modalEl);
+        }
         const confirmBtn = document.getElementById('filesMoveConfirmBtn');
         if (!confirmBtn) return;
         confirmBtn.addEventListener('click', async () => {
