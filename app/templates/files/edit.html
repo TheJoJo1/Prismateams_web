@@ -32,10 +32,10 @@
 
         <div class="markdown-editor-toolbar-divider" aria-hidden="true"></div>
 
-        <button type="button" class="btn btn-outline-secondary files-pill-btn" onclick="goBack()" id="backBtn">
+        <button type="button" class="btn btn-outline-secondary mod-pill-btn" onclick="goBack()" id="backBtn">
             <i class="bi bi-arrow-left"></i> Zurück
         </button>
-        <button type="button" class="btn btn-accent files-pill-btn" onclick="saveFile()" id="saveBtn"{% if edit_locked %} disabled{% endif %}>
+        <button type="button" class="btn btn-accent mod-pill-btn" onclick="saveFile()" id="saveBtn"{% if edit_locked %} disabled{% endif %}>
             <i class="bi bi-check-lg"></i> Speichern
         </button>
 
@@ -57,7 +57,7 @@
             </span>
             {% endif %}
             {% endif %}
-            <button type="button" class="btn btn-outline-secondary files-pill-btn" onclick="openViewer()" id="previewBtn">
+            <button type="button" class="btn btn-outline-secondary mod-pill-btn" onclick="openViewer()" id="previewBtn">
                 <i class="bi bi-eye"></i> Vorschau
             </button>
         </div>
@@ -70,7 +70,7 @@
             Diese Datei wird gerade von <strong>{{ locker_name or 'einem anderen Nutzer' }}</strong> bearbeitet.
             Speichern ist gesperrt, bis der Lock freigegeben wird.
         </span>
-        <button type="button" class="btn btn-sm btn-outline-secondary files-pill-btn" id="retryLockBtn">
+        <button type="button" class="btn btn-sm btn-outline-secondary mod-pill-btn" id="retryLockBtn">
             Erneut prüfen
         </button>
     </div>
@@ -219,6 +219,9 @@ function openViewer() {
 
 function saveFile(silent = false) {
     if (EDIT_LOCKED) return;
+    if (window.MarkdownTableEditor) {
+        window.MarkdownTableEditor.sync('markdownEditor');
+    }
 
     const form = document.getElementById('editForm');
     const saveBtn = document.getElementById('saveBtn');
@@ -287,7 +290,7 @@ function formatText(type) {
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        if (window.MarkdownToolbar && document.getElementById('markdownToolsSheet')?.classList.contains('is-open')) {
+        if (window.MarkdownToolbar && window.MarkdownToolbar.handleEscape()) {
             return;
         }
         if (isPreviewMode) {
@@ -319,6 +322,9 @@ function togglePreview() {
 }
 
 function updatePreview() {
+    if (window.MarkdownTableEditor) {
+        window.MarkdownTableEditor.sync('markdownEditor');
+    }
     const editor = document.getElementById('markdownEditor');
     const preview = document.getElementById('markdownPreview');
     const formData = new FormData();
@@ -347,7 +353,12 @@ function updatePreview() {
 {% endblock %}
 
 {% block extra_js %}
+<script>
+window.MARKDOWN_EDITOR_I18N = {{ i18n_ns('markdown', 'editor')|tojson }};
+window.MARKDOWN_LINK_PREVIEW_URL = {{ url_for('files.link_preview')|tojson }};
+</script>
 <script src="{{ url_for('static', filename='js/files-markdown-enhance.js') }}"></script>
+<script src="{{ url_for('static', filename='js/markdown-table-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/markdown-toolbar.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
@@ -355,6 +366,8 @@ document.addEventListener('DOMContentLoaded', function () {
         window.MarkdownToolbar.init({
             editorId: 'markdownEditor',
             locked: {{ 'true' if edit_locked else 'false' }},
+            visualTables: {{ 'true' if is_markdown else 'false' }},
+            i18n: window.MARKDOWN_EDITOR_I18N || {},
             labels: {
                 text: 'Text',
                 heading: 'Überschrift',

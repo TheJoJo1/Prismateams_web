@@ -35,10 +35,18 @@ MODULE_META = [
     {'key': 'module_file_converter', 'icon': 'bi-arrow-left-right', 'label': 'Dateikonverter', 'settings_endpoint': None},
     {'key': 'module_assessment', 'icon': 'bi-clipboard-check', 'label': 'Bewertungen', 'settings_endpoint': 'assessment.admin_settings.admin_settings_page'},
     {'key': 'module_shortlinks', 'icon': 'bi-link-45deg', 'label': 'Kurzlinks', 'settings_endpoint': None},
-    {'key': 'module_kanban', 'icon': 'bi-kanban', 'label': 'Kanban', 'settings_endpoint': 'settings.admin_kanban_settings'},
+    {'key': 'module_kanban', 'icon': 'bi-kanban', 'label': 'Kanban', 'settings_endpoint': 'settings.kanban_import'},
     {'key': 'module_excalidraw', 'icon': 'bi-pencil-square', 'label': 'Excalidraw', 'settings_endpoint': None},
     {'key': 'module_surveys', 'icon': 'bi-ui-checks-grid', 'label': 'Umfragen', 'settings_endpoint': None},
+    {'key': 'module_meetings', 'icon': 'bi-camera-video', 'label': 'Meetings', 'settings_endpoint': None},
 ]
+
+
+def _visible_module_meta():
+    from app.utils.mirotalk import mirotalk_configured
+    if mirotalk_configured():
+        return MODULE_META
+    return [meta for meta in MODULE_META if meta['key'] != 'module_meetings']
 
 LANGUAGE_NAMES = {
     'de': 'Deutsch',
@@ -508,7 +516,7 @@ def setup_step2():
                     **_setup_template_kwargs(2, admin_user=existing_admin, editing=editing),
                 )
             from app.utils.password_policy import validate_password
-            is_valid, _ = validate_password(password, min_length=8, require_complexity=False)
+            is_valid, _ = validate_password(password)
             if not is_valid:
                 flash(translate('setup.flash.password_too_short'), 'danger')
                 return render_template(
@@ -603,7 +611,8 @@ def setup_step2():
             # Wie beim normalen Login: Flask-Login + Portal-Session (session_id).
             # Ohne create_session wirft ensure_portal_session_tracking den User
             # beim Redirect auf Step 3 sofort wieder zum Login.
-            from app.utils.session_manager import create_session
+            from app.utils.session_manager import create_session, rotate_session_on_login
+            rotate_session_on_login()
             login_user(admin_user)
             session['user_scope'] = 'portal'
             create_session(admin_user.id)
@@ -700,7 +709,7 @@ def setup_step3():
                     3,
                     setup_bot=bot_data,
                     setup_modules=AVAILABLE_MODULES,
-                    module_meta=MODULE_META,
+                    module_meta=_visible_module_meta(),
                     default_roles=default_roles,
                 ),
             )
@@ -715,7 +724,7 @@ def setup_step3():
             3,
             setup_bot=setup_bot,
             setup_modules=AVAILABLE_MODULES,
-            module_meta=MODULE_META,
+            module_meta=_visible_module_meta(),
             default_roles=default_roles,
             whitelist_entries=session.get('setup_whitelist_entries', []),
         ),
@@ -761,7 +770,7 @@ def setup_step4():
 
     saved = session.get('setup_modules') or _default_modules_dict()
     modules_for_ui = []
-    for meta in MODULE_META:
+    for meta in _visible_module_meta():
         if meta['key'] not in AVAILABLE_MODULES:
             continue
         item = dict(meta)

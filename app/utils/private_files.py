@@ -4,6 +4,8 @@ from datetime import datetime
 
 from flask_login import current_user
 
+from sqlalchemy.orm import joinedload
+
 from app import db
 from app.models.file import File, Folder, ResourceACL, FolderFavorite
 from app.models.settings import SystemSettings
@@ -240,6 +242,50 @@ def _alive_folder_query():
 
 def _alive_file_query():
     return File.query.filter(File.deleted_at.is_(None), File.is_current.is_(True))
+
+
+def window_folders_then_files(folder_query, file_query, offset=0, limit=48):
+    """SQL window: folders first, then files. Does not load the full folder."""
+    offset = max(0, int(offset or 0))
+    limit = max(1, int(limit or 48))
+    folder_count = int(folder_query.order_by(None).count() or 0)
+    file_count = int(file_query.order_by(None).count() or 0)
+    total = folder_count + file_count
+    has_more = (offset + limit) < total
+    folders = []
+    files = []
+    fetch_files = file_query.options(joinedload(File.uploader))
+    if offset < folder_count:
+        take_folders = min(limit, folder_count - offset)
+        folders = folder_query.offset(offset).limit(take_folders).all()
+        remain = limit - len(folders)
+        if remain > 0:
+            files = fetch_files.offset(0).limit(remain).all()
+    else:
+        files = fetch_files.offset(offset - folder_count).limit(limit).all()
+    return folders, files, has_more, total
+
+
+def _apply_browse_window(folders, files, offset, limit, window_meta):
+    """In-memory window for mixed/ACL-filtered lists. SQL paths use window_folders_then_files."""
+    folders = list(folders or [])
+    files = list(files or [])
+    total = len(folders) + len(files)
+    if limit is None:
+        if window_meta is not None:
+            window_meta['has_more'] = False
+            window_meta['total'] = total
+        return folders, files
+    offset = max(0, int(offset or 0))
+    limit = max(1, int(limit or 48))
+    combined = [('folder', f) for f in folders] + [('file', f) for f in files]
+    window = combined[offset:offset + limit]
+    out_folders = [item for kind, item in window if kind == 'folder']
+    out_files = [item for kind, item in window if kind == 'file']
+    if window_meta is not None:
+        window_meta['has_more'] = (offset + limit) < total
+        window_meta['total'] = total
+    return out_folders, out_files
 
 
 def _folder_owned_by(folder, user_id):
@@ -525,6 +571,47 @@ def _serialize_move_folder_nodes(by_parent, parent_id, exclude_ids):
     return nodes
 
 
+def _build_move_folder_tree(by_parent, root_parent_id, exclude_ids):
+    """
+    Nested folder tree for the move picker.
+    Orphan folders (parent missing/not visible) are attached at the space root
+    so every reachable destination remains selectable.
+    """
+    tree = _serialize_move_folder_nodes(by_parent, root_parent_id, exclude_ids)
+    included = set()
+
+    def _walk(nodes):
+        for node in nodes:
+            included.add(node['id'])
+            _walk(node.get('children') or [])
+
+    _walk(tree)
+
+    orphans = []
+    for parent_id, folders in by_parent.items():
+        if parent_id == root_parent_id:
+            continue
+        parent_visible = parent_id in included
+        for folder in folders:
+            if folder.id in exclude_ids or folder.id in included:
+                continue
+            if parent_visible:
+                continue
+            orphans.append({
+                'id': folder.id,
+                'name': folder.name,
+                'color': folder.color,
+                'children': _serialize_move_folder_nodes(by_parent, folder.id, exclude_ids),
+            })
+            included.add(folder.id)
+            _walk(orphans[-1]['children'])
+
+    if orphans:
+        orphans.sort(key=lambda n: (n.get('name') or '').lower())
+        tree.extend(orphans)
+    return tree
+
+
 def _folders_in_subtree(root_id):
     """Non-root folders whose ancestry includes root_id."""
     if root_id is None:
@@ -565,7 +652,7 @@ def list_move_destinations(user, exclude_folder_id=None):
             'team_id': None,
             'root_folder_id': personal_root.id,
             'label': 'ablage',
-            'folders': _serialize_move_folder_nodes(by_parent, personal_root.id, exclude_ids),
+            'folders': _build_move_folder_tree(by_parent, personal_root.id, exclude_ids),
         })
 
     if is_team_folders_enabled():
@@ -586,7 +673,7 @@ def list_move_destinations(user, exclude_folder_id=None):
                 'root_folder_id': team_root.id,
                 'label': team.name,
                 'color': getattr(team, 'color', None),
-                'folders': _serialize_move_folder_nodes(by_parent, team_root.id, exclude_ids),
+                'folders': _build_move_folder_tree(by_parent, team_root.id, exclude_ids),
             })
 
     public_folders = (
@@ -609,16 +696,18 @@ def list_move_destinations(user, exclude_folder_id=None):
         'team_id': None,
         'root_folder_id': None,
         'label': 'public',
-        'folders': _serialize_move_folder_nodes(by_parent, None, exclude_ids),
+        'folders': _build_move_folder_tree(by_parent, None, exclude_ids),
     })
 
     return spaces
 
 
-def list_view_contents(view, folder_id, user, team_id=None):
+def list_view_contents(view, folder_id, user, team_id=None, *, offset=0, limit=None, window_meta=None):
     """
     Return (current_folder, subfolders, files, breadcrumb_extra).
     breadcrumb_extra is the virtual root label for the view.
+    If limit is set, only a window of folders-then-files is returned and
+    window_meta is filled with has_more / total.
     """
     personal_root = ensure_personal_root(user.id) if view in ('ablage',) else None
     team_root = None
@@ -630,7 +719,7 @@ def list_view_contents(view, folder_id, user, team_id=None):
             return 'forbidden', [], [], 'team'
 
     if view == 'trash':
-        folders = (
+        folder_q = (
             Folder.query.filter(
                 Folder.deleted_at.isnot(None),
                 Folder.created_by == user.id,
@@ -638,18 +727,24 @@ def list_view_contents(view, folder_id, user, team_id=None):
                 Folder.is_team_root.is_(False),
             )
             .order_by(Folder.deleted_at.desc())
-            .all()
         )
-        files = (
+        file_q = (
             File.query.filter(
                 File.deleted_at.isnot(None),
                 File.uploaded_by == user.id,
                 File.is_current.is_(True),
             )
             .order_by(File.deleted_at.desc())
-            .all()
         )
-        return None, folders, files, 'trash'
+        if limit is not None:
+            folders, files, has_more, total = window_folders_then_files(
+                folder_q, file_q, offset, limit,
+            )
+            if window_meta is not None:
+                window_meta['has_more'] = has_more
+                window_meta['total'] = total
+            return None, folders, files, 'trash'
+        return None, folder_q.all(), file_q.all(), 'trash'
 
     if view == 'freigaben' and not folder_id:
         member_team_ids = list(user_file_team_ids(user))
@@ -706,13 +801,18 @@ def list_view_contents(view, folder_id, user, team_id=None):
             ).all()
         }
 
+        all_folder_ids = folder_ids | outgoing_folder_ids
         folders = []
-        for fid in folder_ids | outgoing_folder_ids:
-            folder = Folder.query.get(fid)
-            if folder and folder.deleted_at is None and not folder.is_personal_root:
+        if all_folder_ids:
+            for folder in Folder.query.filter(
+                Folder.id.in_(all_folder_ids),
+                Folder.deleted_at.is_(None),
+            ).all():
+                if folder.is_personal_root:
+                    continue
                 if getattr(folder, 'is_team_root', False) and folder.team_id in member_team_ids:
                     continue
-                if folder.created_by != user.id or fid in outgoing_folder_ids:
+                if folder.created_by != user.id or folder.id in outgoing_folder_ids:
                     folders.append(folder)
         seen = set()
         uniq_folders = []
@@ -721,11 +821,15 @@ def list_view_contents(view, folder_id, user, team_id=None):
                 seen.add(f.id)
                 uniq_folders.append(f)
 
+        all_file_ids = file_ids | outgoing_file_ids
         files = []
-        for fid in file_ids | outgoing_file_ids:
-            file_obj = File.query.get(fid)
-            if file_obj and file_obj.deleted_at is None and file_obj.is_current:
-                if file_obj.uploaded_by != user.id or fid in outgoing_file_ids:
+        if all_file_ids:
+            for file_obj in File.query.filter(
+                File.id.in_(all_file_ids),
+                File.deleted_at.is_(None),
+                File.is_current.is_(True),
+            ).all():
+                if file_obj.uploaded_by != user.id or file_obj.id in outgoing_file_ids:
                     files.append(file_obj)
         seen_f = set()
         uniq_files = []
@@ -736,6 +840,9 @@ def list_view_contents(view, folder_id, user, team_id=None):
 
         uniq_folders.sort(key=lambda x: x.name.lower())
         uniq_files.sort(key=lambda x: x.name.lower())
+        uniq_folders, uniq_files = _apply_browse_window(
+            uniq_folders, uniq_files, offset, limit, window_meta,
+        )
         return None, uniq_folders, uniq_files, 'freigaben'
 
     current_folder = None
@@ -818,11 +925,14 @@ def list_view_contents(view, folder_id, user, team_id=None):
                 files.append(file_obj)
                 existing_f.add(file_obj.id)
         files.sort(key=lambda x: x.name.lower())
+        subfolders, files = _apply_browse_window(
+            subfolders, files, offset, limit, window_meta,
+        )
         return current_folder, subfolders, files, 'public'
 
     # Standard child listing for a parent
     parent_id = effective_parent_id
-    subfolders = (
+    folder_q = (
         _alive_folder_query()
         .filter(
             Folder.parent_id == parent_id,
@@ -830,14 +940,30 @@ def list_view_contents(view, folder_id, user, team_id=None):
             Folder.is_team_root.is_(False),
         )
         .order_by(Folder.name)
-        .all()
     )
-    files = (
+    file_q = (
         _alive_file_query()
         .filter(File.folder_id == parent_id)
         .order_by(File.name)
-        .all()
     )
+
+    if limit is not None:
+        subfolders, files, has_more, total = window_folders_then_files(
+            folder_q, file_q, offset, limit,
+        )
+        if view == 'ablage':
+            subfolders = [f for f in subfolders if f.created_by == user.id or can_view_folder(f, user)]
+            files = [f for f in files if f.uploaded_by == user.id or can_view_file(f, user)]
+        elif view == 'team':
+            subfolders = [f for f in subfolders if can_view_folder(f, user, team_enabled=True)]
+            files = [f for f in files if can_view_file(f, user, team_enabled=True)]
+        if window_meta is not None:
+            window_meta['has_more'] = has_more
+            window_meta['total'] = total
+        return current_folder, subfolders, files, view
+
+    subfolders = folder_q.all()
+    files = file_q.all()
 
     if view == 'ablage':
         subfolders = [f for f in subfolders if f.created_by == user.id or can_view_folder(f, user)]
@@ -915,6 +1041,11 @@ def hard_delete_file_disk_and_db(file_obj, os_module):
                 _os.remove(file_path)
             except OSError:
                 pass
+    try:
+        from app.utils.file_thumbnails import purge_thumbnails_for_file
+        purge_thumbnails_for_file(file_obj.id)
+    except Exception:
+        pass
     db.session.delete(file_obj)
 
 

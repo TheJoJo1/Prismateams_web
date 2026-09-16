@@ -1,43 +1,17 @@
 const InventoryFormManager = (() => {
-    const INVENTORY_API_BASES = ['/inventory/vnext/api', '/vnext/api'];
-    let activeInventoryApiBase = INVENTORY_API_BASES[0];
+    const INVENTORY_API_BASE = '/inventory/api';
 
     const normalizeApiPath = (path) => {
         if (!path) return '';
         return path.startsWith('/') ? path : `/${path}`;
     };
 
-    const resolveApiUrl = (path, base = activeInventoryApiBase) => {
-        return `${base}${normalizeApiPath(path)}`;
+    const resolveApiUrl = (path) => {
+        return `${INVENTORY_API_BASE}${normalizeApiPath(path)}`;
     };
 
     const inventoryApiFetch = async (path, options = {}) => {
-        const normalizedPath = normalizeApiPath(path);
-        const candidateBases = [
-            activeInventoryApiBase,
-            ...INVENTORY_API_BASES.filter(base => base !== activeInventoryApiBase)
-        ];
-
-        let lastResponse = null;
-        let lastError = null;
-
-        for (const base of candidateBases) {
-            try {
-                const response = await fetch(resolveApiUrl(normalizedPath, base), options);
-                lastResponse = response;
-                if (response.status !== 404) {
-                    activeInventoryApiBase = base;
-                    return response;
-                }
-            } catch (error) {
-                lastError = error;
-            }
-        }
-
-        if (lastResponse) {
-            return lastResponse;
-        }
-        throw lastError || new Error('API-Anfrage fehlgeschlagen.');
+        return fetch(resolveApiUrl(path), options);
     };
 
     const state = {
@@ -164,14 +138,14 @@ const InventoryFormManager = (() => {
 
             const editBtn = document.createElement('button');
             editBtn.type = 'button';
-            editBtn.className = 'btn btn-sm inventory-pill-btn inventory-pill-btn--muted';
+            editBtn.className = 'btn btn-sm mod-pill-btn mod-pill-btn--muted';
             editBtn.innerHTML = '<i class="bi bi-pencil"></i>';
             editBtn.title = labels.edit;
             editBtn.addEventListener('click', () => openEditPanel(type, id, name));
 
             const deleteBtn = document.createElement('button');
             deleteBtn.type = 'button';
-            deleteBtn.className = 'btn btn-sm inventory-pill-btn inventory-pill-btn--danger';
+            deleteBtn.className = 'btn btn-sm mod-pill-btn mod-pill-btn--danger';
             deleteBtn.innerHTML = '<i class="bi bi-trash"></i>';
             deleteBtn.title = labels.delete;
             deleteBtn.addEventListener('click', () => {
@@ -500,6 +474,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupProductFormTooltips();
     setupDguvRequiredToggle();
     setupDguvAutoNext();
+    initExternalBarcodeQuantityGuard();
 });
 
 function setupProductFormTooltips() {
@@ -594,4 +569,29 @@ function setupDguvAutoNext() {
     intervalInput.addEventListener('change', refresh);
     intervalInput.addEventListener('input', refresh);
     refresh();
+}
+
+/** Inventar-Nr. nur bei Menge 1 (Create-Formular). */
+function initExternalBarcodeQuantityGuard() {
+    const qtyInput = document.getElementById('quantity');
+    const barcodeInput = document.getElementById('external_barcode');
+    if (!qtyInput || !barcodeInput) return;
+
+    const help = document.getElementById('externalBarcodeHelp');
+    const qtyHint = document.getElementById('externalBarcodeQtyHint');
+
+    const sync = () => {
+        const qty = parseInt(qtyInput.value, 10) || 1;
+        const multi = qty > 1;
+        barcodeInput.disabled = multi;
+        if (multi) {
+            barcodeInput.value = '';
+        }
+        if (help) help.classList.toggle('d-none', multi);
+        if (qtyHint) qtyHint.classList.toggle('d-none', !multi);
+    };
+
+    qtyInput.addEventListener('change', sync);
+    qtyInput.addEventListener('input', sync);
+    sync();
 }

@@ -33,7 +33,9 @@
       "shortlinks": "Short links",
       "assessment": "Assessment",
       "surveys": "Surveys",
-      "file_converter": "File Converter"
+      "file_converter": "File Converter",
+      "protocols": "Meeting Minutes",
+      "meetings": "Meetings"
     },
     "brand": {
       "separator": "–",
@@ -120,7 +122,12 @@
     "required": "Required",
     "language": "Language",
     "select_language": "Select language",
-    "unknown_error": "Unknown error"
+    "unknown_error": "Unknown error",
+    "pagination": {
+      "load_more": "Load more",
+      "load_more_loading": "Loading…",
+      "load_error": "Could not load more items"
+    }
   },
   "context_menu": {
     "copy_info": "Copy info",
@@ -155,7 +162,8 @@
       "2fa_code": "2FA code",
       "2fa_code_help": "Enter the 6-digit code from your authenticator app.",
       "2fa_recovery_request": "Lost access to your authenticator app? Send code by email",
-      "2fa_recovery_pending": "A recovery code was sent to your email (valid for 5 minutes). You can enter it here.",
+      "2fa_recovery_pending": "A recovery code was sent to your email (10 characters, valid for 5 minutes). You can enter it here.",
+      "2fa_code_or_recovery_hint": "Authenticator code (6 digits) or email recovery code.",
       "forgot_password": "Forgot password?"
     },
     "legal": {
@@ -264,15 +272,16 @@
       "picture_invalid_type": "Invalid file type. Only PNG, JPG, JPEG and GIF files are allowed.",
       "picture_too_large": "The profile picture is too large. Maximum size: 5 MB.",
       "enter_email": "Please enter your email address.",
-      "password_reset_email_sent": "If an account with this email address exists, a reset code has been sent.",
-      "invalid_reset_code": "Invalid or expired reset code.",
+      "password_reset_email_sent": "If an account with this email address exists, a reset token has been sent.",
+      "invalid_reset_code": "Invalid or expired reset token.",
       "password_reset_success": "Password was reset successfully. You can now log in.",
       "enter_2fa_code": "Please enter your 2FA code.",
       "invalid_2fa_code": "Invalid 2FA code. Please try again.",
-      "2fa_recovery_email_sent": "A recovery code was sent to {email}. It is valid for 5 minutes.",
+      "2fa_recovery_email_sent": "A recovery code was sent to {email}. It is valid for 5 minutes and can be used only once.",
       "2fa_recovery_email_failed": "Could not send the recovery code. Please try again later.",
       "2fa_recovery_mail_not_configured": "Email is not configured. Please contact an administrator.",
       "2fa_recovery_rate_limited": "Please wait a moment before requesting a new code.",
+      "2fa_recovery_disabled": "Email recovery for 2FA is disabled on this system.",
       "account_locked": "Your account has been locked for {seconds} seconds due to too many failed login attempts."
     },
     "bot_protection": {
@@ -280,23 +289,23 @@
     },
     "forgot_password": {
       "title": "Forgot password",
-      "subtitle": "Enter your email address to receive a reset code.",
+      "subtitle": "Enter your email address to receive a reset token.",
       "email": "Email address",
-      "email_help": "We will send you a code to reset your password.",
-      "info_message": "We will send you a 6-digit code by email that you can use to reset your password.",
-      "submit": "Request code",
+      "email_help": "We will send you a link and token to reset your password.",
+      "info_message": "We will email you a secure reset token and a direct link.",
+      "submit": "Request reset",
       "back_to_login": "Back to login"
     },
     "reset_password": {
       "title": "Reset password",
-      "subtitle": "Enter the code and your new password.",
+      "subtitle": "Enter the token and your new password.",
       "email": "Email address",
-      "reset_code": "Reset code",
-      "code_help": "You can find the code in the email with the subject \"Reset password\".",
+      "reset_code": "Reset token",
+      "code_help": "You can find the token in the email with the subject \"Reset password\".",
       "new_password": "New password",
       "confirm_password": "Confirm new password",
       "password_help": "At least 8 characters",
-      "info_message": "The code is valid for 1 hour. Please also check your spam folder.",
+      "info_message": "The token is valid for 1 hour. Please also check your spam folder.",
       "submit": "Reset password",
       "back_to_login": "Back to login"
     },
@@ -886,7 +895,7 @@
       "nav_label": "Settings navigation",
       "menu": "Menu",
       "start": "Home",
-      "admin_heading": "Admin settings",
+      "admin_heading": "Administration",
       "push_subscriptions": "Web push subscriptions",
       "push_subscriptions_desc": "View and manage active browser push registrations for all users.",
       "email_module": "Email settings",
@@ -895,15 +904,18 @@
       "inventory_desc": "Settings for public product pages and QR codes",
       "sections": {
         "account": "Account",
-        "modules": "Module settings"
+        "modules": "Module settings",
+        "tools": "My tools"
       },
       "team_lead_heading": "Team lead",
       "kanban": "Kanban",
-      "kanban_desc": "Visibility Private / Team / Public for boards"
+      "kanban_desc": "Visibility Private / Team / Public for boards",
+      "push": "Push subscriptions"
     },
     "search": {
       "label": "Search settings",
-      "placeholder": "Search settings…"
+      "placeholder": "Search settings…",
+      "empty": "No results"
     },
     "team_settings": {
       "title": "Team settings",
@@ -919,7 +931,9 @@
       "no_modules": "No active modules with a team section.",
       "flash_saved": "Team settings saved.",
       "flash_no_teams": "You are not leading any team.",
-      "flash_email_disabled": "The team email section is disabled for this team."
+      "flash_email_disabled": "The team email section is disabled for this team.",
+      "teams_tile_short": "Members",
+      "tile_short": "Team modules"
     },
     "appearance": {
       "page_title": "Appearance - Settings",
@@ -974,7 +988,13 @@
         "left_label": "Left icon",
         "right_label": "Right icon",
         "help": "Notifications, dashboard and modules are fixed and cannot be changed."
-      }
+      },
+      "lead_short": "Language, theme and accent.",
+      "preview_panel_title": "Live preview",
+      "preview_panel_lead": "How your accent looks in the UI.",
+      "preview_nav": "Navigation",
+      "preview_button": "Action",
+      "preview_card": "Sample card"
     },
     "index": {
       "page_title": "Settings - Team Portal",
@@ -985,39 +1005,57 @@
         "profile": {
           "title": "Profile",
           "description": "Personal details and profile picture",
-          "button": "Edit"
+          "button": "Edit",
+          "short": "Name & avatar"
         },
         "appearance": {
           "title": "Appearance",
           "description": "Adjust accent colour, language and dark mode",
-          "button": "Edit"
+          "button": "Edit",
+          "short": "Theme & color"
         },
         "notifications": {
           "title": "Notifications",
           "description": "Push notifications for chat, files, email and calendar",
-          "button": "Edit"
+          "button": "Edit",
+          "short": "Push & channels"
         },
         "security": {
           "title": "Security",
           "description": "Change password, enable 2FA and manage signed-in devices",
-          "button": "Open"
+          "button": "Open",
+          "short": "Password & 2FA"
         },
         "about": {
           "title": "About",
           "description": "Information about Prismateams, version and creator",
-          "button": "Open"
+          "button": "Open",
+          "short": "Version"
         },
         "my_mailboxes": {
           "title": "My mailboxes",
           "description": "Manage and connect private mailboxes",
-          "button": "Open"
+          "button": "Open",
+          "short": "Private mailboxes"
         },
         "admin": {
           "title": "Administration",
           "description": "Manage users and system settings",
           "button": "Open"
+        },
+        "cloud_import": {
+          "title": "Cloud import",
+          "description": "Transfer from Nextcloud and Google Drive.",
+          "short": "Nextcloud & Drive"
+        },
+        "privacy": {
+          "title": "Privacy",
+          "description": "Export personal data and review your rights",
+          "button": "Open",
+          "short": "Export & rights"
         }
-      }
+      },
+      "lead_short": "Everything in one place."
     },
     "profile": {
       "page_title": "Profile - Settings",
@@ -1072,6 +1110,37 @@
         "heading": "My teams",
         "empty": "You are not in any team yet.",
         "leader_badge": "Lead"
+      },
+      "delete": {
+        "heading": "Delete account",
+        "intro": "Permanently deletes your account after email confirmation. Export your data under Privacy first.",
+        "password_label": "Password for confirmation",
+        "second_factor_hint": "A second factor (authenticator or passkey) is also required.",
+        "totp_label": "Authenticator code (2FA)",
+        "passkey_button": "Confirm with passkey",
+        "passkey_ok": "Passkey confirmed",
+        "passkey_pending": "Not confirmed yet",
+        "confirm_label": "Type DELETE to confirm",
+        "confirm_placeholder": "DELETE",
+        "submit_button": "Send confirmation email",
+        "submit_confirm": "Really send a deletion email to your address?",
+        "email_hint": "Your account is only deleted after you click the link in the email. The link is valid for 1 hour.",
+        "blocked_super_admin": "The primary administrator account cannot delete itself.",
+        "flash_confirm_text": "Please type DELETE (or LÖSCHEN) to confirm.",
+        "flash_wrong_password": "The password is incorrect.",
+        "flash_2fa_required": "Second-factor confirmation is missing or invalid (authenticator code or passkey).",
+        "flash_no_passkey": "No passkey found for this account.",
+        "flash_email_failed": "The confirmation email could not be sent. Check the mail configuration.",
+        "flash_email_sent": "Confirmation email sent. Please check your inbox.",
+        "flash_token_invalid": "The deletion link is invalid or expired.",
+        "flash_wrong_user": "Please sign in with the account that should be deleted.",
+        "flash_failed": "Account deletion failed. Please contact an administrator.",
+        "flash_deleted": "Your account has been deleted.",
+        "confirm_page_title": "Confirm account deletion",
+        "confirm_heading": "Permanently delete account?",
+        "confirm_body": "Permanently delete the account of {name} ({email})?",
+        "confirm_final": "Really delete this account permanently? This cannot be undone.",
+        "confirm_button": "Delete permanently now"
       }
     },
     "notifications": {
@@ -1158,7 +1227,15 @@
         "reminder_6h": "6 hours before",
         "reminder_8h": "8 hours before",
         "reminder_1d": "1 day before",
-        "reminder_2d": "2 days before"
+        "reminder_2d": "2 days before",
+        "filter_status_label": "Participation",
+        "reminder_30min_short": "30 min",
+        "reminder_1h_short": "1 h",
+        "reminder_2h_short": "2 h",
+        "reminder_6h_short": "6 h",
+        "reminder_8h_short": "8 h",
+        "reminder_1d_short": "1 day",
+        "reminder_2d_short": "2 days"
       },
       "kanban": {
         "title": "Kanban notifications",
@@ -1203,7 +1280,8 @@
         "toggle": "New booking requests",
         "toggle_messages": "New messages",
         "help": "Bell and push when a new booking request arrives or the applicant replies (per toggle)"
-      }
+      },
+      "lead_short": "Push, modules and reminders."
     },
     "security": {
       "page_title": "Security - Settings",
@@ -1265,7 +1343,8 @@
         "setup_started": "2FA setup started. Scan the QR code and enter the code.",
         "setup_cancelled": "2FA setup was cancelled.",
         "issuer_hint": "In your authenticator app the entry will appear as \"{name}\".",
-        "recovery_hint": "Lost your authenticator? During login you can request a one-time recovery code by email (valid for 5 minutes)."
+        "recovery_hint": "Lost your authenticator? During login you can request a one-time recovery code by email (10 characters, valid for 5 minutes). Note: anyone with access to your mailbox can bypass 2FA this way. Admins can disable it with TWO_FACTOR_EMAIL_RECOVERY_ENABLED=false.",
+        "recovery_disabled_hint": "Email recovery for 2FA is disabled on this system. Keep your authenticator and passkeys safe."
       },
       "passkeys": {
         "heading": "Passkeys",
@@ -1324,7 +1403,8 @@
         "link": "Link Google",
         "unlink": "Remove link",
         "unlink_confirm": "Really remove the Google link? The Gmail mailbox will remain."
-      }
+      },
+      "lead_short": "Password, 2FA and devices."
     },
     "about": {
       "page_title": "About Prismateams - Settings",
@@ -1351,7 +1431,7 @@
       "portal_unset": "Not set",
       "creator_label": "Managed by",
       "creator_unknown": "Unknown",
-      "onlyoffice_label": "OnlyOffice",
+      "onlyoffice_label": "Euro-Office",
       "onlyoffice_active": "Active",
       "onlyoffice_inactive": "Inactive",
       "media_downloader_label": "Media Downloader",
@@ -1363,7 +1443,14 @@
       "back_button": "Back to settings",
       "file_converter_label": "File converter / LibreOffice",
       "libreoffice_available": "LibreOffice available",
-      "libreoffice_missing": "LibreOffice not found"
+      "libreoffice_missing": "LibreOffice not found",
+      "lead_short": "Product, system and open source.",
+      "section_repository_help_button": "Help",
+      "excalidraw_label_short": "Excalidraw",
+      "file_converter_label_short": "File converter",
+      "mirotalk_label": "MiroTalk",
+      "mirotalk_active": "Active",
+      "mirotalk_inactive": "Inactive"
     },
     "admin": {
       "page_title": "Administration - Settings",
@@ -1407,7 +1494,9 @@
         "allow_team": "Team variants",
         "allow_public": "Public variants",
         "module_file_converter": "File Converter",
-        "module_surveys": "Surveys"
+        "module_surveys": "Surveys",
+        "lead_short": "Enable and disable modules.",
+        "module_meetings": "Meetings (video calls)"
       },
       "users": {
         "page_title": "User Management - Administration",
@@ -1492,7 +1581,15 @@
         "flash_guest_load_error": "Could not load guest account.",
         "flash_guest_save_error": "Could not save guest account.",
         "search_placeholder": "Search by name or email…",
-        "search_no_results": "No users found."
+        "search_no_results": "No users found.",
+        "lead_short": "Users, guests and codes.",
+        "view_list": "List",
+        "view_grid": "Grid",
+        "col_name": "Name",
+        "col_email": "Email",
+        "col_login": "Last login",
+        "col_status": "Status",
+        "queue_title": "Queue"
       },
       "create_user": {
         "page_title": "Create user - Administration",
@@ -1594,7 +1691,8 @@
         "configure_button": "Configure",
         "user_management": {
           "title": "User management",
-          "description": "Manage users, guests and confirmation codes"
+          "description": "Manage users, guests and confirmation codes",
+          "short": "Roles & guests"
         },
         "confirmation_codes": {
           "title": "Confirmation codes",
@@ -1602,7 +1700,8 @@
         },
         "whitelist": {
           "title": "Whitelist management",
-          "description": "Manage email addresses and domains for automatic activation"
+          "description": "Manage email addresses and domains for automatic activation",
+          "short": "Email allowlist"
         },
         "email_permissions": {
           "title": "Email permissions",
@@ -1618,19 +1717,23 @@
         },
         "system_settings": {
           "title": "System settings",
-          "description": "Manage global system configuration"
+          "description": "Manage global system configuration",
+          "short": "Portal & branding"
         },
         "legal": {
           "title": "Privacy & legal notice",
-          "description": "Edit legal texts shown on the login screen"
+          "description": "Edit legal texts shown on the login screen",
+          "short": "Legal pages"
         },
         "modules": {
           "title": "Modules",
-          "description": "Enable or disable modules"
+          "description": "Enable or disable modules",
+          "short": "On / off"
         },
         "backup": {
           "title": "Import/Export",
-          "description": "Create and restore backups"
+          "description": "Create and restore backups",
+          "short": "Import / export"
         },
         "inventory_categories": {
           "title": "Inventory categories",
@@ -1642,19 +1745,32 @@
         },
         "file_settings": {
           "title": "File Settings",
-          "description": "Mailboxes, shares, private folders, document formats and storage limits"
+          "description": "Mailboxes, shares, private folders, document formats and storage limits",
+          "short": "Storage & sharing"
         },
         "calendar_settings": {
           "title": "Calendar Settings",
-          "description": "Private, team and public calendars, import and export"
+          "description": "Private, team and public calendars, import and export",
+          "short": "iCal"
         },
         "registration_options": {
           "title": "Bot protection",
-          "description": "Bot protection for login, registration, mailboxes and shares"
+          "description": "Bot protection for login, registration, mailboxes and shares",
+          "short": "Captcha"
         },
         "teams": {
           "title": "Teams",
-          "description": "Create teams; team leads manage their own members"
+          "description": "Create teams; team leads manage their own members",
+          "short": "Manage teams"
+        },
+        "push": {
+          "short": "Device subscriptions"
+        },
+        "email": {
+          "short": "SMTP & mailboxes"
+        },
+        "inventory": {
+          "short": "Ownership text"
         }
       },
       "registration": {
@@ -1692,18 +1808,25 @@
         "save_button": "Save changes",
         "back_button": "Back",
         "flash_updated": "Bot protection settings have been saved.",
-        "flash_keys_required": "Please provide Site Key and Secret Key before enabling reCAPTCHA or Turnstile."
+        "flash_keys_required": "Please provide Site Key and Secret Key before enabling reCAPTCHA or Turnstile.",
+        "lead_short": "Captcha and honeypot for login and forms."
       },
       "file_settings": {
         "page_title": "File Settings - Administration",
         "breadcrumb_file_settings": "File Settings",
         "heading": "File Settings",
+        "lead_short": "Dropboxes, sharing, limits and quotas.",
         "subtitle": "Control mailboxes, shares, private folders, document formats, and storage limits for the files module.",
         "section_title": "File Functions",
         "dropbox_label": "Enable Mailboxes",
         "dropbox_help": "Allows creating mailboxes (upload-only folders) for bookings and other purposes.",
         "sharing_label": "Enable Shares",
         "sharing_help": "Allows creating shared folders for bookings and other purposes.",
+        "webdav_label": "WebDAV / Explorer access",
+        "webdav_help": "Allows accessing files via Windows Explorer as a network drive (WebDAV at /webdav).",
+        "webdav_url_label": "Connection URL",
+        "webdav_connect_help": "On Windows: This PC → Map network drive → Folder: the URL above. Sign in with email and password.",
+        "webdav_2fa_warning": "Note: WebDAV does not require two-factor authentication (2FA) — only email and password.",
         "private_folders_label": "Enable private folders",
         "private_folders_help": "Enables My Drive, Shared, Public and Trash (Drive-style). Existing files stay under Public.",
         "team_folders_label": "Enable team folders",
@@ -1744,12 +1867,17 @@
         "flash_exception_exists": "An exception already exists for this user.",
         "flash_exception_user_invalid": "Please select a valid user.",
         "flash_exception_empty": "Set at least a file limit or quota for the exception.",
-        "visibility_moved": "Private and team folders are configured centrally under Modules → Visibility variants."
+        "visibility_moved": "Private and team folders are configured centrally under Modules → Visibility variants.",
+        "trash_retention_label": "Trash retention",
+        "trash_retention_help": "Soft-deleted files and folders are permanently removed after this period. 0 disables auto-purge.",
+        "trash_retention_unit": "days",
+        "trash_retention_note": "Default: 30 days. Overrides FILES_TRASH_DAYS from the environment once saved."
       },
       "calendar_settings": {
         "page_title": "Calendar Settings - Administration",
         "breadcrumb": "Calendar Settings",
         "heading": "Calendar Settings",
+        "lead_short": "Control import and export.",
         "subtitle": "Import, export, and advanced calendar features.",
         "section_title": "Calendar Features",
         "visibility_moved": "Private and team calendars are configured centrally under Modules → Visibility variants.",
@@ -1781,6 +1909,17 @@
         "indexing_label": "Allow Google to index this site",
         "indexing_help": "Controls whether search engines may find the public pages. Internal areas always stay blocked.",
         "indexing_hint": "On: login, registration, imprint, privacy policy and terms may appear in Google. Off: robots.txt and meta tags block all crawlers.",
+        "section_log_retention": "Access logs",
+        "log_retention_help": "Deletes IP addresses and user agents from session and share access logs after the retention period (hourly job).",
+        "session_record_retention_label": "Session records (days)",
+        "session_record_retention_help": "UserSession rows whose last activity is older than N days are deleted. 0 = no auto-purge.",
+        "share_access_log_retention_label": "Share access logs (days)",
+        "share_access_log_retention_help": "ShareAccessLog entries older than N days are deleted. 0 = no auto-purge.",
+        "log_retention_note": "Defaults: sessions 30 days, share logs 90 days. Overrides SESSION_RECORD_RETENTION_DAYS / SHARE_ACCESS_LOG_RETENTION_DAYS from the environment once saved. State the periods in your privacy policy.",
+        "section_cookie_security": "Session cookies",
+        "cookie_security_help": "Secure flags for session and remember-me cookies (controlled via .env only). With HTTPS in production both must be True.",
+        "cookie_security_warn_insecure": "SESSION_COOKIE_SECURE is False: cookies can be read over HTTP. For production HTTPS set True in .env and restart the service.",
+        "cookie_security_note": "Production/staging default to True. Use False only for intentional HTTP access. Re-check after Certbot/SSL. Details: docs/WARTUNG.md (Session cookies).",
         "portal_name_label": "Portal Name",
         "portal_name_placeholder": "e.g. Prismateams",
         "portal_name_help": "The name of the portal that is displayed in various places.",
@@ -1843,7 +1982,8 @@
         "flash_logo_invalid_type": "Invalid file type. Allowed: PNG, JPG, JPEG, GIF, SVG.",
         "section_security": "Security & sessions",
         "inactivity_logout_hint": "Users are automatically logged out after 30 days without portal activity. Manage devices under Security.",
-        "flash_inactivity_logout": "You were logged out after 30 days of inactivity. Please sign in again."
+        "flash_inactivity_logout": "You were logged out after 30 days of inactivity. Please sign in again.",
+        "lead_short": "Portal name, logo, timezone and branding."
       },
       "legal": {
         "page_title": "Legal notice & terms - Administration",
@@ -1865,13 +2005,19 @@
         "toolbar_label": "Formatting",
         "tool_bold": "Bold",
         "tool_italic": "Italic",
-        "tool_list": "List"
+        "tool_list": "List",
+        "lead_short": "Texts for login and public pages.",
+        "tip_body": "Changes save automatically. Use preview to check the public page.",
+        "markdown_hint": "**bold**, *italic*, [link](url), lists with -.",
+        "tool_link": "Link"
       },
       "booking_forms": {
         "page_title": "Booking forms - Administration",
         "heading": "Booking forms",
+        "lead_short": "Forms, fields and approval roles.",
         "subtitle": "Create forms, manage fields and approval roles, configure PDF application text.",
         "list_title": "Forms",
+        "col_requests": "Requests",
         "create": "New form",
         "edit": "Edit",
         "delete": "Delete",
@@ -1885,6 +2031,7 @@
         "create_subtitle": "Title, PDF text, fields and roles on one page.",
         "edit_heading": "Edit form",
         "edit_subtitle": "Basics, PDF, integration, fields and approval roles.",
+        "special_category_hint": "Do not design free-text fields for special-category data (GDPR Art. 9) unless approved and safeguarded.",
         "draft_title": "New form",
         "section_basics": "Basics",
         "section_pdf": "PDF",
@@ -1988,7 +2135,23 @@
         "flash_saved": "Inventory management settings have been saved.",
         "page_title": "Inventory Settings - Administration",
         "heading": "Inventory Settings",
-        "subtitle": "Texts for public product pages and QR code scans.",
+        "lead_short": "Features and texts for inventory management.",
+        "subtitle": "Toggle sub-features and texts for public product pages.",
+        "features_title": "Features",
+        "features_help": "Disabled features disappear from navigation and forms.",
+        "features_lead": "As an administrator you can enable or disable inventory sub-features.",
+        "feature_borrow": "Borrowing",
+        "feature_borrow_help": "Checkout, history and borrowing from the stock overview.",
+        "feature_quick_scan": "Quick Scan",
+        "feature_quick_scan_help": "Fast scanner checkout without required header data.",
+        "feature_dguv": "DGUV",
+        "feature_dguv_help": "Inspection fields, filters and display in the stock overview.",
+        "feature_owners": "Owner",
+        "feature_owners_help": "Owner field and filter per item.",
+        "feature_accounting": "Accounting",
+        "feature_accounting_help": "Purchase date, purchase price and replacement value.",
+        "feature_stocktake": "Stocktake",
+        "feature_stocktake_help": "Stocktake tool and inventory lists.",
         "public_title": "Public product pages",
         "public_lead": "Shown on the public product page when a QR code is scanned.",
         "ownership_label": "Ownership text",
@@ -2002,6 +2165,7 @@
       "email_module": {
         "page_title": "Email Module Settings - Administration",
         "heading": "Email Module Settings",
+        "lead_short": "Tests, storage, multi-mailbox and footer.",
         "subtitle": "Test connections, manage storage, and configure the footer.",
         "save": "Save",
         "test": {
@@ -2134,7 +2298,8 @@
           "assessment": "Assessment: lists, criteria, evaluations and related data.",
           "shortlinks": "Short links.",
           "excalidraw": "Drawings, scenes and versions."
-        }
+        },
+        "lead_short": "Export and import portal backups."
       },
       "whitelist": {
         "page_title": "Whitelist - Administration",
@@ -2169,7 +2334,12 @@
         "flash_entry_toggle_error": "Error updating whitelist entry.",
         "flash_entry_not_found": "Whitelist entry not found.",
         "flash_entry_deleted": "Whitelist entry \"{entry}\" has been deleted.",
-        "flash_entry_delete_error": "Error deleting whitelist entry."
+        "flash_entry_delete_error": "Error deleting whitelist entry.",
+        "lead_short": "Emails and domains for auto-activation.",
+        "view_list": "List",
+        "view_grid": "Grid",
+        "col_entry": "Entry",
+        "col_status": "Status"
       },
       "teams": {
         "page_title": "Teams - Administration",
@@ -2226,7 +2396,14 @@
         "flash_members_added": "{count} member(s) added.",
         "flash_member_removed": "Member removed.",
         "flash_cannot_remove_leader": "The team lead cannot be removed. Assign a different lead first.",
-        "flash_user_teams_updated": "Teams for {name} were updated."
+        "flash_user_teams_updated": "Teams for {name} were updated.",
+        "lead_short": "Create teams and assign members.",
+        "view_list": "List",
+        "view_grid": "Grid",
+        "col_name": "Team",
+        "col_members": "Members",
+        "col_leader": "Lead",
+        "preview_title": "Preview"
       },
       "kanban": {
         "page_title": "Kanban settings",
@@ -2238,7 +2415,11 @@
         "allow_team": "Team boards",
         "allow_public": "Public boards (entire portal)",
         "save": "Save",
-        "flash_saved": "Kanban settings saved."
+        "flash_saved": "Kanban settings saved.",
+        "lead_short": "Visibility and import.",
+        "short": "Visibility & import",
+        "module_disabled": "Kanban module is disabled",
+        "import_hint": "Multiple boards via ZIP supported."
       },
       "visibility": {
         "page_title": "{module} – Visibility",
@@ -2366,6 +2547,7 @@
       "tenant": "Tenant",
       "tenant_help": "Usually \"common\". Or organizations / tenant ID.",
       "redirect_hint": "Redirect URI (login, mailbox and YouTube): {url}",
+      "redirect_uri_label": "Redirect URI:",
       "flash_saved": "Integrations saved.",
       "google_api_help_open": "Guide: Google API key",
       "google_api_help_title": "Set up a Google API key",
@@ -2390,7 +2572,116 @@
       "google_help_oauth_step4": "Create credentials → OAuth client ID → application type Web application. Add the single redirect URI shown below (one URL for everything).",
       "google_help_oauth_step5": "Paste Client ID and Secret here and save — then Google login, mailbox OAuth and YouTube work.",
       "google_help_api_heading": "API key (for YouTube)",
-      "redirect_hint_login": "Redirect URI: {url}"
+      "redirect_hint_login": "Redirect URI: {url}",
+      "short": "OAuth & APIs",
+      "lead_short": "Google, Microsoft, and Spotify."
+    },
+    "cloud_import": {
+      "page_title": "Cloud import",
+      "title": "Cloud import",
+      "heading": "Cloud import",
+      "subtitle": "Transfer folders and files once from Nextcloud or Google Drive into PrismaTeams.",
+      "target_space": "Destination",
+      "target_space_hint": "Admin: public · Team leader: team · You: personal.",
+      "space": {
+        "public": "Public",
+        "team": "Team",
+        "personal": "Personal"
+      },
+      "no_spaces": "No destination available.",
+      "dest_folder": "Destination folder",
+      "dest_root": "Root folder",
+      "connections": "Connections",
+      "connect_nextcloud": "Connect Nextcloud",
+      "connect_google": "Connect Google Drive",
+      "connect": "Connect",
+      "nextcloud": {
+        "server": "Server URL",
+        "username": "Username",
+        "app_password": "App password",
+        "hint": "Use an app password from Nextcloud security settings."
+      },
+      "no_connections": "No connection yet.",
+      "browse": "Select source",
+      "col": {
+        "name": "Name",
+        "size": "Size"
+      },
+      "start": "Start import",
+      "jobs": "Import jobs",
+      "no_jobs": "No jobs yet.",
+      "flash": {
+        "module_disabled": "The files module is disabled.",
+        "credentials_incomplete": "Please provide server, username and app password.",
+        "nextcloud_connect_failed": "Could not connect to Nextcloud. Check credentials.",
+        "google_not_configured": "Google is not configured under Integrations.",
+        "google_oauth_error": "Google sign-in failed: %(error)s",
+        "google_connected": "Google Drive connected.",
+        "connection_in_use": "Connection is used by a running import.",
+        "browse_failed": "Could not load folder.",
+        "no_selection": "Select at least one file or folder.",
+        "space_forbidden": "You may not import into this destination."
+      },
+      "lead_short": "One-time transfer from Nextcloud or Google Drive."
+    },
+    "autosave": {
+      "saving": "Saving…",
+      "saved": "Saved",
+      "error": "Could not save"
+    },
+    "kanban_import": {
+      "nav": "Board import",
+      "page_title": "Board import",
+      "heading": "Import boards",
+      "lead": "JSON, CSV or ZIP with multiple files.",
+      "short": "JSON / CSV / ZIP",
+      "upload_title": "Upload",
+      "drop_title": "Drop file here",
+      "drop_meta": ".json, .csv or .zip",
+      "submit": "Import",
+      "open": "Open",
+      "need_file": "Please choose a file",
+      "done_one": "Board imported",
+      "done_many": "{count} boards imported",
+      "failed": "Import failed",
+      "unavailable": "Kanban unavailable",
+      "no_targets": "No import target allowed",
+      "visibility_info": "Visibility for new boards",
+      "tip_body": "A ZIP with multiple JSON/CSV files creates multiple boards at once.",
+      "formats_title": "Formats",
+      "formats_body": "JSON and CSV for single boards, ZIP for multiple files.",
+      "visibility_label": "Visibility"
+    },
+    "hub": {
+      "quick_title": "Quick access",
+      "quick_lead": "Frequently used areas",
+      "tip_title": "Tip",
+      "tip_body": "Use the search above to jump to any setting."
+    },
+    "privacy": {
+      "page_title": "Privacy & data",
+      "heading": "Privacy & data",
+      "lead": "Export your personal data and review information about your rights.",
+      "export": {
+        "heading": "Data export",
+        "intro": "Download a ZIP file with your personal data in JSON format (data portability).",
+        "includes_profile": "Profile, teams, sessions, passkeys and notification settings",
+        "includes_activity": "Contacts you created, events, file metadata, chat messages and other module-related data",
+        "excludes_secrets": "No passwords, 2FA secrets, session tokens or file contents",
+        "button": "Download my data",
+        "hint": "Downloads are rate-limited to a few requests per hour."
+      },
+      "export_error": "The data export failed. Please try again later.",
+      "rights": {
+        "heading": "Your rights",
+        "intro": "Under the GDPR you have in particular the following rights:",
+        "access": "Access to stored personal data",
+        "rectification": "Rectification of incorrect data (e.g. in your profile)",
+        "portability": "Data portability via the export on this page",
+        "erasure": "Erasure – self-service in Profile (password, 2FA if enabled, confirmation email)",
+        "policy_link": "Privacy policy",
+        "delete_link": "Delete account"
+      }
     }
   },
   "chat": {
@@ -2473,8 +2764,15 @@
         "unmute": "Enable notifications",
         "permission_title": "Microphone",
         "permission_message": "Microphone access is required for voice messages.",
-        "microphone_denied": "Microphone access was denied. Please allow it in your browser settings."
-      }
+        "microphone_denied": "Microphone access was denied. Please allow it in your browser settings.",
+        "load_older": "Load older messages",
+        "load_older_loading": "Loading…",
+        "load_older_error": "Could not load older messages",
+        "meeting_label": "Meeting",
+        "meeting_join": "Join",
+        "meeting_start_error": "Could not start the meeting"
+      },
+      "load_older": "Load older messages"
     },
     "settings": {
       "page_title": "Chat settings - {name}",
@@ -2600,6 +2898,11 @@
       "page_title": "Files - Team Portal",
       "heading": "Files",
       "breadcrumb_root": "Root",
+      "pagination": {
+        "load_more": "Load more files",
+        "load_more_loading": "Loading…",
+        "load_error": "Could not load more files"
+      },
       "nav": {
         "ablage": "My Drive",
         "freigaben": "Shared",
@@ -2614,6 +2917,27 @@
         "add": "Add to favorites",
         "remove": "Remove from favorites",
         "limit": "Maximum 10 favorites."
+      },
+      "webdav_connect_btn": "Connect to system",
+      "webdav_hint": "Explorer (WebDAV)",
+      "webdav_modal": {
+        "title": "Connect files to your system",
+        "intro": "Map the file storage as a network drive. Private, Public and Teams then appear as normal folders in your file manager.",
+        "url_label": "Connection URL",
+        "copy": "Copy URL",
+        "auth_hint": "Username = your portal email only (no MicrosoftAccount\\). Password = portal password, not your Microsoft account password.",
+        "disabled_hint": "WebDAV is still disabled. An administrator can enable it under Settings → File settings. After that, the URL below will work.",
+        "windows_title": "Windows (Explorer)",
+        "windows_step1": "Start the \"WebClient\" service (services.msc → WebClient → Start, Startup type Automatic).",
+        "windows_step2": "For HTTP/localhost: registry HKLM\\SYSTEM\\CurrentControlSet\\Services\\WebClient\\Parameters → DWORD BasicAuthLevel = 2, then restart WebClient. Otherwise Windows will not send credentials.",
+        "windows_step3": "Add network location / map drive using the URL above. In the login dialog choose More options → Use a different account and enter only the email (remove MicrosoftAccount\\).",
+        "windows_step4": "Enter your portal password. If the dialog keeps returning: check BasicAuthLevel or use Cyberduck/WinSCP.",
+        "mac_title": "Apple (macOS Finder)",
+        "mac_step1": "Open Finder → “Go” menu → “Connect to Server…” (⌘K).",
+        "mac_step2": "Paste the connection URL above and choose “Connect”.",
+        "mac_step3": "Sign in as a registered user.",
+        "mac_step4": "Enter your email and password. The share appears in the Finder sidebar.",
+        "security_note": "Note: WebDAV skips 2FA. Windows often prepends \"MicrosoftAccount\\\" to the email — remove it. HTTPS is more reliable than HTTP/localhost on Windows."
       },
       "storage": {
         "title": "Storage",
@@ -2687,7 +3011,7 @@
       },
       "file_actions": {
         "download": "Download",
-        "edit_onlyoffice": "Edit with ONLYOFFICE",
+        "edit_onlyoffice": "Edit with Euro-Office",
         "view": "View",
         "edit": "Edit",
         "share_edit": "Edit sharing",
@@ -2831,6 +3155,9 @@
           "confirm": "Move here",
           "empty": "No folders available.",
           "root_hint": "Area (root)",
+          "selected": "Destination: {path}",
+          "expand": "Show subfolders",
+          "collapse": "Hide subfolders",
           "item_file": "Move file to another folder or area.",
           "item_folder": "Move folder to another folder or area."
         }
@@ -2895,7 +3222,9 @@
     },
     "errors": {
       "file_type_not_supported": "File type not supported"
-    }
+    },
+    "trash_retention_banner": "Items in the trash are permanently deleted after {days} days.",
+    "trash_retention_disabled": "Automatic permanent deletion is not configured for the trash."
   },
   "excalidraw": {
     "index": {
@@ -3082,6 +3411,50 @@
       "deleted": "Canvas \"{name}\" has been deleted."
     }
   },
+  "markdown": {
+    "editor": {
+      "link": {
+        "insert_title": "Insert link",
+        "edit_title": "Edit link",
+        "text": "Link text",
+        "url": "URL",
+        "insert": "Insert",
+        "save": "Apply",
+        "cancel": "Cancel",
+        "open": "Open",
+        "edit": "Edit"
+      },
+      "table": {
+        "column": "Column",
+        "row": "Row",
+        "add_row": "Add row",
+        "add_col": "Add column",
+        "insert_row_before": "Insert row before",
+        "insert_row_after": "Insert row after",
+        "insert_col_before": "Insert column before",
+        "insert_col_after": "Insert column after",
+        "delete_row": "Delete row",
+        "delete_col": "Delete column",
+        "delete_table": "Delete table",
+        "column_menu": "Column",
+        "row_menu": "Row",
+        "align_left": "Align left",
+        "align_center": "Align center",
+        "align_right": "Align right"
+      },
+      "preview": {
+        "open": "Open",
+        "loading": "Loading preview…",
+        "invalid": "Invalid URL",
+        "unavailable_title": "No preview",
+        "unavailable_body": "The page could not be loaded.",
+        "forbidden_title": "No access to this file",
+        "forbidden_body": "You do not have permission to view this file.",
+        "not_found_title": "File not found",
+        "not_found_body": "The linked file no longer exists."
+      }
+    }
+  },
   "wiki": {
     "index": {
       "page_title": "Wiki - Team Portal",
@@ -3119,6 +3492,15 @@
       "empty": {
         "default": "No wiki pages yet. Create the first page!",
         "filtered": "No pages found. Try different search criteria."
+      },
+      "pagination": {
+        "prev": "Previous",
+        "next": "Next",
+        "info": "Page {page} of {pages} ({total})",
+        "aria": "Wiki pages",
+        "load_more": "Load more pages",
+        "load_more_loading": "Loading…",
+        "load_error": "Could not load more pages"
       },
       "js": {
         "favorite_error": "Failed to update favorites.",
@@ -3666,7 +4048,8 @@
       "no_manage_permission": "You cannot edit this calendar.",
       "participation_status": "Participation for \"{event_title}\": {status}",
       "accepted": "accepted",
-      "declined": "declined"
+      "declined": "declined",
+      "sync_started": "Sync started in the background. Refresh the page in a few seconds."
     },
     "notifications": {
       "invite_title": "Event invitation received",
@@ -3836,6 +4219,15 @@
         "move_error": "Could not move email",
         "folder_deleted": "Folder deleted",
         "color_local_only": "Color dot stored locally only (IMAP does not support keywords)."
+      },
+      "pagination": {
+        "prev": "Previous",
+        "next": "Next",
+        "info": "Page {page} of {pages} ({total})",
+        "aria": "Email pages",
+        "load_more": "Load more emails",
+        "load_more_loading": "Loading…",
+        "load_error": "Could not load more emails"
       }
     },
     "compose": {
@@ -3854,10 +4246,37 @@
         "bcc": "BCC (optional)",
         "bcc_placeholder": "bcc@example.com",
         "bcc_help": "Blind carbon copy: these addresses stay hidden from other recipients.",
+        "cc_bcc_toggle": "Add Cc / Bcc",
         "subject": "Subject"
       },
       "editor": {
-        "placeholder": "Write your email here..."
+        "placeholder": "Write your email here...",
+        "toolbar": {
+          "bold": "Bold",
+          "italic": "Italic",
+          "underline": "Underline",
+          "strike": "Strikethrough",
+          "color": "Text color",
+          "background": "Highlight color",
+          "size": "Font size",
+          "font": "Font",
+          "script_sub": "Subscript",
+          "script_super": "Superscript",
+          "list_ordered": "Numbered list",
+          "list_bullet": "Bulleted list",
+          "indent_out": "Decrease indent",
+          "indent_in": "Increase indent",
+          "align": "Alignment",
+          "align_left": "Align left",
+          "align_center": "Align center",
+          "align_right": "Align right",
+          "align_justify": "Justify",
+          "blockquote": "Quote",
+          "code_block": "Code block",
+          "link": "Insert link",
+          "image": "Insert image",
+          "clean": "Clear formatting"
+        }
       },
       "preview": {
         "toggle": "Email preview",
@@ -3955,7 +4374,7 @@
       "print_eco_alert": "Please consider whether printing this email is really necessary. Protecting the environment concerns us all."
     },
     "onlyoffice": {
-      "page_title_suffix": "ONLYOFFICE Editor",
+      "page_title_suffix": "Euro-Office Editor",
       "back_button_label": "Team Portal",
       "back_button_title": "Back to the team portal"
     },
@@ -3969,7 +4388,8 @@
       "sync_already_running": "⚠️ Synchronization is already running in another worker. Please wait a moment.",
       "deleted": "Email has been successfully deleted.",
       "target_folder_not_specified": "Target folder not specified.",
-      "draft_no_print": "Drafts cannot be printed as PDF."
+      "draft_no_print": "Drafts cannot be printed as PDF.",
+      "sync_started": "Synchronization started. The page will refresh when it finishes."
     },
     "multi": {
       "main_mailbox": "Main mailbox",
@@ -3977,7 +4397,7 @@
       "html_design_help": "On: portal layout with logo. Off: formatted text without layout frame.",
       "use_team_logo": "Use team logo",
       "use_team_logo_help": "If off: portal logo instead of team logo in HTML design.",
-      "mailbox_label": "Mailbox"
+      "mailbox_label": "Send as"
     }
   },
   "credentials": {
@@ -4108,7 +4528,8 @@
       "folder_deleted": "Folder \"{folder_name}\" was deleted. Entries are back in the area without a folder."
     },
     "errors": {
-      "decrypt_error": "Error decrypting password"
+      "decrypt_error": "Error decrypting password",
+      "encryption_key_missing": "Encryption key missing (CREDENTIAL_ENCRYPTION_KEY). Please set it in .env."
     }
   },
   "contacts": {
@@ -4199,7 +4620,42 @@
         "copied_phone": "Phone number copied",
         "copy_error": "Could not copy."
       },
-      "empty_message": "No contacts available."
+      "empty_message": "No contacts available.",
+      "empty_cta": "New contact",
+      "pagination": {
+        "load_more": "Load more contacts",
+        "load_more_loading": "Loading…",
+        "load_error": "Could not load more contacts"
+      }
+    },
+    "bulk": {
+      "selected": "selected",
+      "select": "Select",
+      "select_all": "Select all",
+      "select_all_short": "All",
+      "deselect": "Clear selection",
+      "deselect_short": "None",
+      "download": "Download",
+      "download_ok": "Download started.",
+      "download_error": "Download failed.",
+      "email_all": "Email all",
+      "email_none": "No email address in selection",
+      "email_partial": "{have} of {total} recipients have an address",
+      "share": "Share",
+      "share_one": "Select exactly one contact to share",
+      "share_title": "Share contact",
+      "share_hint": "Copy the contact details and share them as you like.",
+      "share_copy": "Copy",
+      "share_copied": "Contact card copied",
+      "share_copy_error": "Could not copy.",
+      "delete_confirm": "Really delete {count} contact(s)?",
+      "delete_ok": "Deleted.",
+      "delete_error": "Delete failed.",
+      "deleted": "{count} contact(s) deleted.",
+      "errors": {
+        "none_selected": "No contacts selected.",
+        "none_accessible": "No accessible contacts found."
+      }
     },
     "form": {
       "back": "Back",
@@ -4225,6 +4681,7 @@
       "hints": {
         "sort_name": "Leave empty to use the display name for sorting."
       },
+      "notes_privacy_hint": "Do not store special-category data (e.g. health, religion) in notes unless explicitly approved.",
       "buttons": {
         "save": "Save",
         "update": "Update",
@@ -4369,6 +4826,7 @@
         "menu": "Menu",
         "overview": "Overview",
         "stock": "Stock & equipment",
+        "product_scan": "Scan & inspect",
         "quick_scan": "Quick Scan",
         "checkout": "Borrow / Return",
         "borrows": "Loan history",
@@ -4384,6 +4842,13 @@
         "grid": "Grid view"
       }
     },
+    "scanner": {
+      "page_title": "Quick Scan - Team Portal",
+      "confirm_return": "Confirm return of {checkout_number}? ({count} items, {borrower} — {event})"
+    },
+    "checkout": {
+      "page_title": "Borrow / Return - Team Portal"
+    },
     "dashboard": {
       "page_title": "Inventory - Team Portal",
       "heading": "Overview",
@@ -4393,7 +4858,20 @@
         "available": "Available",
         "borrowed": "On loan",
         "defective": "Defect / repair",
+        "dguv_due": "DGUV due",
         "overdue": "Overdue"
+      },
+      "hub": {
+        "title": "Areas",
+        "stock_desc": "Manage devices and items",
+        "product_scan_desc": "Scan and update DGUV checks",
+        "quick_scan_desc": "Borrow quickly via QR",
+        "checkout_desc": "Checkout and returns",
+        "borrows_desc": "Past loans",
+        "sets_desc": "Build product sets",
+        "inventory_tool_desc": "Run inventory counts",
+        "print_qr_desc": "Print labels",
+        "statistics_desc": "Reports and trends"
       },
       "my_borrows": {
         "title": "My current loans",
@@ -4412,6 +4890,49 @@
           "download_receipt": "Download receipt"
         }
       }
+    },
+    "product_scan": {
+      "page_title": "Scan & inspect - Team Portal",
+      "heading": "Scan & inspect",
+      "subtitle": "Scan or search an item, then edit fields and documents immediately.",
+      "input_title": "Find item",
+      "camera_label": "Scan with camera",
+      "manual_label": "ID / Inventory No.",
+      "manual_placeholder": "PROD or inventory number",
+      "search_label": "Search product",
+      "search_placeholder": "Name, serial number, category…",
+      "lookup_button": "Open",
+      "panel_title": "Product",
+      "empty": "Scan or search an item to edit it here.",
+      "next_scan": "Next scan",
+      "save": "Save",
+      "full_edit": "Full edit",
+      "all_docs": "All documents",
+      "fields": {
+        "location": "Location",
+        "condition": "Condition",
+        "status": "Status",
+        "dguv_required": "DGUV inspection",
+        "dguv_last": "Last check",
+        "dguv_interval": "Interval (months)",
+        "dguv_next": "Next check"
+      },
+      "docs": {
+        "title": "Documents",
+        "upload": "Upload",
+        "type": "Type",
+        "empty": "No documents yet.",
+        "link_manual": "Link manual",
+        "link": "Link"
+      },
+      "errors": {
+        "scan_set": "Product set detected – please scan a single device.",
+        "lookup_failed": "Item not found.",
+        "save_failed": "Save failed.",
+        "upload_failed": "Upload failed."
+      },
+      "saved": "Saved.",
+      "uploaded": "Document uploaded."
     },
     "stock": {
       "page_title": "Stock overview - Team Portal",
@@ -4454,6 +4975,8 @@
         "dguv_due": "Inspection due",
         "dguv_ok": "Inspection ok",
         "dguv_none": "No DGUV data",
+        "owner": "Owner",
+        "all_owners": "All owners",
         "overdue": "Overdue",
         "favorites": "Favorites",
         "favorites_any": "Any",
@@ -4545,7 +5068,11 @@
         "load_products_error": "Error loading products:",
         "critical_error": "Critical error:"
       },
-      "filters_sort_button": "Filter & Sort"
+      "filters_sort_button": "Filter & Sort",
+      "pagination": {
+        "load_more": "Load more products",
+        "load_more_loading": "Loading…"
+      }
     },
     "cable_form": {
       "page_title": "Create consumable - Team Portal",
@@ -4586,7 +5113,7 @@
         "heading_new": "Add product",
         "heading_edit": "Edit product",
         "name": "Product name",
-        "description": "Description / Details",
+        "description": "Description",
         "folder": "Folder",
         "no_folder": "No folder",
         "add_folder": "Create new folder",
@@ -4605,6 +5132,7 @@
         "location": "Location",
         "length": "Length",
         "length_help": "e.g. 5 m, 3.5m, 2.5 meters",
+        "length_placeholder": "e.g. 5.5",
         "quantity": "Quantity",
         "quantity_help": "How many identical products should be created? (1-100)",
         "purchase_date": "Purchase date",
@@ -4618,8 +5146,13 @@
           "identity": "Identity & storage",
           "values": "Purchase & values",
           "dimensions": "Dimensions & weight",
+          "purchase_dims": "Purchase & dimensions",
+          "accounting": "Accounting",
+          "dims": "Dimensions",
           "dguv": "DGUV",
-          "media": "Status & media"
+          "media": "Status & media",
+          "documents": "Documents & manuals",
+          "media_docs": "Media & documents"
         },
         "folder_name": "Folder name",
         "category_name": "Category name",
@@ -4635,19 +5168,36 @@
         "width_cm": "Width (cm)",
         "height_cm": "Height (cm)",
         "depth_cm": "Depth (cm)",
-        "dguv_last_check": "DGUV last check",
-        "dguv_next_check": "DGUV next check",
-        "dguv_interval_months": "DGUV interval (months)",
+        "dguv_last_check": "Last check",
+        "dguv_next_check": "Next check",
+        "dguv_interval_months": "Interval (months)",
         "dguv_required": "DGUV inspection required",
         "dguv_last_help": "Optional. Leave empty: next check = creation date. With a date: next check = last + interval.",
         "dguv_interval_help": "Inspection interval in months (editable when creating/editing).",
         "dguv_interval_readonly_help": "Fixed inspection interval (not editable).",
         "dguv_next_auto_help": "Calculated automatically (or creation date if no last check).",
-        "external_barcode": "External barcode / QR ID",
-        "external_barcode_placeholder": "Custom barcode ID",
+        "external_barcode": "Inventory No.",
+        "external_barcode_placeholder": "e.g. 001",
+        "owner": "Owner",
+        "owner_placeholder": "Portal user or free text…",
+        "owner_help": "Pick a portal user or enter free text. Previous values are suggested.",
         "current_image": "Current image:",
         "remove_image": "Remove image",
-        "remove_image_confirm": "Really remove the product image?"
+        "remove_image_confirm": "Really remove the product image?",
+        "documents_upload": "Documents",
+        "documents_help": "Multiple files allowed (PDF, PNG, JPEG, Office). Attached on save.",
+        "document_type": "Document type",
+        "link_manuals": "Link manuals",
+        "link_manuals_help": "Multi-select: link existing manuals without uploading a file.",
+        "manage_documents": "Manage all documents",
+        "external_barcode_help": "Type the label code or scan it here with a handheld scanner. Used for QuickScan & checkout.",
+        "external_barcode_qty_hint": "Inventory No. only allowed when quantity is 1 (each number must be unique).",
+        "print_barcode": "Print barcode",
+        "print_barcode_hint": "Label ~56 mm, print scale 100% (Actual size).",
+        "cable_migration": "Cable migration",
+        "cable_migration_help": "Merged individual items will be marked as retired.",
+        "convert_to_cable": "Convert to cable/consumable",
+        "merge_similar_cables": "Merge similar individual items"
       },
       "list": {
         "page_title": "Inventory list - Team Portal",
@@ -4856,9 +5406,43 @@
       }
     },
     "folders": {
-      "page_title": "Folders - Team Portal",
-      "heading": "Folders",
-      "new_folder": "New folder"
+      "page_title": "Product folders - Team Portal",
+      "heading": "Product folders",
+      "new_folder": "New folder",
+      "create_title": "Create new folder",
+      "create_btn": "Create folder",
+      "list_title": "Existing folders",
+      "empty": "No folders yet.",
+      "empty_hint": "Create a folder to organize products.",
+      "delete_keep_products": "Products in this folder will not be deleted; only the folder assignment is removed.",
+      "fields": {
+        "name": "Folder name",
+        "name_placeholder": "e.g. Cameras",
+        "description": "Description",
+        "description_placeholder": "Optional",
+        "color": "Color (optional)",
+        "color_help": "Color for visual distinction"
+      },
+      "cols": {
+        "name": "Name",
+        "description": "Description",
+        "products": "Products",
+        "color": "Color",
+        "actions": "Actions"
+      }
+    },
+    "public": {
+      "subtitle": "Product information from inventory",
+      "footer": "Public product view · no login required",
+      "ownership_default": "Property of the technical department",
+      "fields": {
+        "serial": "Serial number",
+        "length": "Length",
+        "category": "Category",
+        "condition": "Condition",
+        "location": "Location",
+        "description": "Description"
+      }
     },
     "tool": {
       "page_title": "Inventory tool - Team Portal",
@@ -4974,6 +5558,7 @@
       "inventory_started": "Inventory \"{name}\" has been started.",
       "inventory_completed": "This inventory is already completed.",
       "inventory_finished": "Inventory has been completed. {count} product(s) have been updated.",
+      "inventory_missing_skipped": "{count} skipped (borrowed/locked)",
       "folder_name_required": "The folder name is required.",
       "folder_exists": "A folder with this name already exists.",
       "folder_created": "Folder \"{name}\" has been created successfully.",
@@ -5006,7 +5591,16 @@
       "document_deleted": "Document \"{filename}\" has been deleted successfully.",
       "file_not_found": "The file could not be found.",
       "fill_all_fields": "Please fill in all fields.",
-      "invalid_date": "Invalid date."
+      "invalid_date": "Invalid date.",
+      "document_attach_error": "The product was saved, but documents could not be attached.",
+      "document_invalid_type": "Invalid file type. Allowed: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX.",
+      "manual_not_accessible": "The selected manual is not available.",
+      "manual_link_required": "Please select a manual.",
+      "manual_already_linked": "Manual \"{title}\" is already linked.",
+      "manual_linked": "Manual \"{title}\" was linked.",
+      "external_barcode_taken": "Inventory No. \"{code}\" is already in use.",
+      "external_barcode_qty": "Inventory No. can only be set when quantity is 1.",
+      "barcode_label_error": "Could not generate the barcode label."
     },
     "cart": {
       "set_badge": "Set",
@@ -5055,6 +5649,15 @@
       "filter_name_required": "Filter name required.",
       "filter_name_exists": "A filter with this name already exists.",
       "no_permission": "No permission.",
+      "feature_disabled": "This inventory feature is currently disabled.",
+      "no_return_permission": "You do not have permission to return this checkout.",
+      "insufficient_reserved_stock": "Reserved stock is insufficient for this return (already released?).",
+      "insufficient_stock": "Insufficient stock available.",
+      "lot_not_found": "Stock lot not found.",
+      "lock_conflict": "This product is currently being edited by another user.",
+      "inventory_complete_forbidden": "Only the inventory starter or an admin may complete it.",
+      "invalid_status": "Invalid status.",
+      "no_items": "No return items found.",
       "product_not_favorite": "Product is not a favorite.",
       "invalid_or_expired_token": "Invalid or expired token.",
       "transaction_id_required": "Transaction ID required.",
@@ -5066,6 +5669,43 @@
       "invalid_category_name": "Invalid category name.",
       "category_not_found": "Category not found.",
       "new_category_name_required": "The new category name is required."
+    },
+    "documents": {
+      "page_title": "Documents - {name}",
+      "heading": "Documents for \"{name}\"",
+      "list_title": "Documents",
+      "upload_btn": "Upload document",
+      "link_manual_btn": "Link manual",
+      "edit_product": "Edit product",
+      "col_name": "Name",
+      "col_type": "Type",
+      "col_size": "Size",
+      "col_date": "Uploaded",
+      "col_actions": "Actions",
+      "linked_manual": "Linked to manual",
+      "manual_link_only": "Manual link only",
+      "download": "Download",
+      "open_manual": "Open manual",
+      "delete_confirm": "Do you really want to delete this document?",
+      "empty": "No documents yet.",
+      "upload_title": "Upload document",
+      "file_label": "File",
+      "file_help": "PDF, PNG, JPEG and DOC/DOCX/XLS/XLSX.",
+      "type_label": "Document type",
+      "link_manual_optional": "Link to manual (optional)",
+      "no_manual_link": "No link",
+      "link_manual_title": "Link manual",
+      "manual_label": "Manual",
+      "select_manual": "Select manual…",
+      "link_manual_help": "Links an existing operating manual without duplicating the file.",
+      "types": {
+        "handbook": "Handbook / Manual",
+        "datasheet": "Datasheet",
+        "invoice": "Invoice",
+        "warranty": "Warranty",
+        "dguv": "DGUV inspection report",
+        "other": "Other"
+      }
     }
   },
   "music": {
@@ -5185,6 +5825,7 @@
       "breadcrumb_admin": "Administration",
       "breadcrumb_music": "Music Module Settings",
       "heading": "Music Module Settings",
+      "lead_short": "Providers and display.",
       "subtitle": "Enable providers, set search order, and manage credentials.",
       "subtitle_providers_only": "Enable providers, set search order, and display options.",
       "integrations_moved": "Spotify, YouTube, and Deezer connections are under Settings → Integrations.",
@@ -5450,11 +6091,13 @@
       "cards": {
         "booking_forms": {
           "title": "Booking Forms",
-          "description": "Create, edit and manage booking forms"
+          "description": "Create, edit and manage booking forms",
+          "short": "Forms"
         },
         "music_module": {
           "title": "Music Module",
-          "description": "Connect and configure Spotify and YouTube Music"
+          "description": "Connect and configure Spotify and YouTube Music",
+          "short": "Providers"
         }
       }
     },
@@ -5944,7 +6587,13 @@
       "settings": "Settings",
       "close_board": "Close board",
       "filter": "Filter",
-      "save_template": "Save as template"
+      "save_template": "Save as template",
+      "background": "Background",
+      "background_image": "Background image",
+      "background_upload": "Upload image",
+      "background_clear": "Remove image",
+      "background_image_set": "Background image is set",
+      "background_image_optional": "Optional: upload your own image (shown over the color)"
     },
     "custom_fields": {
       "title": "Custom fields",
@@ -6041,6 +6690,31 @@
       "reopen": "Reopen",
       "delete": "Delete",
       "empty": "No closed boards."
+    },
+    "export": {
+      "title": "Export",
+      "json": "As JSON (Trello)",
+      "csv": "As CSV (Trello)"
+    },
+    "import": {
+      "title": "Import board",
+      "hint": "Upload a Trello export as JSON or CSV. A new board will be created.",
+      "file": "Export file",
+      "title_optional": "Title (optional)",
+      "title_ph": "Leave empty to use the name from the file",
+      "submit": "Import",
+      "error_no_file": "Please choose a file.",
+      "error_empty": "The file is empty.",
+      "error_invalid": "Invalid Trello export format.",
+      "error_forbidden": "You are not allowed to import.",
+      "error_admin": "Only admins may import public boards.",
+      "error_team": "Please select a team.",
+      "error_team_leader": "Only team leaders may import team boards.",
+      "error_visibility": "This visibility is not allowed.",
+      "error_failed": "Import failed.",
+      "error_invalid_zip": "Invalid ZIP file",
+      "error_empty_zip": "ZIP has no JSON/CSV files",
+      "visibility": "Visibility"
     }
   },
   "visibility": {
@@ -6107,7 +6781,8 @@
       "delete_confirm": "Delete this survey?",
       "back": "Back",
       "preview": "Preview",
-      "share": "Share"
+      "share": "Share",
+      "special_category_hint": "Do not request special-category data (GDPR Art. 9, e.g. health) in questions or free text unless explicitly approved and safeguarded. The portal does not filter content automatically."
     },
     "settings": {
       "title": "Settings",
@@ -6188,7 +6863,7 @@
     },
     "logic": {
       "title": "Conditional logic",
-      "hint": "Show, hide or skip pages based on answers.",
+      "hint": "Create rules: if question X equals an answer, then skip or show a question/page. Tap a rule to edit.",
       "add_rule": "Add rule",
       "if_answer": "If answer",
       "then": "then",
@@ -6202,6 +6877,13 @@
         "list": "List view",
         "grid": "Grid view"
       }
+    },
+    "redirect_warn": {
+      "title": "External redirect",
+      "message": "This short link leads to an external website. Check the address before continuing.",
+      "destination": "Destination",
+      "continue": "Continue to website",
+      "cancel": "Cancel"
     }
   },
   "file_converter": {
@@ -6318,6 +7000,206 @@
       "output_not_found": "Output file was not created.",
       "timeout": "Conversion timed out.",
       "upload_failed": "Upload failed."
+    }
+  },
+  "protocols": {
+    "nav": {
+      "title": "Meeting Minutes",
+      "all": "All",
+      "create": "New protocol",
+      "new": "New protocol"
+    },
+    "status": {
+      "draft": "Draft",
+      "finalized": "Finalized"
+    },
+    "steps": {
+      "meta": "Details",
+      "agenda": "Agenda",
+      "content": "Content"
+    },
+    "index": {
+      "search_placeholder": "Search by title, name or date (e.g. 05.09.2026)…",
+      "empty": "No protocols yet.",
+      "open": "Open",
+      "edit": "Edit",
+      "pdf": "Download PDF",
+      "delete_confirm": "Really delete this protocol?",
+      "nav": {
+        "menu": "Protocols menu"
+      },
+      "list": {
+        "title": "Title",
+        "date": "Date",
+        "status": "Status",
+        "visibility": "Scope"
+      },
+      "sort": {
+        "heading": "Sort",
+        "field": "Field",
+        "dir": "Direction",
+        "date": "Meeting date",
+        "title": "Title",
+        "updated": "Last updated",
+        "created": "Created",
+        "asc": "Ascending",
+        "desc": "Descending",
+        "apply": "Apply"
+      },
+      "filter": {
+        "heading": "Filter",
+        "status": "Status",
+        "all": "All",
+        "apply": "Apply",
+        "reset": "Reset"
+      }
+    },
+    "create": {
+      "subtitle": "Set date, participants and visibility.",
+      "title_label": "Meeting name",
+      "title_placeholder": "e.g. Team meeting",
+      "title_required": "Please enter a name for the protocol.",
+      "date_label": "Date",
+      "start_time_label": "Start time",
+      "participants_label": "Participants",
+      "participants_placeholder": "Names, comma-separated or one per line",
+      "excused_label": "Excused",
+      "excused_placeholder": "Excused absences",
+      "absent_label": "Unexcused",
+      "absent_placeholder": "Unexcused absences",
+      "submit": "Continue to agenda",
+      "continue": "Continue",
+      "chip_placeholder": "Type a name and press Enter…",
+      "chip_hint": "Press Enter to add a pill, × to remove."
+    },
+    "meta": {
+      "edit_title": "Edit protocol"
+    },
+    "agenda": {
+      "title": "Agenda items",
+      "hint": "Define agenda items. Reorder via drag and drop.",
+      "item_placeholder": "e.g. Project update",
+      "add": "Add item",
+      "continue": "Continue to content",
+      "reorder": "Move",
+      "min_one": "Please add at least one agenda item."
+    },
+    "item": {
+      "title_label": "Agenda item",
+      "content_label": "Content",
+      "nav_label": "Items",
+      "prev": "Previous",
+      "next": "Next",
+      "autosaved": "Saved",
+      "saving": "Saving…"
+    },
+    "actions": {
+      "save_draft": "Save draft",
+      "finalize": "Mark as finalized",
+      "finalize_confirm": "Finalize this protocol? It can no longer be edited afterwards."
+    },
+    "view": {
+      "agenda": "Agenda",
+      "content": "Minutes",
+      "no_content": "No content yet.",
+      "time_label": "Time",
+      "attendance": "Attendance",
+      "finalized_at": "Finalized on"
+    },
+    "flash": {
+      "module_disabled": "The protocols module is disabled.",
+      "created": "Protocol created.",
+      "saved": "Saved.",
+      "finalized": "Protocol finalized.",
+      "deleted": "Protocol deleted.",
+      "finalized_readonly": "Finalized protocols cannot be edited.",
+      "pdf_only_finalized": "PDF is only available after finalization."
+    },
+    "editor": {
+      "table": "Table",
+      "color": "Text color",
+      "highlight": "Highlighter",
+      "size": "Font size",
+      "size_small": "Small",
+      "size_normal": "Normal",
+      "size_large": "Large",
+      "size_huge": "Huge"
+    }
+  },
+  "meetings": {
+    "page_title": "Meetings",
+    "heading": "Meetings",
+    "default_title": "Meeting",
+    "chat_title": "Meeting: {name}",
+    "nav": {
+      "label": "Meetings navigation",
+      "active": "Active",
+      "ended": "Ended",
+      "start": "Start meeting",
+      "menu": "Meetings menu"
+    },
+    "list": {
+      "title": "Title",
+      "access": "Access",
+      "host": "Started by",
+      "started": "Started",
+      "empty": "No active meetings."
+    },
+    "access": {
+      "public": "Public",
+      "invite": "Invite only"
+    },
+    "actions": {
+      "join": "Join",
+      "end": "End",
+      "copy_guest": "Copy guest link",
+      "more": "More actions"
+    },
+    "create": {
+      "page_title": "Start meeting",
+      "heading": "Start meeting",
+      "title_label": "Title",
+      "title_placeholder": "e.g. Weekly sync",
+      "access_label": "Access",
+      "public_help": "Visible to everyone with the Meetings module.",
+      "invite_help": "Only invited portal users can see the meeting.",
+      "invitees_label": "Invite people",
+      "invitees_search": "Search name or email…",
+      "invitees_host": "You are included automatically. Additional people are optional.",
+      "invitees_you": "You",
+      "invitees_empty": "No other portal users to invite.",
+      "submit": "Start meeting"
+    },
+    "guest": {
+      "lead": "Enter your name to join.",
+      "name_label": "Your name",
+      "name_required": "Please enter a name.",
+      "submit": "Join",
+      "ended": "This meeting has ended."
+    },
+    "call": {
+      "loading": "Loading meeting…",
+      "insecure_title": "Not a secure context (HTTPS)",
+      "insecure_body": "Camera and microphone do not work on http://IP addresses. Use HTTPS (domain + certificate) — otherwise the call stays black."
+    },
+    "chat": {
+      "start": "Start meeting"
+    },
+    "notify": {
+      "title": "Meeting invitation",
+      "body": "You were invited to \"{title}\"."
+    },
+    "flash": {
+      "invitees_required": "Please invite at least one person.",
+      "no_access": "You cannot access this meeting.",
+      "ended": "This meeting has ended.",
+      "ended_ok": "Meeting ended.",
+      "not_configured": "MiroTalk is not configured. Set MIROTALK_URL in .env.",
+      "join_failed": "Could not join. Check MIROTALK_API_KEY / MIROTALK_HOST_USER / MIROTALK_HOST_PASSWORD — they must match MiroTalk’s .env.",
+      "no_module": "The Meetings module is not available.",
+      "chat_missing": "Chat not found.",
+      "not_chat_member": "You are not a member of this chat.",
+      "chat_start_error": "Could not start the meeting."
     }
   }
 }

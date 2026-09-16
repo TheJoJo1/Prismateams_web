@@ -7,21 +7,7 @@
     --mod-radius-card: 0.75rem;
 }
 
-/* Such-Lupe: Akzentfarbe, ohne gefüllten Kreis */
-.files-search-field > .bi-search,
-.inventory-search-field > .bi-search,
-.calendar-search-field > .bi-search,
-.wiki-search-icon,
-.contacts-search-icon,
-.shortlinks-search-icon,
-.credentials-search-icon,
-.manuals-search-icon,
-.email-search-icon,
-.surveys-search-icon,
-.chat-create-search .bi-search {
-    color: var(--accent-color, #0d6efd);
-    opacity: 1;
-}
+/* Search icon accent: see mod-search.css (.mod-search .bi-search / .mod-search-icon) */
 
 /* ——— Shell ——— */
 .mod-shell--nav {
@@ -185,7 +171,7 @@
     font-size: 1.45rem;
     opacity: 0.95;
     flex-shrink: 0;
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .mod-sidebar-nav {
@@ -226,7 +212,7 @@
     font-weight: 600;
     padding: 0.7rem 1.1rem;
     color: #fff !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     box-shadow: 0 0.2rem 0.6rem rgba(0, 0, 0, 0.18);
     text-decoration: none;
     display: inline-flex;
@@ -291,7 +277,7 @@
     font-weight: 600;
     font-size: 0.82rem;
     line-height: 1.2;
-    color: var(--accent-color, #0d6efd) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
     white-space: nowrap;
     box-shadow: none;
     text-decoration: none;
@@ -301,7 +287,7 @@
 .mod-sidebar-action span,
 .btn.mod-sidebar-action .bi,
 .btn.mod-sidebar-action span {
-    color: var(--accent-color, #0d6efd) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
 }
 
 .mod-sidebar-action:hover,
@@ -310,8 +296,8 @@
 .btn.mod-sidebar-action:hover,
 .btn.mod-sidebar-action:focus,
 .btn.mod-sidebar-action:active {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent);
-    color: var(--accent-color, #0d6efd) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
+    color: var(--accent-color, var(--bs-primary)) !important;
     filter: brightness(0.95);
     box-shadow: none;
 }
@@ -366,6 +352,7 @@
 /* ——— Nav links (calendar-style pills) ——— */
 .mod-nav-link,
 a.mod-nav-link,
+button.mod-nav-link,
 .nav-link.mod-nav-link {
     display: flex;
     align-items: center;
@@ -380,10 +367,13 @@ a.mod-nav-link,
     width: 100%;
     min-width: 0;
     font-weight: 500;
+    cursor: pointer;
+    font: inherit;
 }
 
 .mod-nav-link:hover,
 a.mod-nav-link:hover,
+button.mod-nav-link:hover,
 .nav-link.mod-nav-link:hover {
     background: rgba(127, 127, 127, 0.12);
     color: inherit !important;
@@ -391,9 +381,10 @@ a.mod-nav-link:hover,
 
 .mod-nav-link.active,
 a.mod-nav-link.active,
+button.mod-nav-link.active,
 .nav-link.mod-nav-link.active {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-    color: var(--accent-color, #0d6efd) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
+    color: var(--accent-color, var(--bs-primary)) !important;
     font-weight: 600;
 }
 
@@ -442,7 +433,7 @@ a.mod-nav-link.active,
     font-weight: 600;
     padding: 0.4rem 1rem;
     color: #fff !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.14);
     display: inline-flex;
     align-items: center;
@@ -651,7 +642,7 @@ a.mod-nav-link.active,
 
 .mod-list-hover-actions .btn-link:hover,
 .mod-list-hover-actions .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 /* ——— Stat cards (assessment / booking dashboards) ——— */
@@ -689,7 +680,7 @@ a.mod-nav-link.active,
 }
 
 .mod-stat--accent .mod-stat-value {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .mod-stat--warning .mod-stat-value {
@@ -751,7 +742,7 @@ a.mod-nav-link.active,
 }
 
 .mod-dash-list a:hover {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .mod-dash-meta {
@@ -840,132 +831,6 @@ a.mod-nav-link.active,
     }
 }
 
-/* Custom pill selects (shared — ersetzt natives Options-Popup) */
-.inv-pill-select {
-    position: relative;
-    width: 100%;
-    min-width: 0;
-}
-
-.inv-pill-select > select {
-    position: absolute !important;
-    width: 1px !important;
-    height: 1px !important;
-    padding: 0 !important;
-    margin: -1px !important;
-    overflow: hidden !important;
-    clip: rect(0, 0, 0, 0) !important;
-    white-space: nowrap !important;
-    border: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-.inv-pill-select__trigger {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    text-align: left;
-    border: 1px solid var(--bs-border-color, #dee2e6);
-    border-radius: var(--mod-radius-pill, 1.5rem) !important;
-    background: var(--bs-body-bg, #fff);
-    color: var(--bs-body-color);
-    padding: 0.55rem 0.95rem;
-    font-size: 0.95rem;
-    line-height: 1.4;
-    min-height: calc(1.5em + 1.1rem + 2px);
-    box-shadow: none;
-}
-
-.inv-pill-select__trigger:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 35%, var(--bs-border-color));
-}
-
-.inv-pill-select.is-open .inv-pill-select__trigger,
-.inv-pill-select__trigger:focus {
-    outline: none;
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 45%, var(--bs-border-color));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-}
-
-.inv-pill-select__label {
-    flex: 1 1 auto;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.inv-pill-select__label.is-placeholder {
-    color: var(--bs-secondary-color, #6c757d);
-}
-
-.inv-pill-select__chevron {
-    flex-shrink: 0;
-    opacity: 0.65;
-    font-size: 0.85rem;
-}
-
-.inv-pill-select__menu {
-    position: absolute;
-    z-index: 1085;
-    top: calc(100% + 0.35rem);
-    left: 0;
-    right: 0;
-    margin: 0;
-    padding: 0.45rem;
-    list-style: none;
-    border-radius: 1.1rem;
-    border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.25));
-    background: var(--bs-dropdown-bg, var(--bs-body-bg, #fff));
-    box-shadow: 0 0.65rem 1.5rem rgba(0, 0, 0, 0.14);
-    max-height: min(16rem, 50vh);
-    overflow-y: auto;
-}
-
-.inv-pill-select__menu[hidden] {
-    display: none !important;
-}
-
-.inv-pill-select__option {
-    display: block;
-    width: 100%;
-    border: none;
-    background: transparent;
-    text-align: left;
-    border-radius: var(--mod-radius-pill, 1.5rem);
-    padding: 0.5rem 0.9rem;
-    font-weight: 500;
-    color: var(--bs-body-color);
-    cursor: pointer;
-}
-
-.inv-pill-select__option:hover,
-.inv-pill-select__option:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent);
-    outline: none;
-}
-
-.inv-pill-select__option.is-selected {
-    background: var(--accent-style, var(--accent-color, #0d6efd));
-    color: #fff;
-}
-
-.inv-pill-select__option.is-selected:hover,
-.inv-pill-select__option.is-selected:focus {
-    background: var(--accent-style, var(--accent-color, #0d6efd));
-    color: #fff;
-    filter: brightness(1.05);
-}
-
-.mod-sidebar-form .inv-pill-select__trigger {
-    min-height: calc(1.5em + 0.75rem + 2px);
-    padding: 0.35rem 0.75rem;
-    font-size: 0.875rem;
-}
-
 /* ——— Inline back link (subpages inside a module shell) ——— */
 .mod-back-row {
     margin-top: 0.15rem;
@@ -978,14 +843,14 @@ a.mod-nav-link.active,
     color: var(--bs-secondary-color, #6c757d);
     text-decoration: none;
     font-weight: 500;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     padding: 0.25rem 0.15rem;
     line-height: 1.2;
 }
 
 .mod-back-link:hover,
 .mod-back-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
     text-decoration: none;
 }
 

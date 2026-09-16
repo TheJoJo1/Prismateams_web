@@ -1,10 +1,5 @@
 /* manuals module — pill design (shell in module-ui.css) */
 
-.mod-sidebar-brand .bi {
-    font-size: 1.45rem;
-    opacity: 0.95;
-}
-
 .manuals-shell .mod-new-btn,
 .btn.mod-new-btn {
     border-radius: var(--mod-radius-pill, 1.5rem) !important;
@@ -12,11 +7,12 @@
     font-weight: 600;
     padding: 0.4rem 1rem;
     color: #fff !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.14);
 }
 
 /* ——— Neu-Dropdown (Pillen, wie Zugangsdaten) ——— */
+
 .manuals-sidebar-new-menu,
 .manuals-mobile-new-menu,
 .manuals-actions-menu,
@@ -66,7 +62,7 @@
 .manuals-mobile-new-menu .dropdown-item:focus,
 .manuals-actions-menu .dropdown-item:hover,
 .manuals-actions-menu .dropdown-item:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
     color: var(--bs-body-color, #212529);
 }
 
@@ -91,60 +87,12 @@
 }
 
 /* ——— List / Grid pill toggle ——— */
-.manuals-search {
+
+.manuals-shell .mod-search--icon {
     position: relative;
     max-width: 28rem;
     margin: 0 auto;
     width: 100%;
-}
-
-.manuals-search-icon {
-    position: absolute;
-    left: 0.95rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--accent-color, #0d6efd);
-    pointer-events: none;
-    font-size: 0.95rem;
-}
-
-.manuals-search-input,
-.form-control.manuals-search-input {
-    border-radius: var(--mod-radius-pill, 1.5rem) !important;
-    padding-left: 2.35rem;
-    padding-right: 2.35rem;
-    height: 2.55rem;
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
-    box-shadow: none;
-}
-
-.manuals-search-input:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 55%, var(--bs-border-color));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-}
-
-.manuals-search-clear {
-    position: absolute;
-    right: 0.35rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.85rem;
-    height: 1.85rem;
-    padding: 0;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--bs-secondary-color, #6c757d);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-}
-
-.manuals-search-clear:hover {
-    background: rgba(127, 127, 127, 0.12);
-    color: var(--bs-body-color);
 }
 
 .manuals-mobile-toolbar {
@@ -153,31 +101,29 @@
     gap: 0.5rem;
 }
 
-.manuals-mobile-search .manuals-search {
+.manuals-mobile-search .mod-search--icon {
     max-width: none;
     margin: 0;
 }
 
-.manuals-mobile-search .manuals-search-input,
-.manuals-mobile-search .form-control.manuals-search-input {
+.manuals-mobile-search .mod-search-input,
+.manuals-mobile-search .form-control.mod-search-input {
     height: 2.35rem;
 }
 
-/* ——— List / Grid pill toggle (uses files-view-toggle classes) ——— */
-.manuals-mobile-view-toggle .files-view-toggle__btn {
+/* ——— List / Grid pill toggle (uses mod-view-toggle classes) ——— */
+
+.manuals-mobile-view-toggle .mod-view-toggle__btn {
     width: 2.1rem;
     height: 2.1rem;
 }
 
-.page-toolbar-row .files-view-toggle {
-    flex-shrink: 0;
-}
-
 /* ——— Nested folder navigation ——— */
+
 .manuals-folder-nav-item--nested {
     margin-left: 0.35rem;
     padding-left: 0.85rem;
-    border-left: 2px solid color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
+    border-left: 2px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
 }
 
 .manuals-folder-nav-item--nested .manuals-folder-nav-row > .mod-nav-link {
@@ -198,6 +144,7 @@
 }
 
 /* ——— Inline Ordner erstellen ——— */
+
 .manuals-folder-inline {
     margin: 0.35rem 0 0.75rem;
     padding: 0.85rem 0.9rem;
@@ -249,8 +196,8 @@
 
 .manuals-folder-inline-color:hover,
 .manuals-folder-inline-color:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 45%, var(--bs-border-color, #dee2e6)) !important;
-    box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent) !important;
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 45%, var(--bs-border-color, #dee2e6)) !important;
+    box-shadow: 0 0 0 0.15rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent) !important;
 }
 
 .manuals-folder-inline-actions {
@@ -275,18 +222,18 @@
 
 .manuals-folder-inline-cancel:hover,
 .manuals-folder-inline-cancel:focus {
-    color: var(--accent-color, #0d6efd) !important;
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent) !important;
 }
 
 .mod-nav-link.active {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-    color: var(--accent-color, #0d6efd);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
+    color: var(--accent-color, var(--bs-primary));
     font-weight: 600;
 }
 
 .mod-nav-link.manuals-drop-active {
-    outline: 2px solid var(--accent-color, #0d6efd);
+    outline: 2px solid var(--accent-color, var(--bs-primary));
     outline-offset: 1px;
 }
 
@@ -299,6 +246,7 @@
 }
 
 /* ——— Ordner-Nav: Stift / 3-Punkte + Inline-Edit ——— */
+
 .manuals-folder-nav-item {
     width: 100%;
     min-width: 0;
@@ -322,7 +270,7 @@
 
 .manuals-folder-nav-item.is-editing .manuals-folder-nav-row,
 .manuals-folder-nav-row:has(.mod-nav-link.active) {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
 }
 
 .manuals-folder-nav-row .mod-nav-link,
@@ -346,7 +294,7 @@
 
 .manuals-folder-nav-row .mod-nav-link.active,
 .manuals-folder-nav-row a.mod-nav-link.active {
-    color: var(--accent-color, #0d6efd) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
     font-weight: 600;
 }
 
@@ -372,8 +320,8 @@
 
 .manuals-folder-nav-edit-btn:hover,
 .manuals-folder-nav-edit-btn:focus {
-    color: var(--accent-color, #0d6efd);
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
 }
 
 @media (min-width: 992px) {
@@ -439,15 +387,15 @@
     padding: 0 !important;
     border: none !important;
     border-radius: var(--mod-radius-pill, 1.5rem) !important;
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent) !important;
-    color: var(--accent-color, #0d6efd) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
     font-weight: 600;
 }
 
 .manuals-folder-move-btn:hover,
 .manuals-folder-move-btn:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 22%, transparent) !important;
-    color: var(--accent-color, #0d6efd) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 22%, transparent) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
 }
 
 .manuals-folder-inline-secondary,
@@ -465,8 +413,8 @@
 
 .manuals-folder-inline-secondary:hover,
 .manuals-folder-inline-secondary:focus {
-    color: var(--accent-color, #0d6efd) !important;
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent) !important;
+    color: var(--accent-color, var(--bs-primary)) !important;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent) !important;
 }
 
 .manuals-folder-inline-danger {
@@ -495,7 +443,7 @@
 
 .mod-list-hover-actions .btn-link:hover,
 .mod-list-hover-actions .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .mod-list-actions .dropdown .btn-link {
@@ -506,6 +454,7 @@
 }
 
 /* ——— Grid-Karten ——— */
+
 .manuals-card {
     border-radius: var(--mod-radius-card, 0.9rem);
     border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.22));
@@ -519,8 +468,8 @@
 }
 
 .manuals-card:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 35%, transparent);
-    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, transparent);
+    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
 }
 
 .manuals-card .card-body {
@@ -569,7 +518,7 @@
 
 .manuals-card-menu .btn-link:hover,
 .manuals-card-menu .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .manuals-grid-hover-actions {
@@ -595,8 +544,8 @@
 
 .manuals-grid-hover-actions .btn-link:hover,
 .manuals-grid-hover-actions .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
 }
 
 .manuals-grid-hover-actions .btn-link.text-danger:hover,
@@ -610,7 +559,6 @@
 }
 
 .manuals-card:has(.dropdown.show),
-.mod-list-row:has(.dropdown.show),
 #gridViewContainer > .row > [class*="col-"]:has(.dropdown.show),
 .manual-item:has(.dropdown.show) {
     position: relative;
@@ -618,6 +566,7 @@
 }
 
 /* ——— Upload-Formular ——— */
+
 .manuals-form {
     --manuals-form-surface: var(--bs-tertiary-bg, #f8f9fa);
     --manuals-form-elevated: var(--bs-body-bg, #fff);
@@ -647,13 +596,13 @@
     font-size: 0.95rem;
     margin-bottom: 0.65rem;
     padding: 0.25rem 0.15rem;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     width: fit-content;
 }
 
 .manuals-form-back:hover,
 .manuals-form-back:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .manuals-form-back i {
@@ -741,8 +690,8 @@
 
 .manuals-form .form-control:focus,
 .manuals-form .form-select:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 45%, var(--manuals-form-border));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 45%, var(--manuals-form-border));
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
 }
 
 .manuals-form-actions {

@@ -1,6 +1,6 @@
 {% extends "inventory/layout.html" %}
 
-{% block title %}Quick Scan - {{ app_name or 'Rpismateams' }}{% endblock %}
+{% block title %}{{ _('inventory.scanner.page_title') }}{% endblock %}
 {% block inventory_heading_icon %}bi-qr-code-scan{% endblock %}
 {% block inventory_heading %}{{ _('inventory.shell.nav.quick_scan') }}{% endblock %}
 
@@ -33,10 +33,10 @@
                         </div>
                     </div>
                     <div class="inventory-scan-controls">
-                        <button class="btn inventory-pill-btn inventory-pill-btn--outline" id="startScannerBtn" type="button">
+                        <button class="btn mod-pill-btn mod-pill-btn--outline" id="startScannerBtn" type="button">
                             <i class="bi bi-camera"></i> Kamera starten
                         </button>
-                        <button class="btn inventory-pill-btn inventory-pill-btn--outline-danger" id="stopScannerBtn" type="button" style="display: none;">
+                        <button class="btn mod-pill-btn mod-pill-btn--outline-danger" id="stopScannerBtn" type="button" style="display: none;">
                             <i class="bi bi-stop-circle"></i> Kamera stoppen
                         </button>
                     </div>
@@ -45,24 +45,24 @@
                 </div>
 
                 <div class="mb-3">
-                    <label for="manualQrInput" class="form-label">ID</label>
+                    <label for="manualQrInput" class="form-label">ID / Inventar-Nr.</label>
                     <div class="inventory-manual-input-wrap">
-                        <input type="text" class="form-control" id="manualQrInput" autofocus
-                               placeholder="PROD, SET, BORROW"
+                        <input type="text" class="form-control mod-pill-input" id="manualQrInput" autofocus
+                               placeholder="PROD, SET, BORROW oder Inventar-Nr."
                                autocomplete="off">
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="productSearchInput" class="form-label">Produkt suchen</label>
                     <div class="inventory-manual-input-wrap position-relative">
-                        <input type="text" class="form-control" id="productSearchInput"
+                        <input type="text" class="form-control mod-pill-input" id="productSearchInput"
                                placeholder="Name, Seriennummer, Kategorie…"
                                autocomplete="off">
                         <div id="productSuggest" class="list-group inventory-suggest-dropdown" style="display: none;" role="listbox"></div>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <button class="btn btn-accent inventory-pill-btn" id="addToCartBtn" type="button">
+                    <button class="btn btn-accent mod-pill-btn" id="addToCartBtn" type="button">
                         <i class="bi bi-plus-circle"></i> Hinzufügen
                     </button>
                 </div>
@@ -95,14 +95,14 @@
                 <form method="POST" action="{{ url_for('inventory.borrow_scanner_checkout') }}" id="checkoutForm" class="inventory-form-grid">
                     <div class="mb-2">
                         <label for="event_name" class="form-label">Projekt (optional)</label>
-                        <input type="text" class="form-control" id="event_name" name="event_name"
+                        <input type="text" class="form-control mod-pill-input" id="event_name" name="event_name"
                                placeholder="z.B. Probe" autocomplete="off">
                     </div>
                     <div class="mb-3">
                         <label for="end_date" class="form-label">Rückgabe bis (optional)</label>
-                        <input type="datetime-local" class="form-control" id="end_date" name="end_date">
+                        <input type="datetime-local" class="form-control mod-pill-input" id="end_date" name="end_date">
                     </div>
-                    <button type="submit" class="btn btn-accent inventory-pill-btn w-100" {% if not cart_products %}disabled{% endif %}>
+                    <button type="submit" class="btn btn-accent mod-pill-btn w-100" {% if not cart_products %}disabled{% endif %}>
                         <i class="bi bi-check-circle"></i> Ausleihe bestätigen
                     </button>
                 </form>
@@ -115,7 +115,10 @@
 
 {% block inventory_extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inventory_scan_lookup.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inventory-borrow-scanner.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.inventoryScanMode = 'borrow';

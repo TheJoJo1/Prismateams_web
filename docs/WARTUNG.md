@@ -5,8 +5,8 @@
 <h1 align="center">Prismateams – Wartung</h1>
 
 <p align="center">
-  <strong>Dokumentation · Version 3.0.1</strong><br>
-  <img src="https://img.shields.io/badge/version-3.0.1-7c3aed?style=flat-square" alt="Version 3.0.1">
+  <strong>Dokumentation · Version 3.4.12</strong><br>
+  <img src="https://img.shields.io/badge/version-3.4.12-7c3aed?style=flat-square" alt="Version 3.4.12">
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@
 
 ---
 
-Laufender Betrieb von **Prismateams 3.0.1**: Logs, Neustart, Updates, Migrationen, Backups und Performance.
+Laufender Betrieb von **Prismateams 3.4.12**: Logs, Neustart, Updates, Migrationen, Backups und Performance.
 
 Bei Fehlern: [ERROR_HANDLING.md](ERROR_HANDLING.md)
 
@@ -38,12 +38,25 @@ sudo tail -f /var/log/nginx/error.log
 # Redis Logs
 sudo journalctl -u redis-server -f
 
-# OnlyOffice Logs (falls installiert)
-sudo docker logs -f onlyoffice-documentserver
+# Euro-Office / Document Server Logs (falls installiert)
+sudo docker logs -f eurooffice-documentserver
+# Legacy: sudo docker logs -f onlyoffice-documentserver
 
 # Excalidraw-Room Logs (falls installiert)
 sudo docker logs -f excalidraw-room
+
+# MiroTalk SFU Logs (falls installiert)
+sudo docker logs -f mirotalksfu
 ```
+
+### Datenschutz in Logs
+
+- App-Logs maskieren E-Mail-Adressen über `app.utils.log_privacy.mask_email` (z. B. `j***@e***.com`).
+- Log-Level: `LOG_LEVEL=INFO` (Produktion) bzw. `WARNING` für weniger Detail; siehe `docs/env.example`.
+- journald-Retention begrenzen, z. B. in `/etc/systemd/journald.conf`:
+  - `SystemMaxUse=500M` und/oder `MaxRetentionSec=30day`
+  - danach `sudo systemctl restart systemd-journald`
+- Nginx-Access-Logs können weiterhin Query-Strings enthalten — Rotation/Retention über `logrotate` steuern; Zugriffe auf Log-Dateien beschränken.
 
 ## Anwendung neu starten
 
@@ -55,11 +68,15 @@ sudo systemctl status teamportal
 ## Docker-Container neu starten (falls installiert)
 
 ```bash
-# OnlyOffice neu starten (falls installiert)
-sudo docker restart onlyoffice-documentserver
+# Euro-Office neu starten (falls installiert)
+sudo docker restart eurooffice-documentserver
+# Legacy: sudo docker restart onlyoffice-documentserver
 
 # Excalidraw-Room neu starten (falls installiert)
 sudo docker restart excalidraw-room
+
+# MiroTalk SFU neu starten (falls installiert)
+sudo docker restart mirotalksfu
 ```
 
 ## Updates einspielen
@@ -112,24 +129,33 @@ sudo -u www-data bash -c "source venv/bin/activate && python migrations/run_all.
 ## Docker-Container aktualisieren (falls installiert)
 
 ```bash
-# OnlyOffice aktualisieren (falls installiert)
+# Euro-Office aktualisieren (falls installiert)
 # Fonts-Volume beibehalten (nur mscorefonts, keine Carlito-/Liberation-Duplikate).
 # Der neue Container indexiert das Volume beim Start selbst.
-sudo docker stop onlyoffice-documentserver
-sudo docker rm onlyoffice-documentserver
-sudo docker pull onlyoffice/documentserver:latest
+sudo docker stop eurooffice-documentserver
+sudo docker rm eurooffice-documentserver
+sudo docker pull ghcr.io/euro-office/documentserver:latest
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/logs/{adminpanel,converter,docservice,metrics}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/data/App_Data
+sudo chmod -R a+rwX /var/lib/eurooffice/DocumentServer/data /var/lib/eurooffice/DocumentServer/logs
+# Config nur seeden, wenn default.json fehlt (sonst JWT/local.json behalten)
+if [ ! -f /var/lib/eurooffice/DocumentServer/config/default.json ]; then
+    sudo docker create --name eurooffice-seed ghcr.io/euro-office/documentserver:latest
+    sudo docker cp eurooffice-seed:/etc/euro-office/documentserver/. /var/lib/eurooffice/DocumentServer/config/
+    sudo docker rm eurooffice-seed
+fi
 sudo docker run -d --restart=always \
-    --name onlyoffice-documentserver \
+    --name eurooffice-documentserver \
     -p 127.0.0.1:8080:80 \
-    -v /var/lib/onlyoffice/DocumentServer/logs:/var/log/onlyoffice \
-    -v /var/lib/onlyoffice/DocumentServer/data:/var/www/onlyoffice/Data \
-    -v /var/lib/onlyoffice/DocumentServer/lib:/var/lib/onlyoffice \
-    -v /var/lib/onlyoffice/DocumentServer/fonts:/usr/share/fonts/truetype/custom \
+    -v /var/lib/eurooffice/DocumentServer/logs:/var/log/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/data:/var/lib/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/config:/etc/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/fonts:/usr/share/fonts/truetype/custom \
     -e JWT_ENABLED=true \
     -e JWT_SECRET=dein-jwt-secret-key-hier \
     -e JWT_HEADER=Authorization \
     -e ALLOW_PRIVATE_IP_ADDRESS=true \
-    onlyoffice/documentserver:latest
+    ghcr.io/euro-office/documentserver:latest
 
 # Font-Index: der neue Container indexiert das Fonts-Volume beim Start selbst.
 # documentserver-generate-allfonts.sh nicht extra gegen den laufenden Editor ausführen
@@ -145,6 +171,19 @@ sudo docker run -d -p 127.0.0.1:8082:80 --restart=always \
     excalidraw/excalidraw-room:latest
 ```
 
+### Optional: OnlyOffice → Euro-Office wechseln
+
+Bestehende Installationen **müssen nicht** umstellen. `/onlyoffice` in der `.env` und der Legacy-Container bleiben gültig.
+
+Freiwilliger Wechsel:
+
+1. Nginx/Apache um `/eurooffice`-Location ergänzen (siehe Installer-Templates) und reload
+2. Alten Container stoppen/entfernen: `docker stop onlyoffice-documentserver && docker rm onlyoffice-documentserver`
+3. Euro-Office-Container wie oben starten (neues Volume-Layout; Fonts ggf. neu kopieren)
+4. In `.env` entweder `ONLYOFFICE_DOCUMENT_SERVER_URL=/eurooffice` setzen **oder** `/onlyoffice` behalten (beide Prefixe zeigen auf denselben Port)
+5. `ONLYOFFICE_SECRET_KEY` unverändert lassen (gleicher JWT_SECRET)
+6. `systemctl restart teamportal`
+
 ## Backup erstellen
 
 ```bash
@@ -154,17 +193,19 @@ sudo mysqldump -u teamportal -p teamportal > backup_$(date +%Y%m%d).sql
 # Upload-Verzeichnis sichern
 sudo tar -czf uploads_backup_$(date +%Y%m%d).tar.gz /var/www/teamportal/uploads/
 
-# OnlyOffice Daten sichern (falls installiert)
-sudo tar -czf onlyoffice_backup_$(date +%Y%m%d).tar.gz /var/lib/onlyoffice/
+# Euro-Office Daten sichern (falls installiert)
+sudo tar -czf eurooffice_backup_$(date +%Y%m%d).tar.gz /var/lib/eurooffice/
+# Legacy: sudo tar -czf onlyoffice_backup_$(date +%Y%m%d).tar.gz /var/lib/onlyoffice/
 ```
 
 ## Optionale Services deaktivieren
 
-### OnlyOffice deaktivieren
+### Euro-Office / Document Server deaktivieren
 
 ```bash
 # 1. Container stoppen
-sudo docker stop onlyoffice-documentserver
+sudo docker stop eurooffice-documentserver
+# Legacy: sudo docker stop onlyoffice-documentserver
 
 # 2. .env-Datei bearbeiten
 sudo nano /var/www/teamportal/.env
@@ -172,7 +213,7 @@ sudo nano /var/www/teamportal/.env
 
 # 3. Nginx-Konfiguration bearbeiten
 sudo nano /etc/nginx/sites-available/teamportal
-# Entfernen Sie den /onlyoffice Location-Block
+# Entfernen Sie die /eurooffice-, /onlyoffice- und /cache-Location-Blöcke
 
 # 4. Nginx neu laden
 sudo nginx -t
@@ -210,17 +251,28 @@ sudo systemctl restart teamportal
 
 ```bash
 # In /etc/systemd/system/teamportal.service
-# Faustregel: (2 x CPU-Kerne) + 1
-# Für 4 CPU-Kerne: --workers 9
+# Produktion: worker-class gthread, 2–4 Worker × 8 Threads (mit Redis).
+# sync-Worker + SSE (/sse/events/dashboard u. a.) = Worker-Starvation (Seitenladen mehrere Sekunden).
+# Timeout 180s: hängende Requests geben den Slot frei; Converter/Downloads laufen im Thread.
 sudo nano /etc/systemd/system/teamportal.service
-# Ändern Sie die Zeile: --workers 1 zu --workers 9
+# --worker-class gthread
+# --workers 2  (oder 3–4 bei mehr CPU/RAM)
+# --threads 8
+# --timeout 180
+# --max-requests 1000 --max-requests-jitter 100
 sudo systemctl daemon-reload
 sudo systemctl restart teamportal
 ```
 
-**Hinweis:** Für mehrere Worker muss Redis installiert und in `.env` konfiguriert sein (`REDIS_ENABLED=True`).
+Symptom bei falscher Klasse (`sync`): `journalctl -u teamportal` zeigt wiederholt `WORKER TIMEOUT` auf `/sse/events/dashboard`.
+
+**Hinweis:** Für mehrere Worker und Kanban-SSE muss Redis installiert und in `.env` konfiguriert sein (`REDIS_ENABLED=True`). Ohne Redis pollt das Kanban-Board inkrementell (kein Full-Redraw).
 
 ### Nginx Caching
+
+Statische Assets werden von Flask mit `SEND_FILE_MAX_AGE_DEFAULT` (Default 1 Jahr)
+ausgeliefert. Zusätzlich sollte Nginx immutable setzen — Pflicht bei Produktion ohne
+direkten Flask-Static-Serve:
 
 ```bash
 sudo nano /etc/nginx/sites-available/teamportal
@@ -247,20 +299,21 @@ location = /sw.js {
 
 **Wichtig:** `/sw.js` nicht unter die allgemeine Static-/immutable-Regel legen. Die App setzt zusätzlich `Cache-Control: no-cache` beim Ausliefern von `/sw.js`.
 
-### OnlyOffice Performance (falls installiert)
+### Document-Server Performance (falls installiert)
 
-OnlyOffice kann viel Speicherplatz und RAM benötigen. Überwachen Sie regelmäßig:
+Euro-Office / Document Server kann viel Speicherplatz und RAM benötigen. Überwachen Sie regelmäßig:
 
 ```bash
 # Speicherplatz prüfen
 df -h
-du -sh /var/lib/onlyoffice/DocumentServer/data
+du -sh /var/lib/eurooffice/DocumentServer/data
+# Legacy: du -sh /var/lib/onlyoffice/DocumentServer/data
 
 # RAM-Verbrauch prüfen
-sudo docker stats onlyoffice-documentserver
+sudo docker stats eurooffice-documentserver
 ```
 
-**Empfohlene Systemanforderungen für OnlyOffice:**
+**Empfohlene Systemanforderungen für den Document Server:**
 - Mindestens 4 GB RAM (8 GB empfohlen)
 - Mindestens 20 GB freier Speicherplatz
 - Mehrere CPU-Kerne für bessere Performance
@@ -296,6 +349,8 @@ sudo systemctl restart teamportal
 
 Nach nachträglichem SSL (Certbot): Flag auf `True` setzen und Service neu starten. Sonst bleiben Cookies unsicher über HTTP nutzbar.
 
+**Produkt-Checks:** In `production`/`staging` schreibt die App eine Startup-Warnung, wenn `SESSION_COOKIE_SECURE` oder `REMEMBER_COOKIE_SECURE` False ist bzw. `PUBLIC_BASE_URL` mit `https://` beginnt, das Secure-Flag aber aus ist. Admins sehen den Ist-Zustand unter Einstellungen → System → Session-Cookies.
+
 **Stuck-Setup:** Wenn nach Admin-Anlage nur noch der Login erscheint — siehe [ERROR_HANDLING.md – Setup hängt](ERROR_HANDLING.md#setup-hängt-nach-account-erstellung-login-schleife).
 
 ## Bei Problemen
@@ -308,5 +363,5 @@ Nach nachträglichem SSL (Certbot): Flag auf `True` setzen und Service neu start
 
 <p align="center">
   <img src="../app/static/img/logo.png" alt="" width="40"><br>
-  <sub>Prismateams 3.0.1</sub>
+  <sub>Prismateams 3.4.12</sub>
 </p>

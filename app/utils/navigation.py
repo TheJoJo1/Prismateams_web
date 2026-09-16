@@ -4,6 +4,7 @@ from flask import url_for
 
 from app.utils.access_control import has_module_access
 from app.utils.common import is_module_enabled
+from app.utils.i18n import translate
 
 MOBILE_NAV_SLOT_KEYS = (
     'chat',
@@ -16,10 +17,12 @@ MOBILE_NAV_SLOT_KEYS = (
     'wiki',
     'excalidraw',
     'surveys',
+    'protocols',
     'booking',
     'music',
     'kanban',
     'file_converter',
+    'meetings',
 )
 
 MOBILE_NAV_DEFAULT_SLOTS = {
@@ -45,11 +48,13 @@ DESKTOP_NAV_ORDER = (
     'kanban',
     'excalidraw',
     'surveys',
+    'protocols',
     'booking',
     'music',
     'media_downloader',
     'file_converter',
     'assessment',
+    'meetings',
 )
 
 NAV_LINK_REGISTRY = {
@@ -191,6 +196,22 @@ NAV_LINK_REGISTRY = {
         'active_prefix': 'surveys',
         'in_launcher': True,
     },
+    'protocols': {
+        'endpoint': 'protocols.index',
+        'icon': 'bi-journal-richtext',
+        'label_key': 'layout.nav.protocols',
+        'module': 'module_protocols',
+        'active_prefix': 'protocols',
+        'in_launcher': True,
+    },
+    'meetings': {
+        'endpoint': 'meetings.index',
+        'icon': 'bi-camera-video',
+        'label_key': 'layout.nav.meetings',
+        'module': 'module_meetings',
+        'active_prefix': 'meetings',
+        'in_launcher': True,
+    },
     'media_downloader': {
         'endpoint': 'media_downloader.index',
         'icon': 'bi-download',
@@ -257,6 +278,10 @@ def is_nav_link_available(key, user):
     module = entry.get('module')
     if module and not is_module_enabled(module):
         return False
+    if key == 'meetings':
+        from app.utils.mirotalk import mirotalk_configured
+        if not mirotalk_configured():
+            return False
     if user is not None and module and not has_module_access(user, module):
         return False
     return True
@@ -328,13 +353,29 @@ def _endpoint_matches(endpoint, entry):
     return False
 
 
+def _nav_label_sort_key(key):
+    """Case-insensitive sort key from the translated module label."""
+    entry = NAV_LINK_REGISTRY.get(key) or {}
+    label_key = entry.get('label_key') or key
+    return (translate(label_key).casefold(), key)
+
+
+def iter_launcher_keys_alphabetical():
+    """Launcher keys: Dashboard first, then alphabetical by locale label."""
+    keys = [
+        key for key in DESKTOP_NAV_ORDER
+        if (NAV_LINK_REGISTRY.get(key) or {}).get('in_launcher', True)
+    ]
+    rest = sorted((k for k in keys if k != 'dashboard'), key=_nav_label_sort_key)
+    if 'dashboard' in keys:
+        return ['dashboard', *rest]
+    return rest
+
+
 def get_desktop_nav_modules(user):
-    """Launcher modules the user may open, in display order."""
+    """Launcher modules: Dashboard first, then alphabetically by label."""
     modules = []
-    for key in DESKTOP_NAV_ORDER:
-        entry = NAV_LINK_REGISTRY.get(key)
-        if not entry or not entry.get('in_launcher', True):
-            continue
+    for key in iter_launcher_keys_alphabetical():
         resolved = resolve_nav_link(key, user)
         if resolved:
             modules.append(resolved)
@@ -441,8 +482,8 @@ def normalize_dashboard_module_order(keys, user=None):
         seen.add(key)
         ordered.append(key)
 
-    # Append any remaining available modules in DESKTOP_NAV_ORDER
-    for key in DESKTOP_NAV_ORDER:
+    # Append any remaining available modules alphabetically by label
+    for key in iter_launcher_keys_alphabetical():
         if key == 'dashboard' or key in seen:
             continue
         entry = NAV_LINK_REGISTRY.get(key)

@@ -18,10 +18,10 @@
 {% set can_create_focus = can_create_focus|default(true) %}
 {% set sc = sidebar_calendars|default(none) %}
 
-<div class="calendar-shell calendar-shell--fill {% if calendar_multi_enabled %}calendar-shell--multi{% endif %}">
+<div class="calendar-shell mod-shell--nav {% if calendar_multi_enabled %}calendar-shell--multi{% endif %}">
 {{ calendar_sidebar(show_view_pills=true, interactive=true) }}
 
-<div class="calendar-main flex-grow-1 min-width-0">
+<div class="mod-main calendar-main flex-grow-1 min-width-0">
 {% if calendar_multi_enabled and sc %}
 <div class="mod-mobile-topbar calendar-mobile-topbar d-lg-none mb-2">
     <div class="d-flex justify-content-between align-items-center gap-2">
@@ -94,7 +94,7 @@
     
     <div class="calendar-grid calendar-grid--fill">
         <div class="calendar-header">
-            {% for weekday in current_translations.get('calendar', {}).get('index', {}).get('weekday_short', []) %}
+            {% for weekday in i18n_ns('calendar', 'index', 'weekday_short') %}
             <div class="day-header">{{ weekday }}</div>
             {% endfor %}
         </div>
@@ -210,7 +210,7 @@
 </div>{# calendar-shell #}
 
 <script>
-const CAL_I18N = {{ current_translations.get('calendar', {}).get('index', {})|tojson }};
+const CAL_I18N = {{ i18n_ns('calendar', 'index')|tojson }};
 const CAL_MULTI = {{ calendar_multi_enabled|tojson }};
 const CAL_PERSONAL_ID = {{ (sc.personal.id if sc and sc.personal else (sc.public.id if sc and sc.public else none))|tojson }};
 const CAL_SELECTED_IDS = {{ selected_calendar_ids|tojson }};
@@ -1340,8 +1340,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function getParts(root) {
         return {
-            input: root.querySelector('.calendar-search-input'),
-            clearBtn: root.querySelector('.calendar-search-clear'),
+            input: root.querySelector('.mod-search-input'),
+            clearBtn: root.querySelector('.mod-search-clear'),
             submitBtn: root.querySelector('.calendar-search-submit'),
             results: root.querySelector('.calendar-search-results'),
         };

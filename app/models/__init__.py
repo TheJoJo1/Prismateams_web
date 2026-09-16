@@ -8,6 +8,7 @@ from .contact import Contact, ContactFavorite
 from .credential import Credential, CredentialFolder, CredentialFavorite
 from .manual import Manual, ManualFolder
 from .settings import SystemSettings
+from .cookie_consent import CookieConsentLog
 from .whitelist import WhitelistEntry
 from .notification import NotificationSettings, ChatNotificationSettings, PushSubscription, NotificationLog, PushDeliveryLog
 from .inventory import Product, BorrowTransaction, Checkout, CheckoutItem, ProductFolder, ProductSet, ProductSetItem, ProductDocument, SavedFilter, ProductFavorite, Inventory, InventoryItem, ProductLot, StockMovement, ProductStatusHistory, InventoryItemLock
@@ -41,6 +42,7 @@ from .assessment import (
 )
 from .media_downloader import MediaDownloadJob
 from .file_converter import ConversionJob
+from .cloud_import import CloudImportConnection, CloudImportJob
 from .team import Team, TeamMember
 from .excalidraw import ExcalidrawDrawing, ExcalidrawDrawingVersion
 from .survey import (
@@ -53,6 +55,8 @@ from .survey import (
     SurveyEmailVerification,
     SurveyResponseLock,
 )
+from .protocol import Protocol, ProtocolAgendaItem
+from .meetings import Meeting, MeetingInvite
 from .kanban import (
     KanbanBoard,
     KanbanBoardMember,
@@ -84,6 +88,7 @@ __all__ = [
     'Credential', 'CredentialFolder', 'CredentialFavorite',
     'Manual', 'ManualFolder',
     'SystemSettings',
+    'CookieConsentLog',
     'WhitelistEntry',
     'NotificationSettings', 'ChatNotificationSettings', 'PushSubscription', 'NotificationLog', 'PushDeliveryLog',
     'Product', 'BorrowTransaction', 'Checkout', 'CheckoutItem', 'ProductFolder', 'ProductSet', 'ProductSetItem', 'ProductDocument', 'SavedFilter', 'ProductFavorite', 'Inventory', 'InventoryItem', 'ProductLot', 'StockMovement', 'ProductStatusHistory', 'InventoryItemLock',
@@ -105,6 +110,7 @@ __all__ = [
     'AssessmentAppSetting',
     'MediaDownloadJob',
     'ConversionJob',
+    'CloudImportConnection', 'CloudImportJob',
     'Team', 'TeamMember',
     'KanbanBoard', 'KanbanBoardMember', 'KanbanList', 'KanbanCard',
     'KanbanLabel', 'KanbanCardLabel', 'KanbanCardAssignee',
@@ -114,6 +120,8 @@ __all__ = [
     'ExcalidrawDrawing', 'ExcalidrawDrawingVersion',
     'Survey', 'SurveyPage', 'SurveyQuestion', 'SurveyLogicRule',
     'SurveyResponse', 'SurveyAnswer', 'SurveyEmailVerification', 'SurveyResponseLock',
+    'Protocol', 'ProtocolAgendaItem',
+    'Meeting', 'MeetingInvite',
 ]
 
 

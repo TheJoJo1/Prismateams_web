@@ -33,7 +33,9 @@
       "shortlinks": "Kurzlinks",
       "assessment": "Bewertung",
       "surveys": "Umfragen",
-      "file_converter": "Dateikonverter"
+      "file_converter": "Dateikonverter",
+      "protocols": "Protokollführung",
+      "meetings": "Meetings"
     },
     "brand": {
       "separator": "–",
@@ -120,7 +122,12 @@
     "required": "Erforderlich",
     "language": "Sprache",
     "select_language": "Sprache auswählen",
-    "unknown_error": "Unbekannter Fehler"
+    "unknown_error": "Unbekannter Fehler",
+    "pagination": {
+      "load_more": "Weitere laden",
+      "load_more_loading": "Laden…",
+      "load_error": "Weitere Einträge konnten nicht geladen werden"
+    }
   },
   "context_menu": {
     "copy_info": "Infos kopieren",
@@ -156,7 +163,8 @@
       "2fa_code": "2FA-Code",
       "2fa_code_help": "Geben Sie den 6-stelligen Code aus Ihrer Authenticator-App ein.",
       "2fa_recovery_request": "Keinen Zugang zur Authenticator-App? Code per E-Mail senden",
-      "2fa_recovery_pending": "Ein Wiederherstellungscode wurde an Ihre E-Mail gesendet (5 Min. gültig). Sie können ihn hier eingeben."
+      "2fa_recovery_pending": "Ein Wiederherstellungscode wurde an Ihre E-Mail gesendet (10 Zeichen, 5 Min. gültig). Sie können ihn hier eingeben.",
+      "2fa_code_or_recovery_hint": "Authenticator-Code (6 Ziffern) oder E-Mail-Wiederherstellungscode."
     },
     "legal": {
       "nav_label": "Rechtliche Hinweise",
@@ -228,23 +236,23 @@
     },
     "forgot_password": {
       "title": "Passwort vergessen",
-      "subtitle": "Geben Sie Ihre E-Mail-Adresse ein, um einen Reset-Code zu erhalten.",
+      "subtitle": "Geben Sie Ihre E-Mail-Adresse ein, um einen Reset-Token zu erhalten.",
       "email": "E-Mail-Adresse",
-      "email_help": "Wir senden Ihnen einen Code zum Zurücksetzen Ihres Passworts.",
-      "info_message": "Wir senden Ihnen einen 6-stelligen Code per E-Mail, mit dem Sie Ihr Passwort zurücksetzen können.",
-      "submit": "Code anfordern",
+      "email_help": "Wir senden Ihnen einen Link und Token zum Zurücksetzen Ihres Passworts.",
+      "info_message": "Wir senden Ihnen per E-Mail einen sicheren Reset-Token und einen direkten Link.",
+      "submit": "Reset anfordern",
       "back_to_login": "Zurück zur Anmeldung"
     },
     "reset_password": {
       "title": "Passwort zurücksetzen",
-      "subtitle": "Geben Sie den Code und Ihr neues Passwort ein.",
+      "subtitle": "Geben Sie den Token und Ihr neues Passwort ein.",
       "email": "E-Mail-Adresse",
-      "reset_code": "Reset-Code",
-      "code_help": "Den Code finden Sie in der E-Mail mit dem Betreff \"Passwort zurücksetzen\".",
+      "reset_code": "Reset-Token",
+      "code_help": "Den Token finden Sie in der E-Mail mit dem Betreff \"Passwort zurücksetzen\".",
       "new_password": "Neues Passwort",
       "confirm_password": "Neues Passwort bestätigen",
       "password_help": "Mindestens 8 Zeichen",
-      "info_message": "Der Code ist 1 Stunde gültig. Prüfen Sie bitte auch Ihren Spam-Ordner.",
+      "info_message": "Der Token ist 1 Stunde gültig. Prüfen Sie bitte auch Ihren Spam-Ordner.",
       "submit": "Passwort zurücksetzen",
       "back_to_login": "Zurück zur Anmeldung"
     },
@@ -283,15 +291,16 @@
       "test_email_error": "Fehler beim Senden der Test-E-Mail: {error}",
       "logout_success": "Sie wurden erfolgreich abgemeldet.",
       "enter_email": "Bitte geben Sie Ihre E-Mail-Adresse ein.",
-      "password_reset_email_sent": "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Code gesendet.",
-      "invalid_reset_code": "Ungültiger oder abgelaufener Reset-Code.",
+      "password_reset_email_sent": "Falls ein Konto mit dieser E-Mail-Adresse existiert, wurde ein Reset-Token gesendet.",
+      "invalid_reset_code": "Ungültiger oder abgelaufener Reset-Token.",
       "password_reset_success": "Passwort wurde erfolgreich zurückgesetzt. Sie können sich jetzt anmelden.",
       "enter_2fa_code": "Bitte geben Sie Ihren 2FA-Code ein.",
       "invalid_2fa_code": "Ungültiger 2FA-Code. Bitte versuchen Sie es erneut.",
-      "2fa_recovery_email_sent": "Ein Wiederherstellungscode wurde an {email} gesendet. Er ist 5 Minuten gültig.",
+      "2fa_recovery_email_sent": "Ein Wiederherstellungscode wurde an {email} gesendet. Er ist 5 Minuten gültig und nur einmal nutzbar.",
       "2fa_recovery_email_failed": "Der Wiederherstellungscode konnte nicht gesendet werden. Bitte versuchen Sie es später erneut.",
       "2fa_recovery_mail_not_configured": "E-Mail ist nicht konfiguriert. Bitte wenden Sie sich an einen Administrator.",
       "2fa_recovery_rate_limited": "Bitte warten Sie kurz, bevor Sie einen neuen Code anfordern.",
+      "2fa_recovery_disabled": "E-Mail-Wiederherstellung für 2FA ist auf diesem System deaktiviert.",
       "account_locked": "Ihr Konto wurde aufgrund zu vieler fehlgeschlagener Login-Versuche für {seconds} Sekunden gesperrt.",
       "bot_protection_failed": "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte versuchen Sie es erneut.",
       "picture_invalid_type": "Ungültiger Dateityp. Nur PNG, JPG, JPEG und GIF sind erlaubt.",
@@ -886,7 +895,7 @@
       "nav_label": "Einstellungen Navigation",
       "menu": "Menü",
       "start": "Start",
-      "admin_heading": "Admineinstellungen",
+      "admin_heading": "Administration",
       "push_subscriptions": "Web-Push-Abonnements",
       "push_subscriptions_desc": "Aktive Browser-Push-Registrierungen aller Nutzer einsehen und verwalten.",
       "email_module": "E-Mail-Einstellungen",
@@ -895,15 +904,18 @@
       "inventory_desc": "Einstellungen für öffentliche Produktseiten und QR-Codes",
       "sections": {
         "account": "Konto",
-        "modules": "Moduleinstellungen"
+        "modules": "Moduleinstellungen",
+        "tools": "Meine Tools"
       },
       "team_lead_heading": "Teamleitung",
       "kanban": "Kanban",
-      "kanban_desc": "Sichtbarkeit Private / Team / Public für Boards"
+      "kanban_desc": "Sichtbarkeit Private / Team / Public für Boards",
+      "push": "Push-Abos"
     },
     "search": {
       "label": "Einstellungen durchsuchen",
-      "placeholder": "Einstellung suchen…"
+      "placeholder": "Einstellung suchen…",
+      "empty": "Keine Treffer"
     },
     "team_settings": {
       "title": "Teameinstellungen",
@@ -919,7 +931,9 @@
       "no_modules": "Keine aktiven Module mit Team-Bereich.",
       "flash_saved": "Teameinstellungen wurden gespeichert.",
       "flash_no_teams": "Sie leiten derzeit kein Team.",
-      "flash_email_disabled": "E-Mail-Team-Bereich ist für dieses Team deaktiviert."
+      "flash_email_disabled": "E-Mail-Team-Bereich ist für dieses Team deaktiviert.",
+      "teams_tile_short": "Mitglieder",
+      "tile_short": "Team-Module"
     },
     "appearance": {
       "page_title": "Darstellung - Einstellungen",
@@ -974,7 +988,13 @@
         "left_label": "Linkes Icon",
         "right_label": "Rechtes Icon",
         "help": "Benachrichtigungen, Dashboard und Module sind fest und können nicht geändert werden."
-      }
+      },
+      "lead_short": "Sprache, Theme und Akzent.",
+      "preview_panel_title": "Live-Vorschau",
+      "preview_panel_lead": "So wirkt dein Akzent in der Oberfläche.",
+      "preview_nav": "Navigation",
+      "preview_button": "Aktion",
+      "preview_card": "Beispielkarte"
     },
     "index": {
       "page_title": "Einstellungen - Team Portal",
@@ -985,39 +1005,57 @@
         "profile": {
           "title": "Profil",
           "description": "Persönliche Daten und Profilbild",
-          "button": "Bearbeiten"
+          "button": "Bearbeiten",
+          "short": "Name & Avatar"
         },
         "appearance": {
           "title": "Darstellung",
           "description": "Akzentfarbe, Sprache und Dark Mode anpassen",
-          "button": "Bearbeiten"
+          "button": "Bearbeiten",
+          "short": "Theme & Farbe"
         },
         "notifications": {
           "title": "Benachrichtigungen",
           "description": "Push-Benachrichtigungen für Chat, Dateien, E-Mails und Termine",
-          "button": "Bearbeiten"
+          "button": "Bearbeiten",
+          "short": "Push & Kanäle"
         },
         "security": {
           "title": "Sicherheit",
           "description": "Passwort ändern, 2FA aktivieren und angemeldete Geräte verwalten",
-          "button": "Öffnen"
+          "button": "Öffnen",
+          "short": "Passwort & 2FA"
         },
         "about": {
           "title": "Über",
           "description": "Informationen über PrismaTeams, Version und Ersteller",
-          "button": "Öffnen"
+          "button": "Öffnen",
+          "short": "Version"
         },
         "my_mailboxes": {
           "title": "Meine Postfächer",
           "description": "Private Postfächer verwalten und verbinden",
-          "button": "Öffnen"
+          "button": "Öffnen",
+          "short": "Private Postfächer"
         },
         "admin": {
           "title": "Administration",
           "description": "Benutzerverwaltung und System-Einstellungen",
           "button": "Öffnen"
+        },
+        "cloud_import": {
+          "title": "Cloud-Import",
+          "description": "Nextcloud und Google Drive nach PrismaTeams übertragen.",
+          "short": "Nextcloud & Drive"
+        },
+        "privacy": {
+          "title": "Datenschutz",
+          "description": "Personenbezogene Daten exportieren und Rechte einsehen",
+          "button": "Öffnen",
+          "short": "Export & Rechte"
         }
-      }
+      },
+      "lead_short": "Alles an einem Ort."
     },
     "profile": {
       "title": "Profil",
@@ -1072,6 +1110,37 @@
         "heading": "Meine Teams",
         "empty": "Du bist derzeit in keinem Team.",
         "leader_badge": "Leitung"
+      },
+      "delete": {
+        "heading": "Konto löschen",
+        "intro": "Löscht Ihr Konto unwiderruflich nach Bestätigung per E-Mail. Exportieren Sie Ihre Daten vorher unter Datenschutz.",
+        "password_label": "Passwort zur Bestätigung",
+        "second_factor_hint": "Zusätzlich ist eine Zwei-Faktor-Bestätigung (Authenticator oder Passkey) erforderlich.",
+        "totp_label": "Authenticator-Code (2FA)",
+        "passkey_button": "Mit Passkey bestätigen",
+        "passkey_ok": "Passkey bestätigt",
+        "passkey_pending": "Noch nicht bestätigt",
+        "confirm_label": "Zur Bestätigung LÖSCHEN eingeben",
+        "confirm_placeholder": "LÖSCHEN",
+        "submit_button": "Bestätigungs-E-Mail senden",
+        "submit_confirm": "Wirklich eine Löschungs-E-Mail an Ihre Adresse senden?",
+        "email_hint": "Erst nach Klick auf den Link in der E-Mail wird das Konto gelöscht. Der Link ist 1 Stunde gültig.",
+        "blocked_super_admin": "Das Hauptadministrator-Konto kann nicht selbst gelöscht werden.",
+        "flash_confirm_text": "Bitte geben Sie zur Bestätigung „LÖSCHEN“ bzw. „DELETE“ ein.",
+        "flash_wrong_password": "Das Passwort ist falsch.",
+        "flash_2fa_required": "Zwei-Faktor-Bestätigung fehlt oder ist ungültig (Authenticator-Code oder Passkey).",
+        "flash_no_passkey": "Kein Passkey für dieses Konto gefunden.",
+        "flash_email_failed": "Die Bestätigungs-E-Mail konnte nicht gesendet werden. Prüfen Sie die E-Mail-Konfiguration.",
+        "flash_email_sent": "Bestätigungs-E-Mail gesendet. Bitte prüfen Sie Ihren Posteingang.",
+        "flash_token_invalid": "Der Lösch-Link ist ungültig oder abgelaufen.",
+        "flash_wrong_user": "Bitte melden Sie sich mit dem Konto an, das gelöscht werden soll.",
+        "flash_failed": "Die Kontolöschung ist fehlgeschlagen. Bitte kontaktieren Sie einen Administrator.",
+        "flash_deleted": "Ihr Konto wurde gelöscht.",
+        "confirm_page_title": "Konto löschen bestätigen",
+        "confirm_heading": "Konto endgültig löschen?",
+        "confirm_body": "Konto von {name} ({email}) unwiderruflich löschen?",
+        "confirm_final": "Konto wirklich endgültig löschen? Dies kann nicht rückgängig gemacht werden.",
+        "confirm_button": "Jetzt endgültig löschen"
       }
     },
     "security": {
@@ -1134,7 +1203,8 @@
         "setup_started": "2FA-Einrichtung gestartet. Bitte scannen Sie den QR-Code und geben Sie den Code ein.",
         "setup_cancelled": "2FA-Einrichtung wurde abgebrochen.",
         "issuer_hint": "In Ihrer Authenticator-App erscheint der Eintrag als „{name}“.",
-        "recovery_hint": "Authenticator verloren? Beim Login können Sie sich einen einmaligen Wiederherstellungscode per E-Mail senden lassen (5 Min. gültig)."
+        "recovery_hint": "Authenticator verloren? Beim Login können Sie sich einen einmaligen Wiederherstellungscode per E-Mail senden lassen (10 Zeichen, 5 Min. gültig). Hinweis: Wer Ihr Postfach kontrolliert, kann damit 2FA umgehen. Administratoren können die Funktion per TWO_FACTOR_EMAIL_RECOVERY_ENABLED=false abschalten.",
+        "recovery_disabled_hint": "E-Mail-Wiederherstellung für 2FA ist auf diesem System deaktiviert. Bewahren Sie Ihren Authenticator bzw. Passkeys sicher auf."
       },
       "passkeys": {
         "heading": "Passkeys",
@@ -1193,7 +1263,8 @@
         "link": "Mit Google verknüpfen",
         "unlink": "Verknüpfung entfernen",
         "unlink_confirm": "Google-Verknüpfung wirklich entfernen? Das Gmail-Postfach bleibt erhalten."
-      }
+      },
+      "lead_short": "Passwort, 2FA und Geräte."
     },
     "notifications": {
       "page_title": "Benachrichtigungen - Einstellungen",
@@ -1294,7 +1365,15 @@
         "reminder_6h": "6 Stunden vorher",
         "reminder_8h": "8 Stunden vorher",
         "reminder_1d": "1 Tag vorher",
-        "reminder_2d": "2 Tage vorher"
+        "reminder_2d": "2 Tage vorher",
+        "filter_status_label": "Teilnahmestatus",
+        "reminder_30min_short": "30 Min",
+        "reminder_1h_short": "1 Std",
+        "reminder_2h_short": "2 Std",
+        "reminder_6h_short": "6 Std",
+        "reminder_8h_short": "8 Std",
+        "reminder_1d_short": "1 Tag",
+        "reminder_2d_short": "2 Tage"
       },
       "kanban": {
         "title": "Kanban-Benachrichtigungen",
@@ -1324,7 +1403,8 @@
         "toast_mic_denied_message": "Mikrofon-Zugriff ist für Sprachnachrichten erforderlich.",
         "toast_app_installed_title": "App installiert",
         "toast_app_installed_message": "Die App wurde erfolgreich installiert!"
-      }
+      },
+      "lead_short": "Push, Module und Erinnerungen."
     },
     "about": {
       "page_title": "Über PrismaTeams - Einstellungen",
@@ -1351,7 +1431,7 @@
       "portal_unset": "Nicht gesetzt",
       "creator_label": "Verwaltet von",
       "creator_unknown": "Unbekannt",
-      "onlyoffice_label": "OnlyOffice",
+      "onlyoffice_label": "Euro-Office",
       "onlyoffice_active": "Aktiv",
       "onlyoffice_inactive": "Nicht aktiv",
       "media_downloader_label": "Media Downloader",
@@ -1363,7 +1443,14 @@
       "back_button": "Zurück zu Einstellungen",
       "file_converter_label": "Dateikonverter / LibreOffice",
       "libreoffice_available": "LibreOffice verfügbar",
-      "libreoffice_missing": "LibreOffice nicht gefunden"
+      "libreoffice_missing": "LibreOffice nicht gefunden",
+      "lead_short": "Produkt, System und Open Source.",
+      "section_repository_help_button": "Hilfe",
+      "excalidraw_label_short": "Excalidraw",
+      "file_converter_label_short": "Dateikonverter",
+      "mirotalk_label": "MiroTalk",
+      "mirotalk_active": "Aktiv",
+      "mirotalk_inactive": "Nicht aktiv"
     },
     "admin": {
       "page_title": "Administration - Einstellungen",
@@ -1407,7 +1494,9 @@
         "allow_team": "Team-Varianten",
         "allow_public": "Public-Varianten",
         "module_file_converter": "Dateikonverter",
-        "module_surveys": "Umfragen"
+        "module_surveys": "Umfragen",
+        "lead_short": "Module ein- und ausschalten.",
+        "module_meetings": "Meetings (Videoanrufe)"
       },
       "users": {
         "page_title": "Benutzerverwaltung - Administration",
@@ -1492,7 +1581,15 @@
         "flash_guest_load_error": "Gast-Account konnte nicht geladen werden.",
         "flash_guest_save_error": "Gast-Account konnte nicht gespeichert werden.",
         "search_placeholder": "Nach Name oder E-Mail suchen…",
-        "search_no_results": "Keine Benutzer gefunden."
+        "search_no_results": "Keine Benutzer gefunden.",
+        "lead_short": "Benutzer, Gäste und Codes.",
+        "view_list": "Liste",
+        "view_grid": "Kacheln",
+        "col_name": "Name",
+        "col_email": "E-Mail",
+        "col_login": "Letzter Login",
+        "col_status": "Status",
+        "queue_title": "Warteschlange"
       },
       "create_user": {
         "page_title": "Benutzer erstellen - Administration",
@@ -1567,6 +1664,17 @@
         "indexing_label": "Seite für Google indexieren",
         "indexing_help": "Steuert, ob Suchmaschinen die öffentlichen Seiten finden dürfen. Interne Bereiche bleiben immer gesperrt.",
         "indexing_hint": "Aktiv: Login, Registrierung, Impressum, Datenschutz und Nutzungsbedingungen dürfen in Google erscheinen. Deaktiviert: robots.txt und Meta-Tags blockieren alle Crawler.",
+        "section_log_retention": "Zugriffsprotokolle",
+        "log_retention_help": "Löscht IP-Adressen und User-Agents aus Session- und Share-Zugriffsprotokollen nach Ablauf der Frist (stündlicher Job).",
+        "session_record_retention_label": "Session-Einträge (Tage)",
+        "session_record_retention_help": "UserSession-Zeilen mit letzter Aktivität älter als N Tage werden gelöscht. 0 = kein Auto-Purge.",
+        "share_access_log_retention_label": "Share-Zugriffsprotokolle (Tage)",
+        "share_access_log_retention_help": "ShareAccessLog-Einträge älter als N Tage werden gelöscht. 0 = kein Auto-Purge.",
+        "log_retention_note": "Standard: Sessions 30 Tage, Share-Logs 90 Tage. Überschreibt SESSION_RECORD_RETENTION_DAYS / SHARE_ACCESS_LOG_RETENTION_DAYS aus der Umgebung, sobald gespeichert. Fristen in der Datenschutzerklärung nennen.",
+        "section_cookie_security": "Session-Cookies",
+        "cookie_security_help": "Secure-Flags für Session- und Remember-Me-Cookies (nur über .env steuerbar). Bei HTTPS in Produktion müssen beide True sein.",
+        "cookie_security_warn_insecure": "SESSION_COOKIE_SECURE ist False: Cookies können über HTTP mitgelesen werden. Für produktiven HTTPS-Betrieb in der .env auf True setzen und Dienst neu starten.",
+        "cookie_security_note": "Produktion/Staging: Default True. Nur bei bewusstem HTTP-Zugriff False. Nach Certbot/SSL prüfen. Details: docs/WARTUNG.md (Session-Cookies).",
         "portal_name_label": "Portalsname",
         "portal_name_placeholder": "z.B. Prismateams",
         "portal_name_help": "Der Name des Portals, der an verschiedenen Stellen angezeigt wird.",
@@ -1629,7 +1737,8 @@
         "flash_logo_invalid_type": "Ungültiger Dateityp. Erlaubt: PNG, JPG, JPEG, GIF, SVG.",
         "section_security": "Sicherheit & Sitzungen",
         "inactivity_logout_hint": "Benutzer werden nach 30 Tagen ohne Portal-Aktivität automatisch abgemeldet. Angemeldete Geräte können unter Sicherheit verwaltet werden.",
-        "flash_inactivity_logout": "Sie wurden nach 30 Tagen Inaktivität abgemeldet. Bitte melden Sie sich erneut an."
+        "flash_inactivity_logout": "Sie wurden nach 30 Tagen Inaktivität abgemeldet. Bitte melden Sie sich erneut an.",
+        "lead_short": "Portalname, Logo, Zeitzone und Branding."
       },
       "legal": {
         "page_title": "Rechtliche Hinweise - Administration",
@@ -1651,7 +1760,11 @@
         "toolbar_label": "Formatierung",
         "tool_bold": "Fett",
         "tool_italic": "Kursiv",
-        "tool_list": "Liste"
+        "tool_list": "Liste",
+        "lead_short": "Texte für Login und öffentliche Seiten.",
+        "tip_body": "Änderungen werden automatisch gespeichert. Nutze die Vorschau, um das öffentliche Ergebnis zu prüfen.",
+        "markdown_hint": "**fett**, *kursiv*, [Link](url), Listen mit -.",
+        "tool_link": "Link"
       },
       "music": {
         "flash_saved": "Musikmodul-Einstellungen wurden gespeichert."
@@ -1672,7 +1785,23 @@
         "flash_saved": "Lagerverwaltung-Einstellungen wurden gespeichert.",
         "page_title": "Lagerverwaltung-Einstellungen - Administration",
         "heading": "Lagerverwaltung-Einstellungen",
-        "subtitle": "Texte für öffentliche Produktseiten und QR-Code-Scans.",
+        "lead_short": "Funktionen und Texte für die Lagerverwaltung.",
+        "subtitle": "Teilfunktionen steuern und Texte für öffentliche Produktseiten.",
+        "features_title": "Funktionen",
+        "features_help": "Deaktivierte Funktionen verschwinden aus Navigation und Formularen.",
+        "features_lead": "Als Administrator kannst du Inventar-Teilfunktionen ein- und ausschalten.",
+        "feature_borrow": "Ausleihe",
+        "feature_borrow_help": "Checkout, Historie und Ausleihen aus der Bestandsübersicht.",
+        "feature_quick_scan": "Quick Scan",
+        "feature_quick_scan_help": "Schnelles Ausleihen per Scanner ohne Pflicht-Kopfdaten.",
+        "feature_dguv": "DGUV",
+        "feature_dguv_help": "Prüfungsfelder, Filter und Anzeige in der Bestandsübersicht.",
+        "feature_owners": "Eigentümer",
+        "feature_owners_help": "Eigentümer-Feld und Filter pro Artikel.",
+        "feature_accounting": "Buchhaltung",
+        "feature_accounting_help": "Anschaffungsdatum, Kaufpreis und Wiederbeschaffungswert.",
+        "feature_stocktake": "Inventur",
+        "feature_stocktake_help": "Inventur-Tool und Inventurlisten.",
         "public_title": "Öffentliche Produktseiten",
         "public_lead": "Wird bei QR-Scans auf der öffentlichen Produktseite angezeigt.",
         "ownership_label": "Eigentumstext",
@@ -1686,6 +1815,7 @@
       "email_module": {
         "page_title": "E-Mail-Moduleinstellungen - Administration",
         "heading": "E-Mail-Moduleinstellungen",
+        "lead_short": "Test, Speicherung, Multi-Postfach und Footer.",
         "subtitle": "Verbindungen testen, Speicherung steuern und Footer festlegen.",
         "save": "Speichern",
         "test": {
@@ -1818,7 +1948,8 @@
           "assessment": "Bewertung: Listen, Kriterien, Evaluationen und zugehörige Daten.",
           "shortlinks": "Kurzlinks.",
           "excalidraw": "Zeichnungen, Szenen und Versionen."
-        }
+        },
+        "lead_short": "Portal-Backup exportieren und importieren."
       },
       "whitelist": {
         "page_title": "Whitelist - Administration",
@@ -1853,13 +1984,20 @@
         "flash_entry_toggle_error": "Fehler beim Ändern des Whitelist-Eintrags.",
         "flash_entry_not_found": "Whitelist-Eintrag nicht gefunden.",
         "flash_entry_deleted": "Whitelist-Eintrag \"{entry}\" wurde gelöscht.",
-        "flash_entry_delete_error": "Fehler beim Löschen des Whitelist-Eintrags."
+        "flash_entry_delete_error": "Fehler beim Löschen des Whitelist-Eintrags.",
+        "lead_short": "E-Mails und Domains für Auto-Aktivierung.",
+        "view_list": "Liste",
+        "view_grid": "Kacheln",
+        "col_entry": "Eintrag",
+        "col_status": "Status"
       },
       "booking_forms": {
         "page_title": "Buchungsformulare - Administration",
         "heading": "Buchungsformulare",
+        "lead_short": "Formulare, Felder und Zustimmungsrollen.",
         "subtitle": "Formulare erstellen, Felder und Zustimmungsrollen verwalten, PDF-Antragstext konfigurieren.",
         "list_title": "Formulare",
+        "col_requests": "Anfragen",
         "create": "Neues Formular",
         "edit": "Bearbeiten",
         "delete": "Löschen",
@@ -1873,6 +2011,7 @@
         "create_subtitle": "Titel, PDF-Text, Felder und Rollen auf einer Seite.",
         "edit_heading": "Formular bearbeiten",
         "edit_subtitle": "Grunddaten, PDF, Integration, Felder und Zustimmungsrollen.",
+        "special_category_hint": "Freitextfelder nicht für besondere Kategorien (Art. 9 DSGVO) vorsehen, sofern nicht freigegeben und abgesichert.",
         "draft_title": "Neues Formular",
         "section_basics": "Grunddaten",
         "section_pdf": "PDF",
@@ -1998,7 +2137,8 @@
         "configure_button": "Konfigurieren",
         "user_management": {
           "title": "Benutzerverwaltung",
-          "description": "Benutzer, Gäste und Bestätigungscodes verwalten"
+          "description": "Benutzer, Gäste und Bestätigungscodes verwalten",
+          "short": "Rollen & Gäste"
         },
         "confirmation_codes": {
           "title": "Bestätigungscodes",
@@ -2006,7 +2146,8 @@
         },
         "whitelist": {
           "title": "Whitelist-Verwaltung",
-          "description": "E-Mail-Adressen und Domains für automatische Aktivierung"
+          "description": "E-Mail-Adressen und Domains für automatische Aktivierung",
+          "short": "E-Mail-Freigabe"
         },
         "email_permissions": {
           "title": "E-Mail-Berechtigungen",
@@ -2022,19 +2163,23 @@
         },
         "system_settings": {
           "title": "System-Einstellungen",
-          "description": "Globale System-Einstellungen verwalten"
+          "description": "Globale System-Einstellungen verwalten",
+          "short": "Portal & Branding"
         },
         "legal": {
           "title": "Rechtliche Hinweise",
-          "description": "Rechtliche Texte für den Anmeldebildschirm bearbeiten"
+          "description": "Rechtliche Texte für den Anmeldebildschirm bearbeiten",
+          "short": "Rechtstexte"
         },
         "modules": {
           "title": "Module",
-          "description": "Module aktivieren oder deaktivieren"
+          "description": "Module aktivieren oder deaktivieren",
+          "short": "An / Aus"
         },
         "backup": {
           "title": "Import/Export",
-          "description": "Backups erstellen und wiederherstellen"
+          "description": "Backups erstellen und wiederherstellen",
+          "short": "Import / Export"
         },
         "inventory_categories": {
           "title": "Lager-Kategorien",
@@ -2046,19 +2191,32 @@
         },
         "file_settings": {
           "title": "Datei-Einstellungen",
-          "description": "Briefkästen, Freigaben, private Ordner, Dokumentformate und Speicherlimits"
+          "description": "Briefkästen, Freigaben, private Ordner, Dokumentformate und Speicherlimits",
+          "short": "Speicher & Sharing"
         },
         "calendar_settings": {
           "title": "Kalender-Einstellungen",
-          "description": "Private, Team- und Public-Kalender, Import und Export"
+          "description": "Private, Team- und Public-Kalender, Import und Export",
+          "short": "iCal"
         },
         "registration_options": {
           "title": "Bot-Schutz-Funktionen",
-          "description": "Bot-Schutz für Login, Registrierung, Briefkästen und Freigaben"
+          "description": "Bot-Schutz für Login, Registrierung, Briefkästen und Freigaben",
+          "short": "Captcha"
         },
         "teams": {
           "title": "Teams",
-          "description": "Teams anlegen; Teamleitung verwaltet Mitglieder selbst"
+          "description": "Teams anlegen; Teamleitung verwaltet Mitglieder selbst",
+          "short": "Teams verwalten"
+        },
+        "push": {
+          "short": "Geräte-Abos"
+        },
+        "email": {
+          "short": "SMTP & Postfächer"
+        },
+        "inventory": {
+          "short": "Ownership-Text"
         }
       },
       "registration": {
@@ -2096,18 +2254,25 @@
         "save_button": "Änderungen speichern",
         "back_button": "Zurück",
         "flash_updated": "Bot-Schutz-Einstellungen wurden gespeichert.",
-        "flash_keys_required": "Bitte geben Sie Site Key und Secret Key an, bevor Sie reCAPTCHA oder Turnstile aktivieren."
+        "flash_keys_required": "Bitte geben Sie Site Key und Secret Key an, bevor Sie reCAPTCHA oder Turnstile aktivieren.",
+        "lead_short": "Captcha und Honeypot für Login und Formulare."
       },
       "file_settings": {
         "page_title": "Datei-Einstellungen - Administration",
         "breadcrumb_file_settings": "Datei-Einstellungen",
         "heading": "Datei-Einstellungen",
+        "lead_short": "Briefkästen, Freigaben, Limits und Kontingente.",
         "subtitle": "Briefkästen, Freigaben, private Ordner, Dokumentformate sowie Speicherlimits und Kontingente steuern.",
         "section_title": "Datei-Funktionen",
         "dropbox_label": "Briefkästen aktivieren",
         "dropbox_help": "Ermöglicht das Erstellen von Briefkästen (Upload-only Ordner) für Buchungen und andere Zwecke.",
         "sharing_label": "Freigaben aktivieren",
         "sharing_help": "Ermöglicht das Erstellen von geteilten Ordnern (Shared Folders) für Buchungen und andere Zwecke.",
+        "webdav_label": "WebDAV / Explorer-Zugriff",
+        "webdav_help": "Ermöglicht den Zugriff auf Dateien über Windows Explorer als Netzlaufwerk (WebDAV unter /webdav).",
+        "webdav_url_label": "Verbindungs-URL",
+        "webdav_connect_help": "Unter Windows: Dieser PC → Netzlaufwerk verbinden → Ordner: die URL oben. Anmeldung mit E-Mail und Passwort.",
+        "webdav_2fa_warning": "Hinweis: Bei WebDAV wird die Zwei-Faktor-Authentifizierung (2FA) nicht geprüft — nur E-Mail und Passwort.",
         "private_folders_label": "Private Ordner aktivieren",
         "private_folders_help": "Aktiviert Meine Ablage, Freigaben, Public und Papierkorb (Drive-Ansicht). Bestehende Dateien bleiben unter Public.",
         "team_folders_label": "Team-Ablagen aktivieren",
@@ -2148,12 +2313,17 @@
         "flash_exception_exists": "Für diesen Nutzer existiert bereits eine Ausnahme.",
         "flash_exception_user_invalid": "Bitte einen gültigen Nutzer wählen.",
         "flash_exception_empty": "Bitte mindestens Dateilimit oder Kontingent für die Ausnahme setzen.",
-        "visibility_moved": "Private und Team-Ordner steuern Sie zentral unter Module → Sichtbarkeits-Varianten."
+        "visibility_moved": "Private und Team-Ordner steuern Sie zentral unter Module → Sichtbarkeits-Varianten.",
+        "trash_retention_label": "Papierkorb-Aufbewahrung",
+        "trash_retention_help": "Soft-gelöschte Dateien und Ordner werden nach dieser Frist automatisch endgültig gelöscht. 0 deaktiviert den Auto-Purge.",
+        "trash_retention_unit": "Tage",
+        "trash_retention_note": "Standard: 30 Tage. Überschreibt den ENV-Wert FILES_TRASH_DAYS, sobald gespeichert."
       },
       "calendar_settings": {
         "page_title": "Kalender-Einstellungen - Administration",
         "breadcrumb": "Kalender-Einstellungen",
         "heading": "Kalender-Einstellungen",
+        "lead_short": "Import und Export steuern.",
         "subtitle": "Import, Export und erweiterte Kalender-Funktionen.",
         "section_title": "Kalender-Funktionen",
         "visibility_moved": "Private und Team-Kalender steuern Sie zentral unter Module → Sichtbarkeits-Varianten.",
@@ -2226,7 +2396,14 @@
         "flash_members_added": "{count} Mitglied(er) hinzugefügt.",
         "flash_member_removed": "Mitglied entfernt.",
         "flash_cannot_remove_leader": "Die Teamleitung kann nicht entfernt werden. Weise zuerst eine andere Leitung zu.",
-        "flash_user_teams_updated": "Teams für {name} wurden aktualisiert."
+        "flash_user_teams_updated": "Teams für {name} wurden aktualisiert.",
+        "lead_short": "Teams erstellen und Mitglieder zuweisen.",
+        "view_list": "Liste",
+        "view_grid": "Kacheln",
+        "col_name": "Team",
+        "col_members": "Mitglieder",
+        "col_leader": "Leitung",
+        "preview_title": "Vorschau"
       },
       "kanban": {
         "page_title": "Kanban-Einstellungen",
@@ -2238,7 +2415,11 @@
         "allow_team": "Team-Boards",
         "allow_public": "Öffentliche Boards (gesamtes Portal)",
         "save": "Speichern",
-        "flash_saved": "Kanban-Einstellungen gespeichert."
+        "flash_saved": "Kanban-Einstellungen gespeichert.",
+        "lead_short": "Sichtbarkeit und Import.",
+        "short": "Sichtbarkeit & Import",
+        "module_disabled": "Kanban-Modul ist deaktiviert",
+        "import_hint": "Mehrere Boards per ZIP möglich."
       },
       "visibility": {
         "page_title": "{module} – Sichtbarkeit",
@@ -2366,6 +2547,7 @@
       "tenant": "Tenant",
       "tenant_help": "Meist \"common\". Alternativ organizations oder die Tenant-ID.",
       "redirect_hint": "Redirect-URI (für Login, Postfach und YouTube): {url}",
+      "redirect_uri_label": "Redirect-URI:",
       "flash_saved": "Verknüpfungen gespeichert.",
       "google_api_help_open": "Anleitung: Google API-Schlüssel",
       "google_api_help_title": "Google API-Schlüssel einrichten",
@@ -2390,7 +2572,116 @@
       "google_help_oauth_step4": "„Anmeldedaten erstellen“ → „OAuth-Client-ID“ → Anwendungstyp „Webanwendung“. Als autorisierte Redirect-URI die unten angezeigte Callback-URL eintragen (eine URL für alles).",
       "google_help_oauth_step5": "Client-ID und Client-Secret hier einfügen und speichern – danach sind Google-Login, Postfach-OAuth und YouTube nutzbar.",
       "google_help_api_heading": "API-Schlüssel (für YouTube)",
-      "redirect_hint_login": "Redirect-URI: {url}"
+      "redirect_hint_login": "Redirect-URI: {url}",
+      "short": "OAuth & APIs",
+      "lead_short": "Google, Microsoft und Spotify."
+    },
+    "cloud_import": {
+      "page_title": "Cloud-Import",
+      "title": "Cloud-Import",
+      "heading": "Cloud-Import",
+      "subtitle": "Ordner und Dateien einmalig von Nextcloud oder Google Drive nach PrismaTeams übertragen.",
+      "target_space": "Zielbereich",
+      "target_space_hint": "Admin: öffentlich · Teamleiter: Team · Sie: persönlich.",
+      "space": {
+        "public": "Öffentlich",
+        "team": "Team",
+        "personal": "Persönlich"
+      },
+      "no_spaces": "Kein Zielbereich verfügbar.",
+      "dest_folder": "Zielordner",
+      "dest_root": "Stammordner",
+      "connections": "Verbindungen",
+      "connect_nextcloud": "Nextcloud verbinden",
+      "connect_google": "Google Drive verbinden",
+      "connect": "Verbinden",
+      "nextcloud": {
+        "server": "Server-URL",
+        "username": "Benutzername",
+        "app_password": "App-Passwort",
+        "hint": "Verwenden Sie ein App-Passwort aus den Nextcloud-Sicherheitseinstellungen."
+      },
+      "no_connections": "Noch keine Verbindung eingerichtet.",
+      "browse": "Quelle auswählen",
+      "col": {
+        "name": "Name",
+        "size": "Größe"
+      },
+      "start": "Import starten",
+      "jobs": "Import-Aufträge",
+      "no_jobs": "Noch keine Aufträge.",
+      "flash": {
+        "module_disabled": "Das Dateien-Modul ist deaktiviert.",
+        "credentials_incomplete": "Bitte Server, Benutzername und App-Passwort angeben.",
+        "nextcloud_connect_failed": "Verbindung zu Nextcloud fehlgeschlagen. Zugangsdaten prüfen.",
+        "google_not_configured": "Google ist in den Verknüpfungen nicht konfiguriert.",
+        "google_oauth_error": "Google-Anmeldung fehlgeschlagen: %(error)s",
+        "google_connected": "Google Drive wurde verbunden.",
+        "connection_in_use": "Verbindung wird noch von einem laufenden Import genutzt.",
+        "browse_failed": "Ordner konnte nicht geladen werden.",
+        "no_selection": "Bitte mindestens eine Datei oder einen Ordner auswählen.",
+        "space_forbidden": "Keine Berechtigung für diesen Zielbereich."
+      },
+      "lead_short": "Nextcloud oder Google Drive einmalig übertragen."
+    },
+    "autosave": {
+      "saving": "Speichern…",
+      "saved": "Gespeichert",
+      "error": "Speichern fehlgeschlagen"
+    },
+    "kanban_import": {
+      "nav": "Board-Import",
+      "page_title": "Board-Import",
+      "heading": "Boards importieren",
+      "lead": "JSON, CSV oder ZIP mit mehreren Dateien.",
+      "short": "JSON / CSV / ZIP",
+      "upload_title": "Upload",
+      "drop_title": "Datei hier ablegen",
+      "drop_meta": ".json, .csv oder .zip",
+      "submit": "Importieren",
+      "open": "Öffnen",
+      "need_file": "Bitte Datei wählen",
+      "done_one": "Board importiert",
+      "done_many": "{count} Boards importiert",
+      "failed": "Import fehlgeschlagen",
+      "unavailable": "Kanban nicht verfügbar",
+      "no_targets": "Kein Import-Ziel erlaubt",
+      "visibility_info": "Sichtbarkeit für neue Boards",
+      "tip_body": "ZIP mit mehreren JSON/CSV-Dateien erzeugt mehrere Boards auf einmal.",
+      "formats_title": "Formate",
+      "formats_body": "JSON und CSV für einzelne Boards, ZIP für mehrere Dateien.",
+      "visibility_label": "Sichtbarkeit"
+    },
+    "hub": {
+      "quick_title": "Schnellzugriff",
+      "quick_lead": "Häufig genutzte Bereiche",
+      "tip_title": "Tipp",
+      "tip_body": "Nutze die Suche oben, um Einstellungen direkt zu finden."
+    },
+    "privacy": {
+      "page_title": "Datenschutz & Daten",
+      "heading": "Datenschutz & Daten",
+      "lead": "Exportieren Sie Ihre personenbezogenen Daten und finden Sie Hinweise zu Ihren Rechten.",
+      "export": {
+        "heading": "Datenexport",
+        "intro": "Laden Sie eine ZIP-Datei mit Ihren personenbezogenen Daten im JSON-Format herunter (Datenübertragbarkeit).",
+        "includes_profile": "Profil, Teams, Sitzungen, Passkeys und Benachrichtigungseinstellungen",
+        "includes_activity": "Von Ihnen erstellte Kontakte, Termine, Datei-Metadaten, Chat-Nachrichten und weitere modulbezogene Daten",
+        "excludes_secrets": "Keine Passwörter, 2FA-Geheimnisse, Session-Tokens oder Dateiinhalte",
+        "button": "Meine Daten herunterladen",
+        "hint": "Der Download ist auf wenige Anfragen pro Stunde begrenzt."
+      },
+      "export_error": "Der Datenexport ist fehlgeschlagen. Bitte versuchen Sie es später erneut.",
+      "rights": {
+        "heading": "Ihre Rechte",
+        "intro": "Nach der DSGVO haben Sie insbesondere folgende Rechte:",
+        "access": "Auskunft über gespeicherte personenbezogene Daten",
+        "rectification": "Berichtigung unrichtiger Daten (z. B. im Profil)",
+        "portability": "Datenübertragbarkeit über den Export auf dieser Seite",
+        "erasure": "Löschung – Self-Service im Profil (Passwort, ggf. 2FA, Bestätigungs-E-Mail)",
+        "policy_link": "Datenschutzerklärung",
+        "delete_link": "Konto löschen"
+      }
     }
   },
   "chat": {
@@ -2499,8 +2790,15 @@
         "unmute": "Benachrichtigungen aktivieren",
         "permission_title": "Mikrofon",
         "permission_message": "Mikrofon-Zugriff ist für Sprachnachrichten erforderlich.",
-        "microphone_denied": "Mikrofonzugriff wurde verweigert. Bitte erlauben Sie den Zugriff in Ihren Browser-Einstellungen."
-      }
+        "microphone_denied": "Mikrofonzugriff wurde verweigert. Bitte erlauben Sie den Zugriff in Ihren Browser-Einstellungen.",
+        "load_older": "Ältere Nachrichten laden",
+        "load_older_loading": "Laden…",
+        "load_older_error": "Ältere Nachrichten konnten nicht geladen werden",
+        "meeting_label": "Meeting",
+        "meeting_join": "Beitreten",
+        "meeting_start_error": "Meeting konnte nicht gestartet werden"
+      },
+      "load_older": "Ältere Nachrichten laden"
     },
     "settings": {
       "page_title": "Chat-Einstellungen - {name}",
@@ -2603,6 +2901,11 @@
       "page_title": "Dateien - Team Portal",
       "heading": "Dateien",
       "breadcrumb_root": "Root",
+      "pagination": {
+        "load_more": "Weitere Dateien laden",
+        "load_more_loading": "Laden…",
+        "load_error": "Weitere Dateien konnten nicht geladen werden"
+      },
       "nav": {
         "ablage": "Meine Ablage",
         "freigaben": "Freigaben",
@@ -2617,6 +2920,27 @@
         "add": "Zu Favoriten",
         "remove": "Aus Favoriten entfernen",
         "limit": "Maximal 10 Favoriten."
+      },
+      "webdav_connect_btn": "In System einbinden",
+      "webdav_hint": "Explorer (WebDAV)",
+      "webdav_modal": {
+        "title": "Dateien im System einbinden",
+        "intro": "Verbinden Sie die Ablage als Netzlaufwerk. Danach erscheinen Private, Public und Teams wie normale Ordner im Dateimanager.",
+        "url_label": "Verbindungs-URL",
+        "copy": "URL kopieren",
+        "auth_hint": "Benutzername = nur Ihre Portal-E-Mail (ohne MicrosoftAccount\\). Passwort = Portal-Passwort, nicht das Microsoft-Konto-Passwort.",
+        "disabled_hint": "WebDAV ist noch deaktiviert. Ein Administrator kann es unter Einstellungen → Datei-Einstellungen einschalten. Danach funktioniert die Verbindung mit der URL unten.",
+        "windows_title": "Windows (Explorer)",
+        "windows_step1": "Dienst \"WebClient\" starten (services.msc → WebClient → Starten, Starttyp Automatisch).",
+        "windows_step2": "Bei HTTP/localhost: Registry HKLM\\SYSTEM\\CurrentControlSet\\Services\\WebClient\\Parameters → DWORD BasicAuthLevel = 2, WebClient neu starten. Sonst sendet Windows die Anmeldung nicht.",
+        "windows_step3": "Netzwerkadresse hinzufügen / Netzlaufwerk: URL oben. Im Anmeldedialog \"Weitere Optionen\" → \"Anderes Konto\" und nur die E-Mail eintragen (MicrosoftAccount\\ löschen).",
+        "windows_step4": "Portal-Passwort eingeben. Wenn der Dialog immer wieder kommt: BasicAuthLevel prüfen oder Cyberduck/WinSCP nutzen.",
+        "mac_title": "Apple (macOS Finder)",
+        "mac_step1": "Finder öffnen → Menü „Gehe zu“ → „Mit Server verbinden…“ (⌘K).",
+        "mac_step2": "Die Verbindungs-URL oben einfügen und „Verbinden“ wählen.",
+        "mac_step3": "Als registrierter Benutzer anmelden.",
+        "mac_step4": "E-Mail und Passwort eingeben. Die Freigabe erscheint in der Finder-Seitenleiste.",
+        "security_note": "Hinweis: 2FA wird bei WebDAV nicht geprüft. Windows hängt oft \"MicrosoftAccount\\\" vor die E-Mail — das muss weg. Unter Windows ist HTTPS zuverlässiger als HTTP/localhost."
       },
       "storage": {
         "title": "Speicherplatz",
@@ -2690,7 +3014,7 @@
       },
       "file_actions": {
         "download": "Herunterladen",
-        "edit_onlyoffice": "Mit ONLYOFFICE bearbeiten",
+        "edit_onlyoffice": "Mit Euro-Office bearbeiten",
         "view": "Anzeigen",
         "edit": "Bearbeiten",
         "share_edit": "Freigabe bearbeiten",
@@ -2834,6 +3158,9 @@
           "confirm": "Hierher verschieben",
           "empty": "Keine Ordner verfügbar.",
           "root_hint": "Bereich (Root)",
+          "selected": "Ziel: {path}",
+          "expand": "Unterordner anzeigen",
+          "collapse": "Unterordner ausblenden",
           "item_file": "Datei in einen anderen Ordner oder Bereich verschieben.",
           "item_folder": "Ordner in einen anderen Ordner oder Bereich verschieben."
         }
@@ -2895,7 +3222,9 @@
       "back_button_label": "Zurück",
       "saving": "Speichern…",
       "unsaved_changes": "Wirklich verlassen? Ungespeicherte Änderungen gehen verloren."
-    }
+    },
+    "trash_retention_banner": "Einträge im Papierkorb werden nach {days} Tagen automatisch endgültig gelöscht.",
+    "trash_retention_disabled": "Für den Papierkorb ist keine automatische Endlöschung konfiguriert."
   },
   "email": {
     "flash": {
@@ -2908,7 +3237,8 @@
       "sync_already_running": "⚠️ Synchronisation läuft bereits in einem anderen Worker. Bitte warten Sie einen Moment.",
       "deleted": "E-Mail wurde erfolgreich gelöscht.",
       "target_folder_not_specified": "Zielordner nicht angegeben.",
-      "draft_no_print": "Entwürfe können nicht als PDF gedruckt werden."
+      "draft_no_print": "Entwürfe können nicht als PDF gedruckt werden.",
+      "sync_started": "Synchronisation gestartet. Die Seite aktualisiert sich, sobald sie fertig ist."
     },
     "index": {
       "page_title": "E-Mail - Team Portal",
@@ -2986,6 +3316,15 @@
         "move_error": "E-Mail konnte nicht verschoben werden",
         "folder_deleted": "Ordner gelöscht",
         "color_local_only": "Farbpunkt nur lokal gespeichert (IMAP unterstützt keine Keywords)."
+      },
+      "pagination": {
+        "prev": "Zurück",
+        "next": "Weiter",
+        "info": "Seite {page} von {pages} ({total})",
+        "aria": "E-Mail-Seiten",
+        "load_more": "Weitere E-Mails laden",
+        "load_more_loading": "Laden…",
+        "load_error": "Weitere E-Mails konnten nicht geladen werden"
       }
     },
     "compose": {
@@ -3004,10 +3343,37 @@
         "bcc": "BCC (optional)",
         "bcc_placeholder": "bcc@example.com",
         "bcc_help": "Blindkopie: Adressen hier sind für andere Empfänger unsichtbar.",
+        "cc_bcc_toggle": "Cc / Bcc hinzufügen",
         "subject": "Betreff"
       },
       "editor": {
-        "placeholder": "Schreiben Sie hier Ihre E-Mail..."
+        "placeholder": "Schreiben Sie hier Ihre E-Mail...",
+        "toolbar": {
+          "bold": "Fett",
+          "italic": "Kursiv",
+          "underline": "Unterstrichen",
+          "strike": "Durchgestrichen",
+          "color": "Schriftfarbe",
+          "background": "Hintergrundfarbe",
+          "size": "Schriftgröße",
+          "font": "Schriftart",
+          "script_sub": "Tiefgestellt",
+          "script_super": "Hochgestellt",
+          "list_ordered": "Nummerierte Liste",
+          "list_bullet": "Aufzählung",
+          "indent_out": "Einzug verringern",
+          "indent_in": "Einzug erhöhen",
+          "align": "Ausrichtung",
+          "align_left": "Linksbündig",
+          "align_center": "Zentriert",
+          "align_right": "Rechtsbündig",
+          "align_justify": "Blocksatz",
+          "blockquote": "Zitat",
+          "code_block": "Codeblock",
+          "link": "Link einfügen",
+          "image": "Bild einfügen",
+          "clean": "Formatierung entfernen"
+        }
       },
       "preview": {
         "toggle": "E-Mail Vorschau",
@@ -3105,7 +3471,7 @@
       "print_eco_alert": "Bitte prüfen Sie vor dem Ausdrucken dieser E-Mail, ob dies wirklich nötig ist. Umweltschutz geht uns alle an."
     },
     "onlyoffice": {
-      "page_title_suffix": "ONLYOFFICE Editor",
+      "page_title_suffix": "Euro-Office Editor",
       "back_button_label": "Teamportal",
       "back_button_title": "Zurück zum Team-Portal"
     },
@@ -3115,7 +3481,7 @@
       "html_design_help": "An: Portal-Layout mit Logo. Aus: formatierter Text ohne Layout-Rahmen.",
       "use_team_logo": "Team-Logo verwenden",
       "use_team_logo_help": "Wenn aus: Portal-Logo statt Team-Logo im HTML-Design.",
-      "mailbox_label": "Postfach"
+      "mailbox_label": "Senden als"
     }
   },
   "credentials": {
@@ -3130,7 +3496,8 @@
       "folder_deleted": "Ordner \"{folder_name}\" wurde gelöscht. Einträge liegen wieder direkt im Bereich."
     },
     "errors": {
-      "decrypt_error": "Fehler beim Entschlüsseln des Passworts"
+      "decrypt_error": "Fehler beim Entschlüsseln des Passworts",
+      "encryption_key_missing": "Verschlüsselungsschlüssel fehlt (CREDENTIAL_ENCRYPTION_KEY). Bitte in der .env setzen."
     },
     "index": {
       "page_title": "Zugangsdaten - Team Portal",
@@ -3337,7 +3704,42 @@
         "copied_phone": "Telefonnummer kopiert",
         "copy_error": "Kopieren fehlgeschlagen."
       },
-      "empty_message": "Keine Kontakte vorhanden."
+      "empty_message": "Keine Kontakte vorhanden.",
+      "empty_cta": "Neuer Kontakt",
+      "pagination": {
+        "load_more": "Weitere Kontakte laden",
+        "load_more_loading": "Laden…",
+        "load_error": "Weitere Kontakte konnten nicht geladen werden"
+      }
+    },
+    "bulk": {
+      "selected": "ausgewählt",
+      "select": "Auswählen",
+      "select_all": "Alle auswählen",
+      "select_all_short": "Alle",
+      "deselect": "Auswahl aufheben",
+      "deselect_short": "Keine",
+      "download": "Herunterladen",
+      "download_ok": "Download gestartet.",
+      "download_error": "Download fehlgeschlagen.",
+      "email_all": "E-Mail an alle",
+      "email_none": "Keine E-Mail-Adresse in der Auswahl",
+      "email_partial": "{have} von {total} Empfänger haben eine Adresse",
+      "share": "Teilen",
+      "share_one": "Zum Teilen genau einen Kontakt wählen",
+      "share_title": "Kontakt teilen",
+      "share_hint": "Kopiere die Kontaktdaten und teile sie beliebig weiter.",
+      "share_copy": "Kopieren",
+      "share_copied": "Kontaktkarte kopiert",
+      "share_copy_error": "Kopieren fehlgeschlagen.",
+      "delete_confirm": "Wirklich {count} Kontakt(e) löschen?",
+      "delete_ok": "Gelöscht.",
+      "delete_error": "Löschen fehlgeschlagen.",
+      "deleted": "{count} Kontakt(e) gelöscht.",
+      "errors": {
+        "none_selected": "Keine Kontakte ausgewählt.",
+        "none_accessible": "Keine zugänglichen Kontakte gefunden."
+      }
     },
     "form": {
       "back": "Zurück",
@@ -3363,6 +3765,7 @@
       "hints": {
         "sort_name": "Leer lassen, um den angezeigten Namen für die Sortierung zu verwenden."
       },
+      "notes_privacy_hint": "Keine besonderen Kategorien (z. B. Gesundheit, Religion) in Notizen speichern, sofern nicht ausdrücklich freigegeben.",
       "buttons": {
         "save": "Speichern",
         "update": "Aktualisieren",
@@ -3572,6 +3975,50 @@
       "deleted": "Canvas \"{name}\" wurde gelöscht."
     }
   },
+  "markdown": {
+    "editor": {
+      "link": {
+        "insert_title": "Link einfügen",
+        "edit_title": "Link bearbeiten",
+        "text": "Linktext",
+        "url": "URL",
+        "insert": "Einfügen",
+        "save": "Übernehmen",
+        "cancel": "Abbrechen",
+        "open": "Öffnen",
+        "edit": "Bearbeiten"
+      },
+      "table": {
+        "column": "Spalte",
+        "row": "Zeile",
+        "add_row": "Zeile hinzufügen",
+        "add_col": "Spalte hinzufügen",
+        "insert_row_before": "Zeile davor einfügen",
+        "insert_row_after": "Zeile danach einfügen",
+        "insert_col_before": "Spalte davor einfügen",
+        "insert_col_after": "Spalte danach einfügen",
+        "delete_row": "Zeile löschen",
+        "delete_col": "Spalte löschen",
+        "delete_table": "Tabelle löschen",
+        "column_menu": "Spalte",
+        "row_menu": "Zeile",
+        "align_left": "Linksbündig",
+        "align_center": "Zentriert",
+        "align_right": "Rechtsbündig"
+      },
+      "preview": {
+        "open": "Öffnen",
+        "loading": "Lade Vorschau…",
+        "invalid": "Ungültige URL",
+        "unavailable_title": "Keine Vorschau",
+        "unavailable_body": "Die Seite konnte nicht geladen werden.",
+        "forbidden_title": "Kein Zugriff auf die Datei",
+        "forbidden_body": "Sie haben keine Berechtigung, diese Datei anzuzeigen.",
+        "not_found_title": "Datei nicht gefunden",
+        "not_found_body": "Die verlinkte Datei existiert nicht mehr."
+      }
+    }
+  },
   "wiki": {
     "index": {
       "page_title": "Wiki - Team Portal",
@@ -3609,6 +4056,15 @@
       "empty": {
         "default": "Noch keine Wiki-Seiten vorhanden. Erstellen Sie die erste Seite!",
         "filtered": "Keine Seiten gefunden. Versuchen Sie andere Suchkriterien."
+      },
+      "pagination": {
+        "prev": "Zurück",
+        "next": "Weiter",
+        "info": "Seite {page} von {pages} ({total})",
+        "aria": "Wiki-Seiten",
+        "load_more": "Weitere Seiten laden",
+        "load_more_loading": "Laden…",
+        "load_error": "Weitere Seiten konnten nicht geladen werden"
       },
       "js": {
         "favorite_error": "Fehler beim Aktualisieren der Favoriten.",
@@ -3933,7 +4389,8 @@
       "no_manage_permission": "Keine Berechtigung, diesen Kalender zu bearbeiten.",
       "participation_status": "Teilnahme an \"{event_title}\": {status}",
       "accepted": "zugesagt",
-      "declined": "abgesagt"
+      "declined": "abgesagt",
+      "sync_started": "Synchronisation im Hintergrund gestartet. Aktualisieren Sie die Seite in wenigen Sekunden."
     },
     "notifications": {
       "invite_title": "Einladung zu Termin erhalten",
@@ -4369,6 +4826,7 @@
         "menu": "Menü",
         "overview": "Übersicht",
         "stock": "Bestand & Geräte",
+        "product_scan": "Scan & Prüfung",
         "quick_scan": "Quick Scan",
         "checkout": "Ausleihe / Rückgabe",
         "borrows": "Ausleih-Historie",
@@ -4383,6 +4841,13 @@
         "list": "Listenansicht",
         "grid": "Kachelansicht"
       }
+    },
+    "scanner": {
+      "page_title": "Quick Scan - Team Portal",
+      "confirm_return": "Rückgabe von {checkout_number} bestätigen? ({count} Artikel, {borrower} — {event})"
+    },
+    "checkout": {
+      "page_title": "Ausleihe / Rückgabe - Team Portal"
     },
     "errors": {
       "no_borrow_permission": "Sie haben keine Berechtigung, Artikel auszuleihen.",
@@ -4424,6 +4889,15 @@
       "filter_name_required": "Filtername erforderlich.",
       "filter_name_exists": "Ein Filter mit diesem Namen existiert bereits.",
       "no_permission": "Keine Berechtigung.",
+      "feature_disabled": "Diese Inventar-Funktion ist derzeit deaktiviert.",
+      "no_return_permission": "Keine Berechtigung für diese Rückgabe.",
+      "insufficient_reserved_stock": "Reservierter Bestand reicht für die Rückgabe nicht aus (bereits freigegeben?).",
+      "insufficient_stock": "Nicht genügend Bestand verfügbar.",
+      "lot_not_found": "Bestandslos nicht gefunden.",
+      "lock_conflict": "Dieses Produkt wird gerade von einem anderen Nutzer bearbeitet.",
+      "inventory_complete_forbidden": "Nur der Starter der Inventur oder ein Admin darf sie abschließen.",
+      "invalid_status": "Ungültiger Status.",
+      "no_items": "Keine Rückgabe-Positionen gefunden.",
       "product_not_favorite": "Produkt ist kein Favorit.",
       "invalid_or_expired_token": "Ungültiger oder abgelaufener Token.",
       "transaction_id_required": "Transaktions-ID erforderlich.",
@@ -4469,6 +4943,7 @@
       "inventory_started": "Inventur \"{name}\" wurde gestartet.",
       "inventory_completed": "Diese Inventur ist bereits abgeschlossen.",
       "inventory_finished": "Inventur wurde abgeschlossen. {count} Produkt(e) wurden aktualisiert.",
+      "inventory_missing_skipped": "{count} übersprungen (ausgeliehen/gesperrt)",
       "folder_name_required": "Der Ordnername ist verpflichtend.",
       "folder_exists": "Ein Ordner mit diesem Namen existiert bereits.",
       "folder_created": "Ordner \"{name}\" wurde erfolgreich erstellt.",
@@ -4501,7 +4976,16 @@
       "document_deleted": "Dokument \"{filename}\" wurde erfolgreich gelöscht.",
       "file_not_found": "Die Datei konnte nicht gefunden werden.",
       "fill_all_fields": "Bitte füllen Sie alle Felder aus.",
-      "invalid_date": "Ungültiges Datum."
+      "invalid_date": "Ungültiges Datum.",
+      "document_attach_error": "Das Produkt wurde gespeichert, aber Dokumente konnten nicht angehängt werden.",
+      "document_invalid_type": "Ungültiger Dateityp. Erlaubt: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX.",
+      "manual_not_accessible": "Die gewählte Anleitung ist nicht verfügbar.",
+      "manual_link_required": "Bitte eine Anleitung auswählen.",
+      "manual_already_linked": "Anleitung \"{title}\" ist bereits verknüpft.",
+      "manual_linked": "Anleitung \"{title}\" wurde verknüpft.",
+      "external_barcode_taken": "Inventar-Nr. \"{code}\" ist bereits vergeben.",
+      "external_barcode_qty": "Inventar-Nr. kann nur gesetzt werden, wenn die Menge 1 ist.",
+      "barcode_label_error": "Barcode-Etikett konnte nicht erzeugt werden."
     },
     "cart": {
       "set_badge": "Set",
@@ -4519,7 +5003,20 @@
         "available": "Verfügbar",
         "borrowed": "Unterwegs",
         "defective": "Defekt / Reparatur",
+        "dguv_due": "DGUV Fällig",
         "overdue": "Überfällig"
+      },
+      "hub": {
+        "title": "Bereiche",
+        "stock_desc": "Geräte und Artikel verwalten",
+        "product_scan_desc": "Scannen und DGUV prüfen",
+        "quick_scan_desc": "Schnell per QR ausleihen",
+        "checkout_desc": "Ausleihe und Rückgabe",
+        "borrows_desc": "Vergangene Ausleihen",
+        "sets_desc": "Produktsets zusammenstellen",
+        "inventory_tool_desc": "Inventur durchführen",
+        "print_qr_desc": "Etiketten drucken",
+        "statistics_desc": "Auswertungen und Trends"
       },
       "my_borrows": {
         "title": "Meine aktuellen Ausleihen",
@@ -4538,6 +5035,49 @@
           "download_receipt": "Ausleihschein herunterladen"
         }
       }
+    },
+    "product_scan": {
+      "page_title": "Scan & Prüfung - Team Portal",
+      "heading": "Scan & Prüfung",
+      "subtitle": "Artikel scannen oder suchen, Felder und Dokumente direkt bearbeiten.",
+      "input_title": "Artikel finden",
+      "camera_label": "Kamera scannen",
+      "manual_label": "ID / Inventar-Nr.",
+      "manual_placeholder": "PROD oder Inventar-Nr.",
+      "search_label": "Produkt suchen",
+      "search_placeholder": "Name, Seriennummer, Kategorie…",
+      "lookup_button": "Öffnen",
+      "panel_title": "Produkt",
+      "empty": "Scanne oder suche einen Artikel, um ihn hier zu bearbeiten.",
+      "next_scan": "Nächster Scan",
+      "save": "Speichern",
+      "full_edit": "Vollständig bearbeiten",
+      "all_docs": "Alle Dokumente",
+      "fields": {
+        "location": "Lagerort",
+        "condition": "Zustand",
+        "status": "Status",
+        "dguv_required": "DGUV-Prüfung",
+        "dguv_last": "Letzte Prüfung",
+        "dguv_interval": "Intervall (Monate)",
+        "dguv_next": "Nächste Prüfung"
+      },
+      "docs": {
+        "title": "Dokumente",
+        "upload": "Hochladen",
+        "type": "Typ",
+        "empty": "Noch keine Dokumente.",
+        "link_manual": "Anleitung verknüpfen",
+        "link": "Verknüpfen"
+      },
+      "errors": {
+        "scan_set": "Produktset erkannt – bitte ein Einzelgerät scannen.",
+        "lookup_failed": "Artikel konnte nicht gefunden werden.",
+        "save_failed": "Speichern fehlgeschlagen.",
+        "upload_failed": "Upload fehlgeschlagen."
+      },
+      "saved": "Gespeichert.",
+      "uploaded": "Dokument hochgeladen."
     },
     "stock": {
       "page_title": "Bestandsübersicht - Team Portal",
@@ -4580,6 +5120,8 @@
         "dguv_due": "Prüfung fällig",
         "dguv_ok": "Prüfung ok",
         "dguv_none": "Keine DGUV-Daten",
+        "owner": "Eigentümer",
+        "all_owners": "Alle Eigentümer",
         "overdue": "Überfällig",
         "favorites": "Favoriten",
         "favorites_any": "Alle",
@@ -4671,7 +5213,11 @@
         "load_products_error": "Fehler beim Laden der Produkte:",
         "critical_error": "Kritischer Fehler:"
       },
-      "filters_sort_button": "Filter & Sortierung"
+      "filters_sort_button": "Filter & Sortierung",
+      "pagination": {
+        "load_more": "Weitere Produkte laden",
+        "load_more_loading": "Laden…"
+      }
     },
     "cable_form": {
       "page_title": "Mengenartikel anlegen - Team Portal",
@@ -4712,7 +5258,7 @@
         "heading_new": "Produkt hinzufügen",
         "heading_edit": "Produkt bearbeiten",
         "name": "Produktname",
-        "description": "Beschreibung / Details",
+        "description": "Beschreibung",
         "folder": "Ordner",
         "no_folder": "Kein Ordner",
         "add_folder": "Neuen Ordner anlegen",
@@ -4731,6 +5277,7 @@
         "location": "Lagerort",
         "length": "Länge",
         "length_help": "z.B. 5 m, 3.5m, 2,5 Meter",
+        "length_placeholder": "z.B. 5.5",
         "quantity": "Anzahl",
         "quantity_help": "Wie viele identische Produkte sollen erstellt werden? (1-100)",
         "purchase_date": "Anschaffungsdatum",
@@ -4744,8 +5291,13 @@
           "identity": "Identifikation & Lager",
           "values": "Kauf & Werte",
           "dimensions": "Maße & Gewicht",
+          "purchase_dims": "Kauf & Maße",
+          "accounting": "Buchhaltung",
+          "dims": "Maße",
           "dguv": "DGUV",
-          "media": "Status & Medien"
+          "media": "Status & Medien",
+          "documents": "Dokumente & Anleitungen",
+          "media_docs": "Medien & Dokumente"
         },
         "folder_name": "Ordnername",
         "category_name": "Kategoriename",
@@ -4761,19 +5313,36 @@
         "width_cm": "Breite (cm)",
         "height_cm": "Höhe (cm)",
         "depth_cm": "Tiefe (cm)",
-        "dguv_last_check": "DGUV letzte Prüfung",
-        "dguv_next_check": "DGUV nächste Prüfung",
-        "dguv_interval_months": "DGUV Intervall (Monate)",
+        "dguv_last_check": "Letzte Prüfung",
+        "dguv_next_check": "Nächste Prüfung",
+        "dguv_interval_months": "Intervall (Monate)",
         "dguv_required": "DGUV-Prüfung erforderlich",
         "dguv_last_help": "Optional. Leer lassen: nächste Prüfung = Anlagedatum. Mit Datum: nächste Prüfung = letzte + Intervall.",
         "dguv_interval_help": "Prüfintervall in Monaten (beim Anlegen/Bearbeiten einstellbar).",
         "dguv_interval_readonly_help": "Festes Prüfintervall (nicht änderbar).",
         "dguv_next_auto_help": "Automatisch berechnet (oder Anlagedatum, wenn keine letzte Prüfung).",
-        "external_barcode": "Externer Barcode / QR-ID",
-        "external_barcode_placeholder": "Eigene Barcode-ID",
+        "external_barcode": "Inventar-Nr.",
+        "external_barcode_placeholder": "z.B. 001",
+        "owner": "Eigentümer",
+        "owner_placeholder": "Portalnutzer oder Freitext…",
+        "owner_help": "Portalnutzer auswählen oder freien Text eingeben. Frühere Angaben werden vorgeschlagen.",
         "current_image": "Aktuelles Bild:",
         "remove_image": "Bild entfernen",
-        "remove_image_confirm": "Möchten Sie das Produktbild wirklich entfernen?"
+        "remove_image_confirm": "Möchten Sie das Produktbild wirklich entfernen?",
+        "documents_upload": "Dokumente",
+        "documents_help": "Mehrere Dateien möglich (PDF, PNG, JPEG, Office). Werden beim Speichern angehängt.",
+        "document_type": "Dokumenttyp",
+        "link_manuals": "Anleitungen verknüpfen",
+        "link_manuals_help": "Mehrfachauswahl: bestehende Bedienungsanleitungen ohne Datei-Upload.",
+        "manage_documents": "Alle Dokumente verwalten",
+        "external_barcode_help": "Code vom Inventar-Etikett tippen oder per Handscanner hier einscannen. Für QuickScan & Ausleihe.",
+        "external_barcode_qty_hint": "Inventar-Nr. nur bei Menge 1 möglich (jede Nummer ist eindeutig).",
+        "print_barcode": "Barcode drucken",
+        "print_barcode_hint": "Etikett ~56 mm, Druckmaßstab 100 % (Actual size).",
+        "cable_migration": "Kabel-Migration",
+        "cable_migration_help": "Zusammengeführte Einzelartikel werden auf ausgemustert gesetzt.",
+        "convert_to_cable": "In Kabel/Mengenartikel umwandeln",
+        "merge_similar_cables": "Ähnliche Einzelartikel zusammenführen"
       },
       "list": {
         "page_title": "Inventurliste - Team Portal",
@@ -4982,9 +5551,43 @@
       }
     },
     "folders": {
-      "page_title": "Ordner - Team Portal",
-      "heading": "Ordner",
-      "new_folder": "Neuer Ordner"
+      "page_title": "Produktordner - Team Portal",
+      "heading": "Produktordner",
+      "new_folder": "Neuer Ordner",
+      "create_title": "Neuen Ordner erstellen",
+      "create_btn": "Ordner erstellen",
+      "list_title": "Vorhandene Ordner",
+      "empty": "Noch keine Ordner vorhanden.",
+      "empty_hint": "Erstellen Sie einen Ordner, um Produkte besser zu organisieren.",
+      "delete_keep_products": "Produkte in diesem Ordner werden nicht gelöscht, sondern nur der Ordnerzuweisung entfernt.",
+      "fields": {
+        "name": "Ordnername",
+        "name_placeholder": "z.B. Kameras",
+        "description": "Beschreibung",
+        "description_placeholder": "Optional",
+        "color": "Farbe (optional)",
+        "color_help": "Farbe zur visuellen Unterscheidung"
+      },
+      "cols": {
+        "name": "Name",
+        "description": "Beschreibung",
+        "products": "Produkte",
+        "color": "Farbe",
+        "actions": "Aktionen"
+      }
+    },
+    "public": {
+      "subtitle": "Produktinformationen aus dem Inventar",
+      "footer": "Öffentliche Produktansicht · kein Login erforderlich",
+      "ownership_default": "Eigentum der Technik",
+      "fields": {
+        "serial": "Seriennummer",
+        "length": "Länge",
+        "category": "Kategorie",
+        "condition": "Zustand",
+        "location": "Standort",
+        "description": "Beschreibung"
+      }
     },
     "tool": {
       "page_title": "Inventurtool - Team Portal",
@@ -5065,6 +5668,43 @@
       },
       "errors": {
         "no_selection": "Bitte wählen Sie mindestens ein Produkt aus."
+      }
+    },
+    "documents": {
+      "page_title": "Dokumente - {name}",
+      "heading": "Dokumente für \"{name}\"",
+      "list_title": "Dokumente",
+      "upload_btn": "Dokument hochladen",
+      "link_manual_btn": "Anleitung verknüpfen",
+      "edit_product": "Produkt bearbeiten",
+      "col_name": "Name",
+      "col_type": "Typ",
+      "col_size": "Größe",
+      "col_date": "Hochgeladen",
+      "col_actions": "Aktionen",
+      "linked_manual": "Verknüpft mit Anleitung",
+      "manual_link_only": "Nur Anleitungs-Verknüpfung",
+      "download": "Herunterladen",
+      "open_manual": "Anleitung öffnen",
+      "delete_confirm": "Möchten Sie dieses Dokument wirklich löschen?",
+      "empty": "Noch keine Dokumente vorhanden.",
+      "upload_title": "Dokument hochladen",
+      "file_label": "Datei",
+      "file_help": "PDF, PNG, JPEG sowie DOC/DOCX/XLS/XLSX.",
+      "type_label": "Dokumenttyp",
+      "link_manual_optional": "Mit Anleitung verknüpfen (optional)",
+      "no_manual_link": "Keine Verknüpfung",
+      "link_manual_title": "Anleitung verknüpfen",
+      "manual_label": "Anleitung",
+      "select_manual": "Anleitung auswählen…",
+      "link_manual_help": "Verknüpft eine bestehende Bedienungsanleitung ohne Datei zu duplizieren.",
+      "types": {
+        "handbook": "Handbuch / Anleitung",
+        "datasheet": "Datenblatt",
+        "invoice": "Rechnung",
+        "warranty": "Garantieschein",
+        "dguv": "DGUV-Prüfbericht",
+        "other": "Sonstiges"
       }
     }
   },
@@ -5185,6 +5825,7 @@
       "breadcrumb_admin": "Administration",
       "breadcrumb_music": "Musikmodul-Einstellungen",
       "heading": "Musikmodul-Einstellungen",
+      "lead_short": "Provider und Anzeige.",
       "subtitle": "Provider aktivieren, Reihenfolge festlegen und Zugangsdaten verwalten.",
       "subtitle_providers_only": "Provider aktivieren, Reihenfolge festlegen und Anzeige-Optionen.",
       "integrations_moved": "Spotify-, YouTube- und Deezer-Verknüpfungen liegen unter Einstellungen → Verknüpfungen.",
@@ -5467,11 +6108,13 @@
       "cards": {
         "booking_forms": {
           "title": "Buchungsformulare",
-          "description": "Buchungsformulare erstellen, bearbeiten und verwalten"
+          "description": "Buchungsformulare erstellen, bearbeiten und verwalten",
+          "short": "Formulare"
         },
         "music_module": {
           "title": "Musikmodul",
-          "description": "Spotify und YouTube Music verbinden und konfigurieren"
+          "description": "Spotify und YouTube Music verbinden und konfigurieren",
+          "short": "Provider"
         }
       }
     }
@@ -5944,7 +6587,13 @@
       "settings": "Einstellungen",
       "close_board": "Board schließen",
       "filter": "Filtern",
-      "save_template": "Als Vorlage"
+      "save_template": "Als Vorlage",
+      "background": "Hintergrund",
+      "background_image": "Hintergrundbild",
+      "background_upload": "Bild hochladen",
+      "background_clear": "Bild entfernen",
+      "background_image_set": "Hintergrundbild ist gesetzt",
+      "background_image_optional": "Optional: eigenes Bild hochladen (wird über der Farbe angezeigt)"
     },
     "custom_fields": {
       "title": "Benutzerdefinierte Felder",
@@ -6041,6 +6690,31 @@
       "reopen": "Wieder öffnen",
       "delete": "Löschen",
       "empty": "Keine geschlossenen Boards."
+    },
+    "export": {
+      "title": "Exportieren",
+      "json": "Als JSON (Trello)",
+      "csv": "Als CSV (Trello)"
+    },
+    "import": {
+      "title": "Board importieren",
+      "hint": "Trello-Export als JSON oder CSV hochladen. Es wird ein neues Board angelegt.",
+      "file": "Exportdatei",
+      "title_optional": "Titel (optional)",
+      "title_ph": "Leer = Name aus der Datei",
+      "submit": "Importieren",
+      "error_no_file": "Bitte eine Datei auswählen.",
+      "error_empty": "Die Datei ist leer.",
+      "error_invalid": "Ungültiges Trello-Exportformat.",
+      "error_forbidden": "Keine Berechtigung für den Import.",
+      "error_admin": "Öffentliche Boards dürfen nur Admins importieren.",
+      "error_team": "Bitte ein Team auswählen.",
+      "error_team_leader": "Team-Boards dürfen nur Teamleiter importieren.",
+      "error_visibility": "Diese Sichtbarkeit ist nicht erlaubt.",
+      "error_failed": "Import fehlgeschlagen.",
+      "error_invalid_zip": "Ungültige ZIP-Datei",
+      "error_empty_zip": "ZIP enthält keine JSON/CSV-Dateien",
+      "visibility": "Sichtbarkeit"
     }
   },
   "visibility": {
@@ -6107,7 +6781,8 @@
       "delete_confirm": "Umfrage wirklich löschen?",
       "back": "Zurück",
       "preview": "Vorschau",
-      "share": "Freigeben"
+      "share": "Freigeben",
+      "special_category_hint": "Keine besonderen Kategorien (Art. 9 DSGVO, z. B. Gesundheit) in Fragen oder Freitext erfragen, sofern nicht ausdrücklich freigegeben und abgesichert. Das Portal filtert Inhalte nicht automatisch."
     },
     "settings": {
       "title": "Einstellungen",
@@ -6188,7 +6863,7 @@
     },
     "logic": {
       "title": "Verknüpfungen",
-      "hint": "Seiten oder Fragen abhängig von Antworten anzeigen, ausblenden oder überspringen.",
+      "hint": "Regeln anlegen: Wenn Frage X = Antwort, dann Frage/Seite überspringen oder anzeigen. Tippen zum Bearbeiten.",
       "add_rule": "Regel hinzufügen",
       "if_answer": "Wenn Antwort",
       "then": "dann",
@@ -6202,6 +6877,13 @@
         "list": "Listenansicht",
         "grid": "Kachelansicht"
       }
+    },
+    "redirect_warn": {
+      "title": "Externe Weiterleitung",
+      "message": "Dieser Kurzlink führt zu einer externen Website. Prüfen Sie die Adresse, bevor Sie fortfahren.",
+      "destination": "Zieladresse",
+      "continue": "Weiter zur Website",
+      "cancel": "Abbrechen"
     }
   },
   "file_converter": {
@@ -6318,6 +7000,206 @@
       "output_not_found": "Ausgabedatei wurde nicht erzeugt.",
       "timeout": "Die Konvertierung hat das Zeitlimit überschritten.",
       "upload_failed": "Upload fehlgeschlagen."
+    }
+  },
+  "protocols": {
+    "nav": {
+      "title": "Protokollführung",
+      "all": "Alle",
+      "create": "Neues Protokoll",
+      "new": "Neues Protokoll"
+    },
+    "status": {
+      "draft": "Entwurf",
+      "finalized": "Abgeschlossen"
+    },
+    "steps": {
+      "meta": "Angaben",
+      "agenda": "Tagesordnung",
+      "content": "Inhalt"
+    },
+    "index": {
+      "search_placeholder": "Suchen nach Titel, Name oder Datum (z. B. 05.09.2026)…",
+      "empty": "Noch keine Protokolle vorhanden.",
+      "open": "Öffnen",
+      "edit": "Bearbeiten",
+      "pdf": "PDF herunterladen",
+      "delete_confirm": "Protokoll wirklich löschen?",
+      "nav": {
+        "menu": "Protokoll-Menü"
+      },
+      "list": {
+        "title": "Titel",
+        "date": "Datum",
+        "status": "Status",
+        "visibility": "Bereich"
+      },
+      "sort": {
+        "heading": "Sortierung",
+        "field": "Feld",
+        "dir": "Richtung",
+        "date": "Sitzungsdatum",
+        "title": "Titel",
+        "updated": "Zuletzt geändert",
+        "created": "Erstellt",
+        "asc": "Aufsteigend",
+        "desc": "Absteigend",
+        "apply": "Anwenden"
+      },
+      "filter": {
+        "heading": "Filter",
+        "status": "Status",
+        "all": "Alle",
+        "apply": "Anwenden",
+        "reset": "Reset"
+      }
+    },
+    "create": {
+      "subtitle": "Datum, Teilnehmer und Sichtbarkeit festlegen.",
+      "title_label": "Name der Besprechung",
+      "title_placeholder": "z. B. Gesamtteamsitzung",
+      "title_required": "Bitte geben Sie einen Namen für das Protokoll ein.",
+      "date_label": "Datum",
+      "start_time_label": "Startzeit",
+      "participants_label": "Teilnehmer*innen",
+      "participants_placeholder": "Namen, kommasepariert oder je Zeile",
+      "excused_label": "Entschuldigt",
+      "excused_placeholder": "Entschuldigte Personen",
+      "absent_label": "Unentschuldigt",
+      "absent_placeholder": "Unentschuldigt fehlende Personen",
+      "submit": "Weiter zu Tagesordnung",
+      "continue": "Weiter",
+      "chip_placeholder": "Name eingeben und Enter drücken…",
+      "chip_hint": "Mit Enter als Pille hinzufügen, mit × wieder entfernen."
+    },
+    "meta": {
+      "edit_title": "Protokoll bearbeiten"
+    },
+    "agenda": {
+      "title": "Tagesordnungspunkte",
+      "hint": "Legen Sie die TOPs fest. Die Reihenfolge können Sie per Drag & Drop ändern.",
+      "item_placeholder": "z. B. Update Projektstatus",
+      "add": "TOP hinzufügen",
+      "continue": "Weiter zu Inhalten",
+      "reorder": "Verschieben",
+      "min_one": "Bitte legen Sie mindestens einen Tagesordnungspunkt an."
+    },
+    "item": {
+      "title_label": "Tagesordnungspunkt",
+      "content_label": "Inhalt",
+      "nav_label": "TOPs",
+      "prev": "Vorheriger TOP",
+      "next": "Nächster TOP",
+      "autosaved": "Zwischengespeichert",
+      "saving": "Speichern…"
+    },
+    "actions": {
+      "save_draft": "Zwischenspeichern",
+      "finalize": "Als abgeschlossen speichern",
+      "finalize_confirm": "Protokoll wirklich abschließen? Danach ist keine Bearbeitung mehr möglich."
+    },
+    "view": {
+      "agenda": "Tagesordnung",
+      "content": "Protokollinhalt",
+      "no_content": "Keine Inhalte vorhanden.",
+      "time_label": "Uhrzeit",
+      "attendance": "Anwesenheit",
+      "finalized_at": "Abgeschlossen am"
+    },
+    "flash": {
+      "module_disabled": "Das Modul Protokollführung ist deaktiviert.",
+      "created": "Protokoll angelegt.",
+      "saved": "Gespeichert.",
+      "finalized": "Protokoll abgeschlossen.",
+      "deleted": "Protokoll gelöscht.",
+      "finalized_readonly": "Abgeschlossene Protokolle können nicht mehr bearbeitet werden.",
+      "pdf_only_finalized": "PDF ist erst nach Abschluss verfügbar."
+    },
+    "editor": {
+      "table": "Tabelle",
+      "color": "Schriftfarbe",
+      "highlight": "Textmarker",
+      "size": "Schriftgröße",
+      "size_small": "Klein",
+      "size_normal": "Normal",
+      "size_large": "Groß",
+      "size_huge": "Sehr groß"
+    }
+  },
+  "meetings": {
+    "page_title": "Meetings",
+    "heading": "Meetings",
+    "default_title": "Meeting",
+    "chat_title": "Meeting: {name}",
+    "nav": {
+      "label": "Meetings-Navigation",
+      "active": "Aktiv",
+      "ended": "Beendet",
+      "start": "Meeting starten",
+      "menu": "Meetings-Menü"
+    },
+    "list": {
+      "title": "Titel",
+      "access": "Zugang",
+      "host": "Gestartet von",
+      "started": "Gestartet",
+      "empty": "Keine aktiven Meetings."
+    },
+    "access": {
+      "public": "Öffentlich",
+      "invite": "Nur Einladung"
+    },
+    "actions": {
+      "join": "Beitreten",
+      "end": "Beenden",
+      "copy_guest": "Gast-Link kopieren",
+      "more": "Weitere Aktionen"
+    },
+    "create": {
+      "page_title": "Meeting starten",
+      "heading": "Meeting starten",
+      "title_label": "Titel",
+      "title_placeholder": "z. B. Wochenabstimmung",
+      "access_label": "Zugang",
+      "public_help": "Sichtbar für alle mit Meetings-Modul.",
+      "invite_help": "Nur eingeladene Portal-Nutzer sehen das Meeting.",
+      "invitees_label": "Personen einladen",
+      "invitees_search": "Name oder E-Mail suchen…",
+      "invitees_host": "Sie sind automatisch dabei. Weitere Personen sind optional.",
+      "invitees_you": "Sie",
+      "invitees_empty": "Keine weiteren Portal-Nutzer zum Einladen.",
+      "submit": "Meeting starten"
+    },
+    "guest": {
+      "lead": "Bitte geben Sie Ihren Namen ein, um beizutreten.",
+      "name_label": "Ihr Name",
+      "name_required": "Bitte einen Namen eingeben.",
+      "submit": "Beitreten",
+      "ended": "Dieses Meeting ist beendet."
+    },
+    "call": {
+      "loading": "Meeting wird geladen…",
+      "insecure_title": "Kein sicherer Kontext (HTTPS)",
+      "insecure_body": "Kamera und Mikrofon funktionieren unter http://IP-Adressen nicht. Nutzen Sie HTTPS (z. B. Domain mit Zertifikat) oder öffnen Sie das Portal über https://… — sonst bleibt der Call schwarz."
+    },
+    "chat": {
+      "start": "Meeting starten"
+    },
+    "notify": {
+      "title": "Meeting-Einladung",
+      "body": "Sie wurden zu „{title}“ eingeladen."
+    },
+    "flash": {
+      "invitees_required": "Bitte mindestens eine Person einladen.",
+      "no_access": "Kein Zugriff auf dieses Meeting.",
+      "ended": "Dieses Meeting ist beendet.",
+      "ended_ok": "Meeting beendet.",
+      "not_configured": "MiroTalk ist nicht konfiguriert. Bitte MIROTALK_URL in der .env setzen.",
+      "join_failed": "Beitritt fehlgeschlagen. API-Key und Host-Zugangsdaten (MIROTALK_API_KEY / MIROTALK_HOST_USER / MIROTALK_HOST_PASSWORD) prüfen — sie müssen zur MiroTalk-.env passen.",
+      "no_module": "Das Meetings-Modul ist nicht verfügbar.",
+      "chat_missing": "Chat nicht gefunden.",
+      "not_chat_member": "Sie sind kein Mitglied dieses Chats.",
+      "chat_start_error": "Meeting konnte nicht gestartet werden."
     }
   }
 }

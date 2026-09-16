@@ -10,14 +10,90 @@ class NotificationCenter {
         this.pollIntervalMs = 45000;
         this.pollTimer = null;
         this.isOpen = false;
+        this.sseLive = false;
 
         if (!this.panel || !this.listEl) {
             return;
         }
 
         this.bindEvents();
+        this.bindVisibility();
         this.refreshBadge();
-        this.pollTimer = setInterval(() => this.refreshBadge(), this.pollIntervalMs);
+        this.connectSSE();
+    }
+
+    dashboardSseUrl() {
+        return String(window.PT_DASHBOARD_SSE_URL || '').trim();
+    }
+
+    startPolling() {
+        if (this.pollTimer || this.sseLive || document.hidden) return;
+        this.pollTimer = setInterval(() => {
+            if (document.hidden || this.sseLive) return;
+            this.refreshBadge();
+        }, this.pollIntervalMs);
+    }
+
+    stopPolling() {
+        if (!this.pollTimer) return;
+        clearInterval(this.pollTimer);
+        this.pollTimer = null;
+    }
+
+    connectSSE() {
+        const url = this.dashboardSseUrl();
+        if (!url || !window.EventSource) {
+            this.startPolling();
+            return;
+        }
+        try {
+            const es = window.ptDashboardSSE || new EventSource(url);
+            window.ptDashboardSSE = es;
+            es.addEventListener('connected', () => {
+                this.sseLive = true;
+                this.stopPolling();
+            });
+            es.addEventListener('dashboard:notification_update', (e) => {
+                let unread = 0;
+                try {
+                    const data = JSON.parse(e.data || '{}');
+                    unread = data.unread_count || 0;
+                } catch (_) {
+                    return;
+                }
+                this.updateBadge(unread);
+                if (this.isOpen) this.loadList();
+            });
+            es.onerror = () => {
+                if (es.readyState === EventSource.CLOSED) {
+                    this.sseLive = false;
+                    this.startPolling();
+                }
+            };
+        } catch (e) {
+            this.startPolling();
+        }
+    }
+
+    bindVisibility() {
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                this.stopPolling();
+                // Freigabe von Gunicorn-Threads: Hintergrund-Tabs brauchen kein Live-SSE.
+                try {
+                    if (window.ptDashboardSSE) {
+                        window.ptDashboardSSE.close();
+                        window.ptDashboardSSE = null;
+                    }
+                } catch (_) { /* ignore */ }
+                this.sseLive = false;
+                return;
+            }
+            this.refreshBadge();
+            if (this.isOpen) this.loadList();
+            this.connectSSE();
+            if (!this.sseLive) this.startPolling();
+        });
     }
 
     bindEvents() {

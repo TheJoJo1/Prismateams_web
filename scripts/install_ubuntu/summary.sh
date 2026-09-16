@@ -26,6 +26,7 @@ write_install_report() {
     {
         echo "Team Portal – Installationsbericht"
         echo "Erstellt: $(date -Iseconds 2>/dev/null || date)"
+        echo "Ubuntu: ${UBUNTU_VERSION_ID:-?} (${UBUNTU_CODENAME:-?})"
         echo "Abbruch: ${INSTALL_ABORTED:-0}"
         echo
         echo "Konfiguration"
@@ -46,8 +47,9 @@ write_install_report() {
         fi
         echo "MySQL: ${SETUP_MYSQL:-}"
         echo "Redis: ${SETUP_REDIS:-}"
-        echo "OnlyOffice: ${INSTALL_ONLYOFFICE:-}"
+        echo "Euro-Office: ${INSTALL_ONLYOFFICE:-}"
         echo "Excalidraw: ${INSTALL_EXCALIDRAW:-}"
+        echo "MiroTalk: ${INSTALL_MIROTALK:-}"
         echo "FFmpeg: ${INSTALL_MEDIA_DOWNLOADER:-}"
         echo ".env-Modus: ${ENV_MODE:-}"
         echo
@@ -67,7 +69,22 @@ write_install_report() {
             echo "MySQL Root-Passwort: ${MYSQL_ROOT_PASS:-}"
         fi
         if [ -n "${ONLYOFFICE_SECRET:-}" ]; then
-            echo "OnlyOffice JWT / ONLYOFFICE_SECRET_KEY: ${ONLYOFFICE_SECRET}"
+            echo "Euro-Office JWT / ONLYOFFICE_SECRET_KEY: ${ONLYOFFICE_SECRET}"
+        fi
+        if is_yes "${INSTALL_MIROTALK:-n}"; then
+            echo "MiroTalk URL: $(mirotalk_public_url)"
+            echo "MiroTalk Host-User: ${MIROTALK_HOST_USER:-portal}"
+            echo "MiroTalk Host-Passwort: ${MIROTALK_HOST_PASSWORD:-}"
+            echo "MiroTalk API-Key: ${MIROTALK_API_KEY:-}"
+            echo "MiroTalk Secrets: müssen mit /var/lib/mirotalk-sfu/.env übereinstimmen"
+            if [ -z "$(mirotalk_meet_hostname)" ]; then
+                echo "MiroTalk-Modus: IP/LAN (direkt Port ${MIROTALK_HOST_PORT:-3010})"
+            else
+                echo "MiroTalk-Modus: Hostname $(mirotalk_meet_hostname) hinter Webserver"
+            fi
+            if ! is_yes "${SETUP_SSL:-n}"; then
+                echo "MiroTalk HTTPS: nein — WebRTC/Kamera unter http:// oft blockiert (Blackscreen)"
+            fi
         fi
         echo
         echo "Weitere Keys liegen in: ${INSTALL_DIR}/.env"
@@ -90,12 +107,13 @@ print_summary() {
 
     echo "Konfiguration"
     echo "============="
+    echo "Ubuntu: ${UBUNTU_VERSION_ID:-?} (${UBUNTU_CODENAME:-?})"
     echo "Installationspfad: ${INSTALL_DIR:-}"
     echo "Repository: ${REPO_URL:-}"
     echo "Branch: ${GIT_BRANCH:-<default>}"
     echo "Gunicorn-Port: ${GUNICORN_PORT:-}"
     if is_yes "${SETUP_GUNICORN:-n}"; then
-        echo "Gunicorn: eingerichtet (${GUNICORN_WORKERS:-1} Worker)"
+        echo "Gunicorn: eingerichtet (${GUNICORN_WORKERS:-2} Worker)"
     else
         echo "Gunicorn: manuell"
     fi
@@ -127,7 +145,25 @@ print_summary() {
         echo "MySQL: nicht vom Skript eingerichtet"
     fi
     if [ -n "${ONLYOFFICE_SECRET:-}" ]; then
-        echo "OnlyOffice JWT / ONLYOFFICE_SECRET_KEY: ${ONLYOFFICE_SECRET}"
+        echo "Euro-Office JWT / ONLYOFFICE_SECRET_KEY: ${ONLYOFFICE_SECRET}"
+    fi
+    if is_yes "${INSTALL_MIROTALK:-n}"; then
+        echo "MiroTalk: $(mirotalk_public_url)"
+        echo "MiroTalk Host-User: ${MIROTALK_HOST_USER:-portal}"
+        echo "MiroTalk Host-Passwort: ${MIROTALK_HOST_PASSWORD:-}"
+        echo "MiroTalk API-Key: ${MIROTALK_API_KEY:-}"
+        echo "  (Portal-.env und /var/lib/mirotalk-sfu/.env müssen diese Werte teilen)"
+        _meet_host=$(mirotalk_meet_hostname)
+        if [ -n "$_meet_host" ]; then
+            echo "DNS: A/AAAA-Record ${_meet_host} auf diesen Server zeigen lassen"
+        else
+            echo "Hinweis: IP-/LAN-Modus — Meetings über Port ${MIROTALK_HOST_PORT:-3010} (kein meet.-Hostname)"
+            echo "Firewall: ${MIROTALK_HOST_PORT:-3010}/tcp sowie ${MIROTALK_UDP_MIN:-40000}-${MIROTALK_UDP_MAX:-40100} udp/tcp"
+        fi
+        if ! is_yes "${SETUP_SSL:-n}"; then
+            echo "WARNUNG: Kein SSL — Browser blockieren Kamera/Mikrofon unter http://… (Meetings-Blackscreen)."
+            echo "  Für produktive Calls: HTTPS für Portal und Meet einrichten."
+        fi
     fi
     echo "Weitere Secrets: ${INSTALL_DIR}/.env"
     echo
@@ -160,6 +196,7 @@ print_summary() {
     if ! is_yes "${SETUP_WEBSERVER:-n}"; then print_manual_webserver_hint; fi
     if ! is_yes "${INSTALL_ONLYOFFICE:-n}"; then print_manual_onlyoffice_hint; fi
     if ! is_yes "${INSTALL_EXCALIDRAW:-n}"; then print_manual_excalidraw_hint; fi
+    if ! is_yes "${INSTALL_MIROTALK:-n}"; then print_manual_mirotalk_hint; fi
     if ! is_yes "${INSTALL_MEDIA_DOWNLOADER:-n}"; then print_manual_media_downloader_hint; fi
     if ! is_yes "${SETUP_GUNICORN:-n}"; then print_manual_gunicorn_hint; fi
     if ! is_yes "${SETUP_MYSQL:-n}"; then print_manual_mysql_hint; fi
@@ -174,7 +211,7 @@ print_summary() {
             echo "  systemctl status apache2"
         fi
     fi
-    if is_yes "${INSTALL_ONLYOFFICE:-n}"; then
+    if is_yes "${INSTALL_ONLYOFFICE:-n}" || is_yes "${INSTALL_EXCALIDRAW:-n}" || is_yes "${INSTALL_MIROTALK:-n}"; then
         echo "  docker ps"
     fi
     echo

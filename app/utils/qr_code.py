@@ -2,9 +2,38 @@ import qrcode
 from io import BytesIO
 from flask import current_app, url_for
 from PIL import Image, ImageDraw
+import hashlib
+import hmac
 import os
 import re
 from urllib.parse import unquote
+
+
+def public_product_signature(product_id: int, length: int = 32) -> str:
+    """HMAC-Signatur gegen Enumeration öffentlicher Produkt-URLs."""
+    secret = current_app.secret_key
+    if isinstance(secret, str):
+        secret = secret.encode("utf-8")
+    digest = hmac.new(
+        secret,
+        f"inventory.public.product:{int(product_id)}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    length = max(16, min(int(length or 32), 64))
+    return digest[:length]
+
+
+def verify_public_product_signature(product_id: int, signature: str | None) -> bool:
+    if not signature:
+        return False
+    provided = str(signature).strip().lower()
+    expected = public_product_signature(product_id, 32).lower()
+    # Neue QR: 32 Hex; Legacy-QR: 20 Hex (Prefix)
+    if len(provided) >= 32:
+        return hmac.compare_digest(provided[:32], expected)
+    if len(provided) >= 20:
+        return hmac.compare_digest(provided[:20], expected[:20])
+    return False
 
 
 def generate_qr_code(data, box_size=10, border=4):
@@ -172,7 +201,7 @@ def generate_qr_code_inverted_bytes(data, box_size=10, border=4, format='PNG'):
 def generate_product_qr_code(product_id):
     """
     Generiert einen QR-Code für ein Produkt.
-    Format: Vollständige URL zu /inventory/public/product/{product_id}
+    Format: Vollständige URL zu /inventory/public/product/{product_id}?s=<sig>
     
     Args:
         product_id: Die Produkt-ID
@@ -180,13 +209,20 @@ def generate_product_qr_code(product_id):
     Returns:
         String mit der vollständigen URL für den QR-Code
     """
+    if product_id is None:
+        raise ValueError("product_id required")
+    sig = public_product_signature(product_id)
     try:
         from flask import url_for
-        qr_data = url_for('inventory.public_product', product_id=product_id, _external=True)
-    except RuntimeError:
-        qr_data = f"/inventory/public/product/{product_id}"
-    
-    return qr_data
+        return url_for(
+            'inventory.public_product',
+            product_id=product_id,
+            s=sig,
+            _external=True,
+        )
+    except Exception:
+        # Nie ohne Signatur — sonst Enumeration
+        return f"/inventory/public/product/{int(product_id)}?s={sig}"
 
 
 def generate_borrow_qr_code(transaction_number):

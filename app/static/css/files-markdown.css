@@ -87,6 +87,7 @@
 
 .markdown-content table {
     width: 100% !important;
+    table-layout: fixed;
     border-collapse: collapse !important;
     margin: 1rem 0 !important;
     border: 2px solid #007bff !important;
@@ -100,9 +101,19 @@
 .markdown-content td {
     border: 1px solid #dee2e6 !important;
     padding: 0.75rem !important;
-    text-align: left !important;
+    text-align: left;
     vertical-align: top !important;
     font-size: 0.9rem !important;
+}
+
+.markdown-content th[align="center"],
+.markdown-content td[align="center"] {
+    text-align: center !important;
+}
+
+.markdown-content th[align="right"],
+.markdown-content td[align="right"] {
+    text-align: right !important;
 }
 
 .markdown-content th {
@@ -312,7 +323,7 @@
     width: 2.5rem;
     height: 0.28rem;
     margin: 0.25rem auto 0.65rem;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     background: var(--bs-border-color, #ced4da);
 }
 
@@ -374,5 +385,746 @@ body.markdown-tools-sheet-open {
     .markdown-tools-backdrop,
     .markdown-tools-sheet {
         display: none !important;
+    }
+}
+
+/* Segmented markdown editor (visual tables) */
+.md-editor-wrap {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.md-editor-source {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+.md-editor-wrap .markdown-editor-textarea.md-editor-source {
+    flex: 0 0 0 !important;
+    min-height: 0 !important;
+    height: 1px !important;
+}
+
+.md-editor-doc {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 1rem 1.25rem 2.5rem;
+    -webkit-overflow-scrolling: touch;
+}
+
+.md-segment-textarea {
+    display: block;
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    background: transparent;
+    color: inherit;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 0.15rem 0;
+    min-height: 2.2rem;
+    box-sizing: border-box;
+}
+
+.md-segment-textarea--solo {
+    min-height: calc(100vh - 160px);
+}
+
+.md-table-widget {
+    margin: 0.65rem 0 1.1rem;
+}
+
+.md-table-widget.is-active .md-table-grid {
+    outline: 2px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 55%, transparent);
+}
+
+.md-table-chrome {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    max-width: 100%;
+}
+
+.md-table-colbar {
+    display: grid;
+    align-items: center;
+    column-gap: 0;
+    padding-left: 0;
+}
+
+.md-table-colctl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-height: 1.6rem;
+}
+
+.md-table-bodyrow {
+    display: flex;
+    align-items: stretch;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.md-table-rowbar {
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 2rem;
+}
+
+.md-table-rowctl {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1rem;
+    flex: 1 1 auto;
+    min-height: 2.4rem;
+}
+
+.md-table-rowctl.is-head {
+    min-height: 2.6rem;
+}
+
+.md-table-scroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    position: relative;
+}
+
+.md-table-side-add,
+.md-table-foot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 1.75rem;
+}
+
+.md-table-foot {
+    gap: 0.45rem;
+    padding-left: 2.25rem;
+}
+
+.md-table-grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.35rem;
+}
+
+.md-table-grid th,
+.md-table-grid td {
+    border: 1px solid var(--bs-border-color);
+    padding: 0.45rem 0.7rem;
+    min-width: 4.5rem;
+    position: relative;
+    vertical-align: top;
+    word-break: break-word;
+    outline: none;
+}
+
+.md-table-grid th {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, var(--bs-secondary-bg));
+    font-weight: 600;
+}
+
+.md-table-grid th[align="center"],
+.md-table-grid td[align="center"] {
+    text-align: center;
+}
+
+.md-table-grid th[align="right"],
+.md-table-grid td[align="right"] {
+    text-align: right;
+}
+
+.md-table-grid .is-col-hi {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 16%, transparent);
+}
+
+.md-table-resize {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 7px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 2;
+}
+
+.md-table-add {
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    border: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    color: var(--bs-secondary-color, #6c757d);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.md-table-add--lg {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.md-table-add:hover,
+.md-table-kebab:hover {
+    background: var(--accent-color, var(--bs-primary));
+    color: #fff;
+    border-color: var(--accent-color, var(--bs-primary));
+}
+
+.md-table-kebab,
+.md-table-delete {
+    width: 1.35rem;
+    height: 1.35rem;
+    border: none;
+    background: transparent;
+    color: var(--bs-secondary-color, #6c757d);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+}
+
+.md-table-delete:hover {
+    color: #dc3545;
+    background: color-mix(in srgb, #dc3545 12%, transparent);
+}
+
+.md-table-menu {
+    position: fixed;
+    z-index: 1200;
+    min-width: 12.5rem;
+    padding: 0.35rem;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 0.5rem 1.4rem rgba(0, 0, 0, 0.18);
+}
+
+.md-table-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: inherit;
+    border-radius: 0.5rem;
+    padding: 0.4rem 0.65rem;
+    font-size: 0.85rem;
+}
+
+.md-table-menu-item:hover {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
+}
+
+.md-table-menu-item.is-danger {
+    color: #dc3545;
+}
+
+.md-table-menu-sep {
+    height: 1px;
+    margin: 0.25rem 0.4rem;
+    background: var(--bs-border-color);
+}
+
+body.md-table-resizing {
+    cursor: col-resize !important;
+    user-select: none !important;
+}
+
+.md-link-popover,
+.md-link-hover,
+.md-link-caret-chip {
+    position: fixed;
+    z-index: 1210;
+    background: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.85rem;
+    box-shadow: 0 0.6rem 1.6rem rgba(0, 0, 0, 0.22);
+}
+
+.md-link-popover {
+    width: min(22rem, calc(100vw - 1.5rem));
+    padding: 0.85rem 0.95rem 0.95rem;
+}
+
+.md-link-popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.7rem;
+}
+
+.md-link-popover-title {
+    font-weight: 650;
+    font-size: 0.95rem;
+}
+
+.md-link-popover-x {
+    border: none;
+    background: transparent;
+    color: inherit;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 50%;
+}
+
+.md-link-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.md-link-field .form-control {
+    border-radius: var(--mod-radius-pill, 1.5rem);
+    font-weight: 400;
+}
+
+.md-link-popover-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.md-link-caret-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: min(28rem, calc(100vw - 1rem));
+    padding: 0.28rem 0.4rem 0.28rem 0.7rem;
+    font-size: 0.78rem;
+}
+
+.md-link-caret-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 16rem;
+}
+
+.md-link-caret-btn,
+.md-link-hover-btn {
+    width: 1.7rem;
+    height: 1.7rem;
+    border: none;
+    background: transparent;
+    color: inherit;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.md-link-caret-btn:hover,
+.md-link-hover-btn:hover {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 14%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.md-link-hover {
+    width: min(24rem, calc(100vw - 1.5rem));
+    overflow: hidden;
+}
+
+.md-link-hover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.55rem 0.45rem 0.8rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    font-size: 0.75rem;
+}
+
+.md-link-hover-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    opacity: 0.85;
+}
+
+.md-link-hover-body {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem 0.85rem 0.9rem;
+    align-items: flex-start;
+}
+
+.md-link-hover-icon {
+    font-size: 1.75rem;
+    color: var(--bs-secondary-color, #6c757d);
+    line-height: 1;
+}
+
+.md-link-hover.is-error .md-link-hover-icon {
+    color: #dc3545;
+}
+
+.md-link-hover-title {
+    font-weight: 650;
+    font-size: 0.92rem;
+    line-height: 1.3;
+}
+
+.md-link-hover-desc {
+    margin-top: 0.2rem;
+    font-size: 0.8rem;
+    color: var(--bs-secondary-color, #6c757d);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+    .md-segment-textarea {
+        font-size: 16px;
+    }
+
+    .md-table-kebab {
+        display: none;
+    }
+}
+
+/* ——— Fullscreen markdown editor chrome (files + wiki) ——— */
+
+/* Markdown Editor Fullscreen */
+
+.markdown-editor-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100dvh !important;
+    background: var(--bs-body-bg);
+    z-index: 1060;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+}
+
+.markdown-editor-toolbar {
+    background: color-mix(in srgb, var(--bs-body-bg) 92%, var(--bs-secondary-bg));
+    border-bottom: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.25));
+    padding: 0.65rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    flex-wrap: wrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    flex-shrink: 0;
+    min-height: 60px;
+}
+
+.markdown-editor-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    max-width: min(18rem, 42vw);
+    margin-right: 0.15rem;
+}
+
+.markdown-editor-brand-logo {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: var(--mod-radius-pill);
+    object-fit: cover;
+    flex-shrink: 0;
+    box-shadow: 0 0.12rem 0.4rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
+}
+
+.markdown-editor-brand-mark {
+    width: 1.85rem;
+    height: 1.85rem;
+    border-radius: var(--mod-radius-pill);
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary)));
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.markdown-editor-brand-text {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.05rem;
+}
+
+.markdown-editor-filename {
+    font-size: 0.92rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--bs-body-color);
+}
+
+.markdown-editor-brand-kind {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--bs-secondary-color, #6c757d);
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.markdown-editor-toolbar-divider {
+    width: 1px;
+    height: 1.45rem;
+    background: var(--bs-border-color);
+    flex-shrink: 0;
+    margin: 0 0.15rem;
+}
+
+.markdown-editor-toolbar .mod-pill-btn,
+.markdown-editor-toolbar .btn.mod-pill-btn {
+    border-radius: var(--mod-radius-pill, 1.5rem) !important;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.markdown-editor-toolgroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.15rem;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--mod-radius-pill, 1.5rem);
+    background: var(--bs-body-bg);
+}
+
+.markdown-editor-toolgroup > .btn {
+    border: none !important;
+    box-shadow: none !important;
+    width: 2.1rem;
+    height: 2.1rem;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.markdown-editor-toolgroup > .btn:hover,
+.markdown-editor-toolgroup > .btn:focus {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.markdown-editor-toolbar-end {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.markdown-editor-lock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: var(--mod-radius-pill, 1.5rem);
+    border: 1px solid color-mix(in srgb, #dc3545 35%, var(--bs-border-color));
+    background: color-mix(in srgb, #dc3545 10%, transparent);
+    color: #b02a37;
+    font-size: 0.78rem;
+    font-weight: 600;
+    white-space: nowrap;
+    max-width: 12rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.markdown-editor-lock-badge--mine {
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, var(--bs-border-color));
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.markdown-editor-lock-banner {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.65rem 1rem;
+    background: color-mix(in srgb, #ffc107 16%, var(--bs-body-bg));
+    border-bottom: 1px solid color-mix(in srgb, #ffc107 40%, var(--bs-border-color));
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.markdown-editor-lock-banner .bi {
+    color: #997404;
+}
+
+.markdown-editor-fullscreen.is-locked .markdown-editor-textarea,
+.markdown-editor-fullscreen.is-locked .md-segment-textarea,
+.markdown-editor-fullscreen.is-locked .md-table-grid [contenteditable] {
+    opacity: 0.72;
+    cursor: not-allowed;
+}
+
+.markdown-editor-content {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    height: calc(100vh - 60px) !important;
+    width: 100% !important;
+}
+
+.markdown-editor-textarea {
+    flex: 1 !important;
+    border: none !important;
+    outline: none !important;
+    padding: 1rem !important;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+    font-size: 14px !important;
+    line-height: 1.5 !important;
+    resize: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: calc(100vh - 120px) !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+.markdown-editor-preview {
+    flex: 1 !important;
+    padding: 1rem !important;
+    overflow-y: auto !important;
+    border-left: 1px solid var(--bs-border-color) !important;
+    height: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Editor Container Anpassungen */
+
+.markdown-editor-content .row {
+    height: 100% !important;
+    margin: 0 !important;
+}
+
+.markdown-editor-content .col-12 {
+    height: 100% !important;
+    padding: 0 !important;
+}
+
+/* Form Anpassungen */
+
+#editForm {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#editForm .md-editor-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+@media (max-width: 767.98px) {
+    .markdown-editor-fullscreen {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 100% !important;
+        max-height: 100dvh !important;
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        box-sizing: border-box !important;
+    }
+
+    .markdown-editor-toolbar {
+        padding: 0.5rem 0.65rem;
+        gap: 0.3rem;
+        min-height: 50px;
+    }
+
+    .markdown-editor-brand {
+        max-width: min(12rem, 48vw);
+    }
+
+    .markdown-editor-toolbar .btn {
+        padding: 0.3rem 0.55rem;
+        font-size: 0.82rem;
+    }
+
+    .markdown-editor-lock-badge {
+        display: none;
+    }
+
+    .markdown-editor-content {
+        height: calc(100vh - 50px) !important;
+    }
+
+    .markdown-editor-textarea {
+        font-size: 16px !important; /* Verhindert Zoom auf iOS */
+        min-height: calc(100vh - 100px) !important;
+        padding: 0.75rem !important;
+    }
+
+    .markdown-editor-preview {
+        padding: 0.75rem !important;
     }
 }

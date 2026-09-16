@@ -18,7 +18,7 @@ Allgemein:
 
 Anwendung / Gunicorn:
   --port PORT                Gunicorn-Port (Standard: 5000)
-  --workers N                Gunicorn-Worker (Standard: 1; bei N>1 One-Shot-DB-Init)
+  --workers N                Gunicorn-Worker (Standard: 2; Redis für SocketIO bei N>1)
   --no-gunicorn              Keinen systemd-Service anlegen
 
 Webserver:
@@ -37,11 +37,13 @@ Datenbank / Redis:
   --mysql-root-pass PASS     MySQL-Root-Passwort (sonst generiert/abgefragt)
 
 Optionale Dienste:
-  --skip-docker              Docker + OnlyOffice überspringen
-  --skip-onlyoffice          OnlyOffice überspringen
-  --onlyoffice               OnlyOffice installieren
+  --skip-docker              Docker, Euro-Office, Excalidraw, MiroTalk überspringen
+  --skip-onlyoffice          Euro-Office Document Server überspringen
+  --onlyoffice               Euro-Office Document Server installieren
   --skip-excalidraw          Excalidraw-Room überspringen
   --excalidraw               Excalidraw-Room installieren
+  --skip-mirotalk            MiroTalk SFU (Meetings) überspringen
+  --mirotalk                 MiroTalk SFU installieren
   --skip-media-downloader    FFmpeg/Media Downloader überspringen
   --ffmpeg                   FFmpeg installieren
 
@@ -150,6 +152,7 @@ parse_arguments() {
                 INSTALL_DOCKER="n"
                 INSTALL_ONLYOFFICE="n"
                 INSTALL_EXCALIDRAW="n"
+                INSTALL_MIROTALK="n"
                 shift
                 ;;
             --skip-onlyoffice)
@@ -167,6 +170,15 @@ parse_arguments() {
                 ;;
             --excalidraw)
                 INSTALL_EXCALIDRAW="j"
+                INSTALL_DOCKER="j"
+                shift
+                ;;
+            --skip-mirotalk)
+                INSTALL_MIROTALK="n"
+                shift
+                ;;
+            --mirotalk)
+                INSTALL_MIROTALK="j"
                 INSTALL_DOCKER="j"
                 shift
                 ;;

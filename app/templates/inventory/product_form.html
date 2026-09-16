@@ -1,17 +1,23 @@
 {% extends "inventory/layout.html" %}
+{% set inv_form_features = inventory_features|default({
+  'borrow': true, 'quick_scan': true, 'dguv': true,
+  'owners': true, 'accounting': true, 'stocktake': true
+}) %}
 
 {% block title %}{% if product %}{{ _('inventory.product.form.page_title_edit') }}{% else %}{{ _('inventory.product.form.page_title_new') }}{% endif %}{% endblock %}
 {% block inventory_heading_icon %}bi-box-seam{% endblock %}
 {% block inventory_heading %}{% if product %}{{ _('inventory.product.form.heading_edit') }}{% else %}{{ _('inventory.product.form.heading_new') }}{% endif %}{% endblock %}
 
 {% block inventory_content %}
-<div class="inventory-back-row mb-3">
-    <a href="{{ url_for('inventory.stock') }}" class="inventory-back-link" aria-label="{{ _('layout.nav.back') }}">
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.stock') }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
         <i class="bi bi-arrow-left" aria-hidden="true"></i>
         <span>{{ _('layout.nav.back') }}</span>
     </a>
 </div>
 <form method="POST" enctype="multipart/form-data" class="inventory-form">
+
+    {# ——— 1. Stammdaten ——— #}
     <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-basics">
         <div class="inventory-form-card-head">
             <h2 id="inv-form-basics" class="inventory-form-section-title">
@@ -22,16 +28,17 @@
         <div class="inventory-form-fields inventory-form-fields--basics">
             <div class="inventory-form-field">
                 <label for="name" class="form-label">{{ _('inventory.product.form.name') }} <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="name" name="name"
+                <input type="text" class="form-control mod-pill-input" id="name" name="name"
                        value="{{ product.name if product else '' }}" required>
             </div>
             <div class="inventory-form-field">
                 <label for="description" class="form-label">{{ _('inventory.product.form.description') }}</label>
-                <textarea class="form-control" id="description" name="description" rows="2">{{ product.description if product else '' }}</textarea>
+                <textarea class="form-control mod-pill-input" id="description" name="description" rows="3">{{ product.description if product else '' }}</textarea>
             </div>
         </div>
     </section>
 
+    {# ——— 2. Einordnung ——— #}
     <section class="inventory-form-card" aria-labelledby="inv-form-classify">
         <div class="inventory-form-card-head">
             <h2 id="inv-form-classify" class="inventory-form-section-title">
@@ -43,7 +50,7 @@
             <div class="inventory-form-field">
                 <label for="folder_id" class="form-label">{{ _('inventory.product.form.folder') }}</label>
                 <div class="inventory-form-select-row">
-                    <select class="form-select" id="folder_id" name="folder_id">
+                    <select class="form-select mod-pill-input" id="folder_id" name="folder_id">
                         <option value="">{{ _('inventory.product.form.no_folder') }}</option>
                         {% for folder in folders %}
                         <option value="{{ folder.id }}" {% if product and product.folder_id == folder.id %}selected{% endif %}>{{ folder.name }}</option>
@@ -58,18 +65,18 @@
                 </div>
                 <div class="inventory-inline-panel" id="folderCreatePanel" hidden>
                     <label class="form-label" for="folderCreateName">{{ _('inventory.product.form.folder_name') }}</label>
-                    <input type="text" class="form-control" id="folderCreateName" maxlength="120" autocomplete="off" placeholder="{{ _('inventory.product.form.folder_name') }}">
+                    <input type="text" class="form-control mod-pill-input" id="folderCreateName" maxlength="120" autocomplete="off" placeholder="{{ _('inventory.product.form.folder_name') }}">
                     <div class="inventory-inline-actions">
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--primary" id="folderCreateSubmit">
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--primary" id="folderCreateSubmit">
                             <i class="bi bi-check2"></i> {{ _('inventory.product.form.create_folder') }}
                         </button>
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="folderCreateCancel">{{ _('common.cancel') }}</button>
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="folderCreateCancel">{{ _('common.cancel') }}</button>
                     </div>
                 </div>
                 <div class="inventory-inline-panel" id="folderManagePanel" hidden>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <strong class="small">{{ _('inventory.product.form.manage_folders') }}</strong>
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="folderManageClose">{{ _('common.close') }}</button>
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="folderManageClose">{{ _('common.close') }}</button>
                     </div>
                     <ul class="inventory-manage-list" id="folderList"></ul>
                     <div class="alert alert-info mt-2 mb-0 py-2 small" id="foldersEmptyHint" style="display: none;">
@@ -78,15 +85,15 @@
                     <div class="inventory-inline-panel mt-2" id="folderEditPanel" hidden>
                         <label class="form-label" for="folderEditName">{{ _('inventory.product.form.folder_name') }}</label>
                         <input type="hidden" id="folderEditId">
-                        <input type="text" class="form-control" id="folderEditName" maxlength="120" autocomplete="off">
+                        <input type="text" class="form-control mod-pill-input" id="folderEditName" maxlength="120" autocomplete="off">
                         <div class="inventory-inline-actions">
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--primary" id="folderEditSubmit">
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--primary" id="folderEditSubmit">
                                 <i class="bi bi-check2"></i> {{ _('common.save') }}
                             </button>
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--danger" id="folderEditDelete">
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--danger" id="folderEditDelete">
                                 <i class="bi bi-trash"></i> {{ _('common.delete') }}
                             </button>
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="folderEditCancel">{{ _('common.cancel') }}</button>
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="folderEditCancel">{{ _('common.cancel') }}</button>
                         </div>
                     </div>
                 </div>
@@ -95,7 +102,7 @@
             <div class="inventory-form-field">
                 <label for="category" class="form-label">{{ _('inventory.product.form.category') }}</label>
                 <div class="inventory-form-select-row">
-                    <select class="form-select" id="category" name="category">
+                    <select class="form-select mod-pill-input" id="category" name="category">
                         <option value="">{{ _('inventory.product.form.no_category') }}</option>
                         {% for cat in categories %}
                         <option value="{{ cat }}" {% if product and product.category == cat %}selected{% endif %}>{{ cat }}</option>
@@ -110,18 +117,18 @@
                 </div>
                 <div class="inventory-inline-panel" id="categoryCreatePanel" hidden>
                     <label class="form-label" for="categoryCreateName">{{ _('inventory.product.form.category_name') }}</label>
-                    <input type="text" class="form-control" id="categoryCreateName" maxlength="120" autocomplete="off" placeholder="{{ _('inventory.product.form.category_name') }}">
+                    <input type="text" class="form-control mod-pill-input" id="categoryCreateName" maxlength="120" autocomplete="off" placeholder="{{ _('inventory.product.form.category_name') }}">
                     <div class="inventory-inline-actions">
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--primary" id="categoryCreateSubmit">
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--primary" id="categoryCreateSubmit">
                             <i class="bi bi-check2"></i> {{ _('inventory.product.form.create_category') }}
                         </button>
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="categoryCreateCancel">{{ _('common.cancel') }}</button>
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="categoryCreateCancel">{{ _('common.cancel') }}</button>
                     </div>
                 </div>
                 <div class="inventory-inline-panel" id="categoryManagePanel" hidden>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <strong class="small">{{ _('inventory.product.form.manage_categories') }}</strong>
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="categoryManageClose">{{ _('common.close') }}</button>
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="categoryManageClose">{{ _('common.close') }}</button>
                     </div>
                     <ul class="inventory-manage-list" id="categoryList"></ul>
                     <div class="alert alert-info mt-2 mb-0 py-2 small" id="categoriesEmptyHint" style="display: none;">
@@ -130,15 +137,15 @@
                     <div class="inventory-inline-panel mt-2" id="categoryEditPanel" hidden>
                         <label class="form-label" for="categoryEditName">{{ _('inventory.product.form.category_name') }}</label>
                         <input type="hidden" id="categoryEditId">
-                        <input type="text" class="form-control" id="categoryEditName" maxlength="120" autocomplete="off">
+                        <input type="text" class="form-control mod-pill-input" id="categoryEditName" maxlength="120" autocomplete="off">
                         <div class="inventory-inline-actions">
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--primary" id="categoryEditSubmit">
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--primary" id="categoryEditSubmit">
                                 <i class="bi bi-check2"></i> {{ _('common.save') }}
                             </button>
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--danger" id="categoryEditDelete">
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--danger" id="categoryEditDelete">
                                 <i class="bi bi-trash"></i> {{ _('common.delete') }}
                             </button>
-                            <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--muted" id="categoryEditCancel">{{ _('common.cancel') }}</button>
+                            <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--muted" id="categoryEditCancel">{{ _('common.cancel') }}</button>
                         </div>
                     </div>
                 </div>
@@ -146,7 +153,7 @@
 
             <div class="inventory-form-field">
                 <label for="condition" class="form-label">{{ _('inventory.product.form.condition') }}</label>
-                <select class="form-select" id="condition" name="condition">
+                <select class="form-select mod-pill-input" id="condition" name="condition">
                     <option value="">{{ _('inventory.product.form.select_condition') }}</option>
                     <option value="Neu" {% if product and product.condition == 'Neu' %}selected{% endif %}>{{ _('inventory.product.form.condition_new') }}</option>
                     <option value="Gut" {% if product and product.condition == 'Gut' %}selected{% endif %}>{{ _('inventory.product.form.condition_good') }}</option>
@@ -157,6 +164,7 @@
         </div>
     </section>
 
+    {# ——— 3. Identifikation & Lager ——— #}
     <section class="inventory-form-card" aria-labelledby="inv-form-identity">
         <div class="inventory-form-card-head">
             <h2 id="inv-form-identity" class="inventory-form-section-title">
@@ -164,18 +172,98 @@
                 {{ _('inventory.product.form.sections.identity') }}
             </h2>
         </div>
-        <div class="inventory-form-fields inventory-form-fields--3 inventory-form-fields--identity">
+        <div class="inventory-form-fields inventory-form-fields--3">
+            {% if not product %}
+            <div class="inventory-form-field">
+                <label for="quantity" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.quantity') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.quantity_help') }}"
+                            aria-label="{{ _('inventory.product.form.quantity_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <input type="number" class="form-control mod-pill-input" id="quantity" name="quantity"
+                       value="1" min="1" max="100" required>
+            </div>
+            {% endif %}
+            <div class="inventory-form-field">
+                <label for="external_barcode" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.external_barcode') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.external_barcode_help') }}"
+                            aria-label="{{ _('inventory.product.form.external_barcode_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <input type="text" class="form-control mod-pill-input" id="external_barcode" name="external_barcode"
+                       value="{{ product.external_barcode if product and product.external_barcode else '' }}"
+                       placeholder="{{ _('inventory.product.form.external_barcode_placeholder') }}"
+                       autocomplete="off"
+                       maxlength="100">
+                <small class="form-text text-warning d-none" id="externalBarcodeQtyHint">{{ _('inventory.product.form.external_barcode_qty_hint') }}</small>
+                {% if product %}
+                <div class="mt-2 d-flex flex-wrap align-items-center gap-2">
+                    <a href="{{ url_for('inventory.product_print_barcode', product_id=product.id) }}"
+                       class="btn mod-pill-btn mod-pill-btn--outline btn-sm"
+                       target="_blank" rel="noopener"
+                       title="{{ _('inventory.product.form.print_barcode_hint') }}">
+                        <i class="bi bi-upc" aria-hidden="true"></i>
+                        {{ _('inventory.product.form.print_barcode') }}
+                    </a>
+                    <small class="form-text text-muted mb-0">{{ _('inventory.product.form.print_barcode_hint') }}</small>
+                </div>
+                {% endif %}
+            </div>
             <div class="inventory-form-field">
                 <label for="serial_number" class="form-label">{{ _('inventory.product.form.serial_number') }}</label>
-                <input type="text" class="form-control" id="serial_number" name="serial_number"
+                <input type="text" class="form-control mod-pill-input" id="serial_number" name="serial_number"
                        value="{{ product.serial_number if product else '' }}">
             </div>
+            {% if inv_form_features.owners %}
+            <div class="inventory-form-field">
+                <label for="owner_input" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.owner') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.owner_help') }}"
+                            aria-label="{{ _('inventory.product.form.owner_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <input type="hidden" id="owner_user_id" name="owner_user_id"
+                       value="{{ product.owner_user_id if product and product.owner_user_id else '' }}">
+                <input type="text" class="form-control mod-pill-input" id="owner_input" name="owner_label"
+                       list="ownerSuggestions"
+                       value="{{ product.owner_label if product and product.owner_label else '' }}"
+                       placeholder="{{ _('inventory.product.form.owner_placeholder') }}"
+                       autocomplete="off"
+                       maxlength="255">
+                <datalist id="ownerSuggestions">
+                    {% for item in owner_suggestions|default([]) %}
+                    <option value="{{ item.label }}" data-user-id="{{ item.id or '' }}"></option>
+                    {% endfor %}
+                </datalist>
+            </div>
+            {% endif %}
+            {% if product %}
             <div class="inventory-form-field">
                 <label for="location" class="form-label">{{ _('inventory.product.form.location') }}</label>
-                <input type="text" class="form-control" id="location" name="location"
+                <input type="text" class="form-control mod-pill-input" id="location" name="location"
                        value="{{ product.location if product else '' }}">
             </div>
+            {% endif %}
+        </div>
+        <div class="inventory-form-fields inventory-form-fields--2">
+            {% if not product %}
             <div class="inventory-form-field">
+                <label for="location" class="form-label">{{ _('inventory.product.form.location') }}</label>
+                <input type="text" class="form-control mod-pill-input" id="location" name="location" value="">
+            </div>
+            {% endif %}
+            <div class="inventory-form-field{% if product %} inventory-form-field--span-2{% endif %}">
                 {% set length_form_value = request.form.get('length') %}
                 {% if length_form_value %}
                     {% set length_value = length_form_value | replace(',', '.') %}
@@ -184,73 +272,86 @@
                 {% else %}
                     {% set length_value = '' %}
                 {% endif %}
-                <label for="length" class="form-label">{{ _('inventory.product.form.length') }}</label>
-                <input type="number" class="form-control" id="length" name="length"
+                <label for="length" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.length') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.length_help') }}"
+                            aria-label="{{ _('inventory.product.form.length_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <input type="number" class="form-control mod-pill-input" id="length" name="length"
                        value="{{ length_value }}" step="0.01" min="0"
-                       placeholder="z.B. 5.5">
-                <small class="form-text text-muted">{{ _('inventory.product.form.length_help') }}</small>
+                       placeholder="{{ _('inventory.product.form.length_placeholder') }}">
             </div>
         </div>
     </section>
 
-    <section class="inventory-form-card" aria-labelledby="inv-form-values">
+    {% if inv_form_features.accounting %}
+    {# ——— 4. Buchhaltung ——— #}
+    <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-accounting">
         <div class="inventory-form-card-head">
-            <h2 id="inv-form-values" class="inventory-form-section-title">
+            <h2 id="inv-form-accounting" class="inventory-form-section-title">
                 <i class="bi bi-cash-coin" aria-hidden="true"></i>
-                {{ _('inventory.product.form.sections.values') }}
+                {{ _('inventory.product.form.sections.accounting') }}
             </h2>
         </div>
         <div class="inventory-form-fields inventory-form-fields--3">
             <div class="inventory-form-field">
                 <label for="purchase_date" class="form-label">{{ _('inventory.product.form.purchase_date') }}</label>
-                <input type="date" class="form-control" id="purchase_date" name="purchase_date"
+                <input type="date" class="form-control mod-pill-input" id="purchase_date" name="purchase_date"
                        value="{{ purchase_date_formatted if purchase_date_formatted else '' }}">
             </div>
             <div class="inventory-form-field">
                 <label for="purchase_price" class="form-label">{{ _('inventory.product.form.purchase_price') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="purchase_price" name="purchase_price"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="purchase_price" name="purchase_price"
                        value="{{ product.purchase_price if product and product.purchase_price is not none else '' }}">
             </div>
             <div class="inventory-form-field">
                 <label for="replacement_value" class="form-label">{{ _('inventory.product.form.replacement_value') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="replacement_value" name="replacement_value"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="replacement_value" name="replacement_value"
                        value="{{ product.replacement_value if product and product.replacement_value is not none else '' }}">
             </div>
         </div>
     </section>
+    {% endif %}
 
-    <section class="inventory-form-card" aria-labelledby="inv-form-dims">
+    {# ——— Maße ——— #}
+    <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-dims">
         <div class="inventory-form-card-head">
             <h2 id="inv-form-dims" class="inventory-form-section-title">
                 <i class="bi bi-rulers" aria-hidden="true"></i>
-                {{ _('inventory.product.form.sections.dimensions') }}
+                {{ _('inventory.product.form.sections.dims') }}
             </h2>
         </div>
-        <div class="inventory-form-fields inventory-form-fields--2 inventory-form-fields--dims">
+        <div class="inventory-form-fields inventory-form-fields--4">
             <div class="inventory-form-field">
                 <label for="weight_kg" class="form-label">{{ _('inventory.product.form.weight_kg') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="weight_kg" name="weight_kg"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="weight_kg" name="weight_kg"
                        value="{{ product.weight_kg if product and product.weight_kg is not none else '' }}">
             </div>
             <div class="inventory-form-field">
                 <label for="width_cm" class="form-label">{{ _('inventory.product.form.width_cm') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="width_cm" name="width_cm"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="width_cm" name="width_cm"
                        value="{{ product.width_cm if product and product.width_cm is not none else '' }}">
             </div>
             <div class="inventory-form-field">
                 <label for="height_cm" class="form-label">{{ _('inventory.product.form.height_cm') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="height_cm" name="height_cm"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="height_cm" name="height_cm"
                        value="{{ product.height_cm if product and product.height_cm is not none else '' }}">
             </div>
             <div class="inventory-form-field">
                 <label for="depth_cm" class="form-label">{{ _('inventory.product.form.depth_cm') }}</label>
-                <input type="number" step="0.01" min="0" class="form-control" id="depth_cm" name="depth_cm"
+                <input type="number" step="0.01" min="0" class="form-control mod-pill-input" id="depth_cm" name="depth_cm"
                        value="{{ product.depth_cm if product and product.depth_cm is not none else '' }}">
             </div>
         </div>
     </section>
 
-    <section class="inventory-form-card" aria-labelledby="inv-form-dguv">
+    {% if inv_form_features.dguv %}
+    {# ——— 5. DGUV ——— #}
+    <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-dguv">
         <div class="inventory-form-card-head inventory-form-card-head--split">
             <h2 id="inv-form-dguv" class="inventory-form-section-title">
                 <i class="bi bi-shield-check" aria-hidden="true"></i>
@@ -276,7 +377,7 @@
                             <i class="bi bi-info-circle" aria-hidden="true"></i>
                         </button>
                     </label>
-                    <input type="date" class="form-control" id="dguv_last_check" name="dguv_last_check"
+                    <input type="date" class="form-control mod-pill-input" id="dguv_last_check" name="dguv_last_check"
                            value="{{ product.dguv_last_check.strftime('%Y-%m-%d') if product and product.dguv_last_check else '' }}">
                 </div>
                 <div class="inventory-form-field">
@@ -289,7 +390,7 @@
                             <i class="bi bi-info-circle" aria-hidden="true"></i>
                         </button>
                     </label>
-                    <input type="number" min="1" class="form-control" id="dguv_interval_months" name="dguv_interval_months"
+                    <input type="number" min="1" class="form-control mod-pill-input" id="dguv_interval_months" name="dguv_interval_months"
                            value="{{ product.dguv_interval_months if product and product.dguv_interval_months is not none else 12 }}">
                 </div>
                 <div class="inventory-form-field">
@@ -302,7 +403,7 @@
                             <i class="bi bi-info-circle" aria-hidden="true"></i>
                         </button>
                     </label>
-                    <input type="text" class="form-control" id="dguv_next_check_display" readonly
+                    <input type="text" class="form-control mod-pill-input" id="dguv_next_check_display" readonly
                            value="{{ product.dguv_next_check.strftime('%d.%m.%Y') if product and product.dguv_next_check else '' }}"
                            placeholder="—">
                     <input type="hidden" id="dguv_next_check" name="dguv_next_check"
@@ -311,19 +412,21 @@
             </div>
         </div>
     </section>
+    {% endif %}
 
-    <section class="inventory-form-card" aria-labelledby="inv-form-media">
+    {# ——— 6. Medien & Dokumente ——— #}
+    <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-media-docs">
         <div class="inventory-form-card-head">
-            <h2 id="inv-form-media" class="inventory-form-section-title">
-                <i class="bi bi-image" aria-hidden="true"></i>
-                {{ _('inventory.product.form.sections.media') }}
+            <h2 id="inv-form-media-docs" class="inventory-form-section-title">
+                <i class="bi bi-files" aria-hidden="true"></i>
+                {{ _('inventory.product.form.sections.media_docs') }}
             </h2>
         </div>
-        <div class="inventory-form-fields">
+        <div class="inventory-form-fields inventory-form-fields--2">
             {% if product %}
             <div class="inventory-form-field">
                 <label for="status" class="form-label">{{ _('common.status') }}</label>
-                <select class="form-select" id="status" name="status">
+                <select class="form-select mod-pill-input" id="status" name="status">
                     <option value="available" {% if product.status == 'available' %}selected{% endif %}>{{ _('inventory.stock.filters.available') }}</option>
                     <option value="borrowed" {% if product.status == 'borrowed' %}selected{% endif %}>{{ _('inventory.stock.filters.borrowed') }}</option>
                     <option value="missing" {% if product.status == 'missing' %}selected{% endif %}>{{ _('inventory.stock.filters.missing') }}</option>
@@ -332,38 +435,28 @@
                     <option value="retired" {% if product.status == 'retired' %}selected{% endif %}>{{ _('inventory.stock.filters.retired') }}</option>
                 </select>
             </div>
-            {% endif %}
-            {% if not product %}
             <div class="inventory-form-field">
-                <label for="quantity" class="form-label d-inline-flex align-items-center gap-1">
-                    {{ _('inventory.product.form.quantity') }}
+                <label class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.cable_migration') }}
                     <button type="button" class="inventory-info-btn"
                             data-bs-toggle="tooltip"
-                            title="{{ _('inventory.product.form.quantity_help') }}"
-                            aria-label="{{ _('inventory.product.form.quantity_help') }}">
+                            title="{{ _('inventory.product.form.cable_migration_help') }}"
+                            aria-label="{{ _('inventory.product.form.cable_migration_help') }}">
                         <i class="bi bi-info-circle" aria-hidden="true"></i>
                     </button>
                 </label>
-                <input type="number" class="form-control" id="quantity" name="quantity"
-                       value="1" min="1" max="100" required>
-            </div>
-            {% endif %}
-            {% if product %}
-            <div class="inventory-form-field">
-                <label class="form-label">Kabel-Migration</label>
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" id="convert_to_cable" name="convert_to_cable" value="1">
                     <label class="form-check-label" for="convert_to_cable">
-                        Diesen Artikel in Kabel/Mengenartikel umwandeln
+                        {{ _('inventory.product.form.convert_to_cable') }}
                     </label>
                 </div>
                 <div class="form-check mt-1">
                     <input class="form-check-input" type="checkbox" id="merge_similar_cables" name="merge_similar_cables" value="1">
                     <label class="form-check-label" for="merge_similar_cables">
-                        Ähnliche Einzelartikel (gleicher Name/Kategorie/Länge) zusammenführen
+                        {{ _('inventory.product.form.merge_similar_cables') }}
                     </label>
                 </div>
-                <small class="form-text text-muted">Zusammengeführte Einzelartikel werden auf ausgemustert gesetzt.</small>
             </div>
             {% endif %}
             <div class="inventory-form-field">
@@ -376,7 +469,7 @@
                         <i class="bi bi-info-circle" aria-hidden="true"></i>
                     </button>
                 </label>
-                <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                <input type="file" class="form-control mod-pill-input" id="image" name="image" accept="image/*">
                 {% if product and product.image_path %}
                 <div class="mt-2" id="currentImageWrap">
                     <small class="text-muted">{{ _('inventory.product.form.current_image') }}</small><br>
@@ -384,7 +477,7 @@
                     {% set image_filename = image_filename.split('\\')[-1] if '\\' in image_filename else image_filename %}
                     <img src="{{ url_for('inventory.serve_product_image', filename=image_filename) }}" alt="" class="img-thumbnail mt-2" style="max-width: 200px; border-radius: 1rem;">
                     <div class="mt-2">
-                        <button type="button" class="btn btn-sm inventory-pill-btn inventory-pill-btn--danger" onclick="removeProductImage({{ product.id }})">
+                        <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--danger" onclick="removeProductImage({{ product.id }})">
                             <i class="bi bi-trash"></i> {{ _('inventory.product.form.remove_image') }}
                         </button>
                     </div>
@@ -392,14 +485,63 @@
                 </div>
                 {% endif %}
             </div>
+            <div class="inventory-form-field">
+                <label for="documents" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.documents_upload') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.documents_help') }}"
+                            aria-label="{{ _('inventory.product.form.documents_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <input type="file" class="form-control mod-pill-input" id="documents" name="documents" multiple
+                       accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx,application/pdf,image/png,image/jpeg">
+            </div>
+            <div class="inventory-form-field">
+                <label for="document_file_type" class="form-label">{{ _('inventory.product.form.document_type') }}</label>
+                <select class="form-select mod-pill-input" id="document_file_type" name="document_file_type">
+                    <option value="handbook">{{ _('inventory.documents.types.handbook') }}</option>
+                    <option value="datasheet">{{ _('inventory.documents.types.datasheet') }}</option>
+                    <option value="invoice">{{ _('inventory.documents.types.invoice') }}</option>
+                    <option value="warranty">{{ _('inventory.documents.types.warranty') }}</option>
+                    <option value="dguv">{{ _('inventory.documents.types.dguv') }}</option>
+                    <option value="other" selected>{{ _('inventory.documents.types.other') }}</option>
+                </select>
+            </div>
+            {% if manuals is defined and manuals %}
+            <div class="inventory-form-field inventory-form-field--span-2">
+                <label for="link_manual_ids" class="form-label d-inline-flex align-items-center gap-1">
+                    {{ _('inventory.product.form.link_manuals') }}
+                    <button type="button" class="inventory-info-btn"
+                            data-bs-toggle="tooltip"
+                            title="{{ _('inventory.product.form.link_manuals_help') }}"
+                            aria-label="{{ _('inventory.product.form.link_manuals_help') }}">
+                        <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    </button>
+                </label>
+                <select class="form-select mod-pill-input" id="link_manual_ids" name="link_manual_ids" multiple size="{% if manuals|length < 6 %}{{ manuals|length }}{% else %}6{% endif %}">
+                    {% for manual in manuals %}
+                    <option value="{{ manual.id }}">{{ manual.title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            {% if product %}
+            <div class="inventory-form-field inventory-form-field--span-2">
+                <a href="{{ url_for('inventory.product_documents', product_id=product.id) }}" class="btn mod-pill-btn mod-pill-btn--outline">
+                    <i class="bi bi-files"></i> {{ _('inventory.product.form.manage_documents') }}
+                </a>
+            </div>
+            {% endif %}
         </div>
     </section>
 
-    <div class="inventory-form-actions inventory-form-card--wide">
-        <button type="submit" class="btn inventory-pill-btn inventory-pill-btn--primary">
+    <div class="inventory-form-actions">
+        <button type="submit" class="btn mod-pill-btn mod-pill-btn--primary">
             <i class="bi bi-check-circle"></i> {{ _('inventory.product.form.save') }}
         </button>
-        <a href="{{ url_for('inventory.stock') }}" class="btn inventory-pill-btn inventory-pill-btn--muted">{{ _('inventory.product.form.cancel') }}</a>
+        <a href="{{ url_for('inventory.stock') }}" class="btn mod-pill-btn mod-pill-btn--muted">{{ _('inventory.product.form.cancel') }}</a>
     </div>
 </form>
 {% endblock %}
@@ -439,6 +581,7 @@ window.inventoryFormData = {
         {% endfor %}
     ],
     categories: {{ categories|tojson }},
+    ownerSuggestions: {{ owner_suggestions|default([])|tojson }},
     selectedFolderId: {% if product and product.folder_id %}{{ product.folder_id }}{% else %}null{% endif %},
     selectedCategory: {% if product and product.category %}{{ product.category|tojson }}{% else %}null{% endif %},
     labels: {
@@ -456,6 +599,21 @@ window.inventoryFormData = {
 document.addEventListener('DOMContentLoaded', function () {
     if (window.InventoryPillSelect) {
         window.InventoryPillSelect.enhanceAll(document.querySelector('.inventory-form') || document);
+    }
+    const ownerInput = document.getElementById('owner_input');
+    const ownerUserId = document.getElementById('owner_user_id');
+    const suggestions = (window.inventoryFormData && window.inventoryFormData.ownerSuggestions) || [];
+    if (ownerInput && ownerUserId) {
+        const syncOwnerUserId = () => {
+            const value = (ownerInput.value || '').trim().toLowerCase();
+            const match = suggestions.find((s) => (s.label || '').trim().toLowerCase() === value && s.id);
+            ownerUserId.value = match ? String(match.id) : '';
+        };
+        ownerInput.addEventListener('change', syncOwnerUserId);
+        ownerInput.addEventListener('blur', syncOwnerUserId);
+        ownerInput.addEventListener('input', () => {
+            if (!(ownerInput.value || '').trim()) ownerUserId.value = '';
+        });
     }
 });
 </script>

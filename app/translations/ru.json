@@ -27,7 +27,9 @@
       "booking": "Бронирования",
       "media_downloader": "Загрузчик медиа",
       "surveys": "Опросы",
-      "file_converter": "File Converter"
+      "file_converter": "File Converter",
+      "protocols": "Протоколы",
+      "meetings": "Встречи"
     },
     "cookie_consent": {
       "title": "Cookies и конфиденциальность",
@@ -79,7 +81,12 @@
     "optional": "Необязательно",
     "required": "Обязательно",
     "language": "Язык",
-    "select_language": "Выберите язык"
+    "select_language": "Выберите язык",
+    "pagination": {
+      "load_more": "Загрузить ещё",
+      "load_more_loading": "Загрузка…",
+      "load_error": "Не удалось загрузить дополнительные записи"
+    }
   },
   "auth": {
     "login": {
@@ -422,6 +429,16 @@
     },
     "request_detail": {
       "actions_heading": "Действия"
+    },
+    "admin": {
+      "cards": {
+        "booking_forms": {
+          "short": "Forms"
+        },
+        "music_module": {
+          "short": "Providers"
+        }
+      }
     }
   },
   "music": {
@@ -460,6 +477,50 @@
       }
     }
   },
+  "markdown": {
+    "editor": {
+      "link": {
+        "insert_title": "Вставить ссылку",
+        "edit_title": "Изменить ссылку",
+        "text": "Текст ссылки",
+        "url": "URL",
+        "insert": "Вставить",
+        "save": "Применить",
+        "cancel": "Отмена",
+        "open": "Открыть",
+        "edit": "Изменить"
+      },
+      "table": {
+        "column": "Столбец",
+        "row": "Строка",
+        "add_row": "Добавить строку",
+        "add_col": "Добавить столбец",
+        "insert_row_before": "Вставить строку выше",
+        "insert_row_after": "Вставить строку ниже",
+        "insert_col_before": "Вставить столбец слева",
+        "insert_col_after": "Вставить столбец справа",
+        "delete_row": "Удалить строку",
+        "delete_col": "Удалить столбец",
+        "delete_table": "Удалить таблицу",
+        "column_menu": "Столбец",
+        "row_menu": "Строка",
+        "align_left": "По левому краю",
+        "align_center": "По центру",
+        "align_right": "По правому краю"
+      },
+      "preview": {
+        "open": "Открыть",
+        "loading": "Загрузка предпросмотра…",
+        "invalid": "Некорректный URL",
+        "unavailable_title": "Нет предпросмотра",
+        "unavailable_body": "Не удалось загрузить страницу.",
+        "forbidden_title": "Нет доступа к файлу",
+        "forbidden_body": "У вас нет прав для просмотра этого файла.",
+        "not_found_title": "Файл не найден",
+        "not_found_body": "Связанный файл больше не существует."
+      }
+    }
+  },
   "wiki": {
     "index": {
       "new_button": "Создать",
@@ -485,6 +546,12 @@
       "favorites": {
         "title": "Избранное",
         "empty": "Нет избранного"
+      },
+      "pagination": {
+        "prev": "Назад",
+        "next": "Далее",
+        "info": "Страница {page} из {pages} ({total})",
+        "aria": "Страницы вики"
       }
     }
   },
@@ -542,6 +609,17 @@
       "search": {
         "placeholder": "Искать людей...",
         "empty": "Никого не найдено."
+      }
+    },
+    "view": {
+      "load_older": "Загрузить более ранние сообщения",
+      "js": {
+        "load_older": "Загрузить более ранние сообщения",
+        "load_older_loading": "Загрузка…",
+        "load_older_error": "Не удалось загрузить более ранние сообщения",
+        "meeting_label": "Встреча",
+        "meeting_join": "Присоединиться",
+        "meeting_start_error": "Не удалось начать встречу"
       }
     }
   },
@@ -609,9 +687,20 @@
       "main_mailbox": "Main mailbox",
       "html_design": "HTML design",
       "html_design_help": "On: portal layout with logo. Off: formatted text without layout frame.",
-      "mailbox_label": "Mailbox",
+      "mailbox_label": "Send as",
       "use_team_logo": "Use team logo",
       "use_team_logo_help": "If off: portal logo instead of team logo in HTML design."
+    },
+    "index": {
+      "pagination": {
+        "prev": "Назад",
+        "next": "Далее",
+        "info": "Страница {page} из {pages} ({total})",
+        "aria": "Страницы почты"
+      }
+    },
+    "flash": {
+      "sync_started": "Синхронизация запущена. Страница обновится по завершении."
     }
   },
   "files": {
@@ -629,7 +718,9 @@
     "index": {
       "search_placeholder": "Поиск в файлах",
       "search_empty": "Нет совпадений в этой папке."
-    }
+    },
+    "trash_retention_banner": "Элементы в корзине окончательно удаляются через {days} дн.",
+    "trash_retention_disabled": "Автоматическое окончательное удаление для корзины не настроено."
   },
   "settings": {
     "admin": {
@@ -688,12 +779,56 @@
         "flash_members_added": "{count} member(s) added.",
         "flash_member_removed": "Member removed.",
         "flash_cannot_remove_leader": "The team lead cannot be removed. Assign a different lead first.",
-        "flash_user_teams_updated": "Teams for {name} were updated."
+        "flash_user_teams_updated": "Teams for {name} were updated.",
+        "lead_short": "Создавайте команды и назначайте участников.",
+        "view_list": "Список",
+        "view_grid": "Сетка",
+        "col_name": "Команда",
+        "col_members": "Участники",
+        "col_leader": "Руководитель",
+        "preview_title": "Предпросмотр"
       },
       "cards": {
         "teams": {
           "title": "Teams",
-          "description": "Create teams and assign users"
+          "description": "Create teams and assign users",
+          "short": "Manage teams"
+        },
+        "user_management": {
+          "short": "Roles & guests"
+        },
+        "whitelist": {
+          "short": "Email allowlist"
+        },
+        "system_settings": {
+          "short": "Portal & branding"
+        },
+        "legal": {
+          "short": "Legal pages"
+        },
+        "modules": {
+          "short": "On / off"
+        },
+        "backup": {
+          "short": "Import / export"
+        },
+        "registration_options": {
+          "short": "Captcha"
+        },
+        "push": {
+          "short": "Device subscriptions"
+        },
+        "email": {
+          "short": "SMTP & mailboxes"
+        },
+        "inventory": {
+          "short": "Ownership text"
+        },
+        "calendar_settings": {
+          "short": "iCal"
+        },
+        "file_settings": {
+          "short": "Storage & sharing"
         }
       },
       "email_module": {
@@ -711,7 +846,53 @@
       },
       "admin_modules": {
         "module_file_converter": "File Converter",
-        "module_surveys": "Surveys"
+        "module_surveys": "Surveys",
+        "lead_short": "Включение и отключение модулей.",
+        "module_meetings": "Встречи (видеозвонки)"
+      },
+      "kanban": {
+        "lead_short": "Visibility and import.",
+        "short": "Visibility & import",
+        "module_disabled": "Kanban module is disabled",
+        "import_hint": "Multiple boards via ZIP supported."
+      },
+      "users": {
+        "lead_short": "Пользователи, гости и коды.",
+        "view_list": "Список",
+        "view_grid": "Сетка",
+        "col_name": "Имя",
+        "col_email": "Эл. почта",
+        "col_login": "Последний вход",
+        "col_status": "Статус",
+        "queue_title": "Очередь"
+      },
+      "whitelist": {
+        "lead_short": "Почта и домены для автоактивации.",
+        "view_list": "Список",
+        "view_grid": "Сетка",
+        "col_entry": "Запись",
+        "col_status": "Статус"
+      },
+      "legal": {
+        "lead_short": "Тексты для входа и публичных страниц.",
+        "tip_body": "Изменения сохраняются автоматически. Используйте предпросмотр.",
+        "markdown_hint": "**жирный**, *курсив*, [ссылка](url), списки с -.",
+        "tool_link": "Ссылка"
+      },
+      "system": {
+        "lead_short": "Имя портала, логотип, часовой пояс и брендинг."
+      },
+      "backup": {
+        "lead_short": "Экспорт и импорт резервных копий портала."
+      },
+      "registration": {
+        "lead_short": "Captcha и honeypot для входа и форм."
+      },
+      "file_settings": {
+        "trash_retention_label": "Хранение корзины",
+        "trash_retention_help": "Удалённые файлы и папки окончательно удаляются по истечении срока. 0 отключает автоочистку.",
+        "trash_retention_unit": "дней",
+        "trash_retention_note": "По умолчанию: 30 дней. После сохранения перекрывает FILES_TRASH_DAYS из окружения."
       }
     },
     "notifications": {
@@ -725,6 +906,17 @@
         "changes_help": "Название, описание, срок, перемещение или выполнение",
         "checklist": "Чек-листы",
         "checklist_help": "Новые, изменённые или выполненные пункты"
+      },
+      "lead_short": "Push, модули и напоминания.",
+      "calendar": {
+        "filter_status_label": "Участие",
+        "reminder_30min_short": "30 мин",
+        "reminder_1h_short": "1 ч",
+        "reminder_2h_short": "2 ч",
+        "reminder_6h_short": "6 ч",
+        "reminder_8h_short": "8 ч",
+        "reminder_1d_short": "1 день",
+        "reminder_2d_short": "2 дня"
       }
     },
     "profile": {
@@ -732,6 +924,37 @@
         "heading": "My teams",
         "empty": "You are not in any team yet.",
         "leader_badge": "Lead"
+      },
+      "delete": {
+        "heading": "Удалить аккаунт",
+        "intro": "Безвозвратно удаляет аккаунт после подтверждения по e-mail. Сначала экспортируйте данные в разделе конфиденциальности.",
+        "password_label": "Пароль для подтверждения",
+        "second_factor_hint": "Также требуется второй фактор (аутентификатор или passkey).",
+        "totp_label": "Код аутентификатора (2FA)",
+        "passkey_button": "Подтвердить passkey",
+        "passkey_ok": "Passkey подтверждён",
+        "passkey_pending": "Ещё не подтверждено",
+        "confirm_label": "Введите DELETE для подтверждения",
+        "confirm_placeholder": "DELETE",
+        "submit_button": "Отправить письмо подтверждения",
+        "submit_confirm": "Действительно отправить письмо об удалении на ваш адрес?",
+        "email_hint": "Аккаунт удаляется только после перехода по ссылке в письме. Ссылка действует 1 час.",
+        "blocked_super_admin": "Основной аккаунт администратора нельзя удалить самостоятельно.",
+        "flash_confirm_text": "Введите DELETE (или LÖSCHEN) для подтверждения.",
+        "flash_wrong_password": "Неверный пароль.",
+        "flash_2fa_required": "Второй фактор отсутствует или неверен.",
+        "flash_no_passkey": "Для этого аккаунта не найден passkey.",
+        "flash_email_failed": "Не удалось отправить письмо подтверждения.",
+        "flash_email_sent": "Письмо подтверждения отправлено. Проверьте почту.",
+        "flash_token_invalid": "Ссылка удаления недействительна или устарела.",
+        "flash_wrong_user": "Войдите в аккаунт, который нужно удалить.",
+        "flash_failed": "Удаление аккаунта не удалось.",
+        "flash_deleted": "Ваш аккаунт удалён.",
+        "confirm_page_title": "Подтверждение удаления аккаунта",
+        "confirm_heading": "Удалить аккаунт окончательно?",
+        "confirm_body": "Окончательно удалить аккаунт {name} ({email})?",
+        "confirm_final": "Действительно удалить этот аккаунт навсегда?",
+        "confirm_button": "Удалить сейчас"
       }
     },
     "mailboxes": {
@@ -834,7 +1057,13 @@
       "oauth_error": "OAuth ошибка: {error}"
     },
     "sidebar": {
-      "team_lead_heading": "Team lead"
+      "team_lead_heading": "Team lead",
+      "sections": {
+        "tools": "Мои инструменты"
+      },
+      "push": "Push-подписки",
+      "kanban": "Kanban",
+      "admin_heading": "Администрирование"
     },
     "integrations": {
       "page_title": "Интеграции",
@@ -851,6 +1080,7 @@
       "tenant": "Tenant",
       "tenant_help": "Обычно \"common\". Или organizations / ID тенанта.",
       "redirect_hint": "Redirect URI (вход, почта и YouTube): {url}",
+      "redirect_uri_label": "Redirect URI:",
       "flash_saved": "Интеграции сохранены.",
       "google_api_help_open": "Инструкция: API-ключ Google",
       "google_api_help_title": "Настройка API-ключа Google",
@@ -875,12 +1105,177 @@
       "google_help_oauth_step4": "Создать учётные данные → OAuth Client ID → тип «Веб-приложение». Добавьте redirect URI, указанный ниже на странице.",
       "google_help_oauth_step5": "Вставьте Client ID и Client Secret сюда и сохраните — после этого OAuth работает в мастере.",
       "google_help_api_heading": "API-ключ (для YouTube)",
-      "redirect_hint_login": "Redirect URI (вход / безопасность): {url}"
+      "redirect_hint_login": "Redirect URI (вход / безопасность): {url}",
+      "short": "OAuth & APIs",
+      "lead_short": "Google, Microsoft и Spotify."
     },
     "about": {
       "file_converter_label": "File converter / LibreOffice",
       "libreoffice_available": "LibreOffice available",
-      "libreoffice_missing": "LibreOffice not found"
+      "libreoffice_missing": "LibreOffice not found",
+      "lead_short": "Продукт, система и open source.",
+      "section_repository_help_button": "Справка",
+      "excalidraw_label_short": "Excalidraw",
+      "file_converter_label_short": "Конвертер",
+      "mirotalk_label": "MiroTalk",
+      "mirotalk_active": "Активно",
+      "mirotalk_inactive": "Не активно"
+    },
+    "cloud_import": {
+      "page_title": "Cloud import",
+      "title": "Cloud import",
+      "heading": "Cloud import",
+      "subtitle": "Transfer folders and files once from Nextcloud or Google Drive into PrismaTeams.",
+      "target_space": "Destination",
+      "target_space_hint": "Admin: public · Team leader: team · You: personal.",
+      "space": {
+        "public": "Public",
+        "team": "Team",
+        "personal": "Personal"
+      },
+      "no_spaces": "No destination available.",
+      "dest_folder": "Destination folder",
+      "dest_root": "Root folder",
+      "connections": "Connections",
+      "connect_nextcloud": "Connect Nextcloud",
+      "connect_google": "Connect Google Drive",
+      "connect": "Connect",
+      "nextcloud": {
+        "server": "Server URL",
+        "username": "Username",
+        "app_password": "App password",
+        "hint": "Use an app password from Nextcloud security settings."
+      },
+      "no_connections": "No connection yet.",
+      "browse": "Select source",
+      "col": {
+        "name": "Name",
+        "size": "Size"
+      },
+      "start": "Start import",
+      "jobs": "Import jobs",
+      "no_jobs": "No jobs yet.",
+      "flash": {
+        "module_disabled": "The files module is disabled.",
+        "credentials_incomplete": "Please provide server, username and app password.",
+        "nextcloud_connect_failed": "Could not connect to Nextcloud. Check credentials.",
+        "google_not_configured": "Google is not configured under Integrations.",
+        "google_oauth_error": "Google sign-in failed: %(error)s",
+        "google_connected": "Google Drive connected.",
+        "connection_in_use": "Connection is used by a running import.",
+        "browse_failed": "Could not load folder.",
+        "no_selection": "Select at least one file or folder.",
+        "space_forbidden": "You may not import into this destination."
+      },
+      "lead_short": "Разовый перенос из Nextcloud или Google Drive."
+    },
+    "index": {
+      "cards": {
+        "cloud_import": {
+          "title": "Cloud import",
+          "description": "Transfer from Nextcloud and Google Drive.",
+          "short": "Nextcloud & Drive"
+        },
+        "profile": {
+          "short": "Name & avatar"
+        },
+        "appearance": {
+          "short": "Theme & color"
+        },
+        "notifications": {
+          "short": "Push & channels"
+        },
+        "security": {
+          "short": "Password & 2FA"
+        },
+        "about": {
+          "short": "Version"
+        },
+        "my_mailboxes": {
+          "short": "Private mailboxes"
+        },
+        "privacy": {
+          "title": "Конфиденциальность",
+          "description": "Экспорт персональных данных и просмотр прав",
+          "button": "Открыть",
+          "short": "Экспорт и права"
+        }
+      },
+      "lead_short": "Всё в одном месте."
+    },
+    "autosave": {
+      "saving": "Сохранение…",
+      "saved": "Сохранено",
+      "error": "Не удалось сохранить"
+    },
+    "appearance": {
+      "lead_short": "Язык, тема и акцент.",
+      "preview_panel_title": "Предпросмотр",
+      "preview_panel_lead": "How your accent looks in the UI.",
+      "preview_nav": "Navigation",
+      "preview_button": "Action",
+      "preview_card": "Sample card"
+    },
+    "kanban_import": {
+      "nav": "Импорт досок",
+      "page_title": "Board import",
+      "heading": "Import boards",
+      "lead": "JSON, CSV or ZIP with multiple files.",
+      "short": "JSON / CSV / ZIP",
+      "upload_title": "Upload",
+      "drop_title": "Drop file here",
+      "drop_meta": ".json, .csv or .zip",
+      "submit": "Import",
+      "open": "Open",
+      "need_file": "Please choose a file",
+      "done_one": "Board imported",
+      "done_many": "{count} boards imported",
+      "failed": "Import failed",
+      "unavailable": "Kanban unavailable",
+      "no_targets": "No import target allowed",
+      "visibility_info": "Visibility for new boards",
+      "tip_body": "ZIP с несколькими JSON/CSV создаёт несколько досок сразу.",
+      "formats_title": "Форматы",
+      "formats_body": "JSON и CSV для одной доски, ZIP для нескольких файлов.",
+      "visibility_label": "Видимость"
+    },
+    "team_settings": {
+      "teams_tile_short": "Members",
+      "tile_short": "Team modules"
+    },
+    "hub": {
+      "quick_title": "Quick access",
+      "quick_lead": "Frequently used areas",
+      "tip_title": "Подсказка",
+      "tip_body": "Use the search above to jump to any setting."
+    },
+    "security": {
+      "lead_short": "Пароль, 2FA и устройства."
+    },
+    "privacy": {
+      "page_title": "Конфиденциальность и данные",
+      "heading": "Конфиденциальность и данные",
+      "lead": "Экспортируйте свои персональные данные и ознакомьтесь с вашими правами.",
+      "export": {
+        "heading": "Экспорт данных",
+        "intro": "Скачайте ZIP-архив с вашими персональными данными в формате JSON (портативность).",
+        "includes_profile": "Профиль, команды, сессии, ключи доступа и настройки уведомлений",
+        "includes_activity": "Созданные контакты, события, метаданные файлов, сообщения чата и другие данные модулей",
+        "excludes_secrets": "Без паролей, секретов 2FA, токенов сессии и содержимого файлов",
+        "button": "Скачать мои данные",
+        "hint": "Число загрузок ограничено несколькими запросами в час."
+      },
+      "export_error": "Экспорт данных не удался. Попробуйте позже.",
+      "rights": {
+        "heading": "Ваши права",
+        "intro": "Согласно GDPR у вас есть, в частности, следующие права:",
+        "access": "Доступ к сохранённым персональным данным",
+        "rectification": "Исправление неверных данных (например, в профиле)",
+        "portability": "Переносимость данных через экспорт на этой странице",
+        "erasure": "Удаление — самообслуживание в профиле (пароль, 2FA при наличии, письмо подтверждения)",
+        "policy_link": "Политика конфиденциальности",
+        "delete_link": "Удалить аккаунт"
+      }
     }
   },
   "surveys": {
@@ -1011,6 +1406,330 @@
       "output_not_found": "Output file was not created.",
       "timeout": "Conversion timed out.",
       "upload_failed": "Upload failed."
+    }
+  },
+  "inventory": {
+    "flash": {
+      "document_attach_error": "Продукт сохранён, но документы не удалось прикрепить.",
+      "document_invalid_type": "Недопустимый тип файла. Разрешены: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX.",
+      "manual_not_accessible": "Выбранная инструкция недоступна.",
+      "manual_link_required": "Выберите инструкцию.",
+      "manual_already_linked": "Инструкция «{title}» уже связана.",
+      "manual_linked": "Инструкция «{title}» связана.",
+      "external_barcode_taken": "Инв. № «{code}» уже занят.",
+      "external_barcode_qty": "Инв. № можно задать только при количестве 1.",
+      "barcode_label_error": "Не удалось создать этикетку со штрихкодом."
+    },
+    "documents": {
+      "page_title": "Документы — {name}",
+      "heading": "Документы для «{name}»",
+      "list_title": "Документы",
+      "upload_btn": "Загрузить документ",
+      "link_manual_btn": "Связать инструкцию",
+      "edit_product": "Редактировать продукт",
+      "col_name": "Имя",
+      "col_type": "Тип",
+      "col_size": "Размер",
+      "col_date": "Загружено",
+      "col_actions": "Действия",
+      "linked_manual": "Связано с инструкцией",
+      "manual_link_only": "Только ссылка на инструкцию",
+      "download": "Скачать",
+      "open_manual": "Открыть инструкцию",
+      "delete_confirm": "Удалить этот документ?",
+      "empty": "Документов пока нет.",
+      "upload_title": "Загрузить документ",
+      "file_label": "Файл",
+      "file_help": "PDF, PNG, JPEG и DOC/DOCX/XLS/XLSX.",
+      "type_label": "Тип документа",
+      "link_manual_optional": "Связать с инструкцией (необязательно)",
+      "no_manual_link": "Без связи",
+      "link_manual_title": "Связать инструкцию",
+      "manual_label": "Инструкция",
+      "select_manual": "Выберите инструкцию…",
+      "link_manual_help": "Связывает существующую инструкцию без дублирования файла.",
+      "types": {
+        "handbook": "Руководство",
+        "datasheet": "Спецификация",
+        "invoice": "Счёт",
+        "warranty": "Гарантия",
+        "dguv": "Отчёт DGUV",
+        "other": "Прочее"
+      }
+    },
+    "product": {
+      "form": {
+        "sections": {
+          "documents": "Документы и инструкции"
+        },
+        "documents_upload": "Загрузить документы",
+        "documents_help": "Несколько файлов (PDF, PNG, JPEG, Office). Прикрепляются при сохранении.",
+        "document_type": "Тип документа для загрузок",
+        "link_manuals": "Связать инструкции",
+        "link_manuals_help": "Множественный выбор: связать существующие инструкции без загрузки файла.",
+        "manage_documents": "Управление всеми документами",
+        "external_barcode": "Инв. №",
+        "external_barcode_placeholder": "напр. 001",
+        "external_barcode_help": "Введите код с этикетки или отсканируйте сюда. Для QuickScan и выдачи.",
+        "external_barcode_qty_hint": "Инв. № только при количестве 1 (каждый номер уникален).",
+        "print_barcode": "Печать штрихкода",
+        "print_barcode_hint": "Этикетка ~56 мм, масштаб печати 100 % (Actual size)."
+      }
+    },
+    "stock": {
+      "pagination": {
+        "load_more": "Загрузить ещё товары",
+        "load_more_loading": "Загрузка…"
+      }
+    }
+  },
+  "kanban": {
+    "board": {
+      "background": "Фон",
+      "background_image": "Фоновое изображение",
+      "background_upload": "Загрузить изображение",
+      "background_clear": "Удалить изображение",
+      "background_image_set": "Фоновое изображение установлено",
+      "background_image_optional": "Необязательно: загрузите своё изображение (отображается поверх цвета)"
+    },
+    "export": {
+      "title": "Экспорт",
+      "json": "Как JSON (Trello)",
+      "csv": "Как CSV (Trello)"
+    },
+    "import": {
+      "title": "Импорт доски",
+      "hint": "Загрузите экспорт Trello (JSON или CSV). Будет создана новая доска.",
+      "file": "Файл экспорта",
+      "title_optional": "Название (необязательно)",
+      "title_ph": "Пусто = имя из файла",
+      "submit": "Импортировать",
+      "error_no_file": "Выберите файл.",
+      "error_empty": "Файл пуст.",
+      "error_invalid": "Неверный формат экспорта Trello.",
+      "error_forbidden": "Нет прав на импорт.",
+      "error_admin": "Публичные доски могут импортировать только админы.",
+      "error_team": "Выберите команду.",
+      "error_team_leader": "Командные доски могут импортировать только лидеры.",
+      "error_visibility": "Эта видимость не разрешена.",
+      "error_failed": "Ошибка импорта.",
+      "error_invalid_zip": "Invalid ZIP file",
+      "error_empty_zip": "ZIP has no JSON/CSV files",
+      "visibility": "Видимость"
+    }
+  },
+  "protocols": {
+    "nav": {
+      "title": "Протоколы",
+      "all": "Все",
+      "create": "Новый протокол",
+      "new": "Новый протокол"
+    },
+    "status": {
+      "draft": "Черновик",
+      "finalized": "Завершён"
+    },
+    "steps": {
+      "meta": "Данные",
+      "agenda": "Повестка",
+      "content": "Содержание"
+    },
+    "index": {
+      "search_placeholder": "Поиск по названию, имени или дате (напр. 05.09.2026)…",
+      "empty": "Протоколов пока нет.",
+      "open": "Открыть",
+      "edit": "Изменить",
+      "pdf": "Скачать PDF",
+      "delete_confirm": "Удалить протокол?",
+      "nav": {
+        "menu": "Меню протоколов"
+      },
+      "list": {
+        "title": "Название",
+        "date": "Дата",
+        "status": "Статус",
+        "visibility": "Область"
+      },
+      "sort": {
+        "heading": "Сортировка",
+        "field": "Поле",
+        "dir": "Направление",
+        "date": "Дата",
+        "title": "Название",
+        "updated": "Изменено",
+        "created": "Создано",
+        "asc": "По возрастанию",
+        "desc": "По убыванию",
+        "apply": "Применить"
+      },
+      "filter": {
+        "heading": "Фильтр",
+        "status": "Статус",
+        "all": "Все",
+        "apply": "Применить",
+        "reset": "Сброс"
+      }
+    },
+    "create": {
+      "subtitle": "Укажите дату, участников и видимость.",
+      "title_label": "Название совещания",
+      "title_placeholder": "напр. Общая встреча",
+      "title_required": "Введите название протокола.",
+      "date_label": "Дата",
+      "start_time_label": "Время начала",
+      "participants_label": "Участники",
+      "participants_placeholder": "Имена через запятую или с новой строки",
+      "excused_label": "По уважительной причине",
+      "excused_placeholder": "Отсутствующие по уважительной причине",
+      "absent_label": "Без уважительной причины",
+      "absent_placeholder": "Отсутствующие без уважительной причины",
+      "submit": "К повестке",
+      "continue": "Далее",
+      "chip_placeholder": "Введите имя и нажмите Enter…",
+      "chip_hint": "Enter — добавить как метку, × — удалить."
+    },
+    "meta": {
+      "edit_title": "Редактировать протокол"
+    },
+    "agenda": {
+      "title": "Пункты повестки",
+      "hint": "Задайте пункты. Порядок можно менять перетаскиванием.",
+      "item_placeholder": "напр. Обновление проекта",
+      "add": "Добавить пункт",
+      "continue": "К содержанию",
+      "reorder": "Переместить",
+      "min_one": "Добавьте хотя бы один пункт повестки."
+    },
+    "item": {
+      "title_label": "Пункт",
+      "content_label": "Содержание",
+      "nav_label": "Пункты",
+      "prev": "Назад",
+      "next": "Далее",
+      "autosaved": "Сохранено",
+      "saving": "Сохранение…"
+    },
+    "actions": {
+      "save_draft": "Сохранить черновик",
+      "finalize": "Завершить",
+      "finalize_confirm": "Завершить протокол? После этого редактирование будет недоступно."
+    },
+    "view": {
+      "agenda": "Повестка",
+      "content": "Содержание",
+      "no_content": "Нет содержания.",
+      "time_label": "Время",
+      "attendance": "Присутствие",
+      "finalized_at": "Завершено"
+    },
+    "flash": {
+      "module_disabled": "Модуль протоколов отключён.",
+      "created": "Протокол создан.",
+      "saved": "Сохранено.",
+      "finalized": "Протокол завершён.",
+      "deleted": "Протокол удалён.",
+      "finalized_readonly": "Завершённые протоколы нельзя редактировать.",
+      "pdf_only_finalized": "PDF доступен только после завершения."
+    },
+    "editor": {
+      "table": "Таблица",
+      "color": "Цвет текста",
+      "highlight": "Маркер",
+      "size": "Размер шрифта",
+      "size_small": "Мелкий",
+      "size_normal": "Обычный",
+      "size_large": "Крупный",
+      "size_huge": "Очень крупный"
+    }
+  },
+  "contacts": {
+    "index": {
+      "pagination": {
+        "load_more": "Загрузить ещё контакты",
+        "load_more_loading": "Загрузка…",
+        "load_error": "Не удалось загрузить контакты"
+      }
+    }
+  },
+  "calendar": {
+    "flash": {
+      "sync_started": "Синхронизация запущена в фоне. Обновите страницу через несколько секунд."
+    }
+  },
+  "meetings": {
+    "page_title": "Встречи",
+    "heading": "Встречи",
+    "default_title": "Встреча",
+    "chat_title": "Встреча: {name}",
+    "nav": {
+      "label": "Навигация встреч",
+      "active": "Активные",
+      "ended": "Завершённые",
+      "start": "Начать встречу",
+      "menu": "Меню встреч"
+    },
+    "list": {
+      "title": "Название",
+      "access": "Доступ",
+      "host": "Организатор",
+      "started": "Начало",
+      "empty": "В этом списке нет встреч."
+    },
+    "access": {
+      "public": "Открытая",
+      "invite": "Только по приглашению"
+    },
+    "actions": {
+      "join": "Присоединиться",
+      "end": "Завершить",
+      "copy_guest": "Скопировать гостевую ссылку",
+      "more": "Ещё действия"
+    },
+    "create": {
+      "page_title": "Начать встречу",
+      "heading": "Начать встречу",
+      "title_label": "Название",
+      "title_placeholder": "например, Еженедельный созвон",
+      "access_label": "Доступ",
+      "public_help": "Видно всем с модулем встреч.",
+      "invite_help": "Видят только приглашённые пользователи портала.",
+      "invitees_label": "Пригласить людей",
+      "invitees_search": "Поиск имени или email…",
+      "invitees_host": "Вы участвуете автоматически. Другие люди необязательны.",
+      "invitees_you": "Вы",
+      "invitees_empty": "Нет других пользователей портала для приглашения.",
+      "submit": "Начать встречу"
+    },
+    "guest": {
+      "lead": "Введите имя, чтобы присоединиться.",
+      "name_label": "Ваше имя",
+      "name_required": "Введите имя.",
+      "submit": "Присоединиться",
+      "ended": "Эта встреча завершена."
+    },
+    "call": {
+      "loading": "Загрузка встречи…",
+      "insecure_title": "Небезопасный контекст (HTTPS)",
+      "insecure_body": "Камера и микрофон не работают на http://IP. Используйте HTTPS (домен + сертификат) — иначе звонок остаётся чёрным."
+    },
+    "chat": {
+      "start": "Начать встречу"
+    },
+    "notify": {
+      "title": "Приглашение на встречу",
+      "body": "Вас пригласили на «{title}»."
+    },
+    "flash": {
+      "invitees_required": "Пригласите хотя бы одного человека.",
+      "no_access": "Нет доступа к этой встрече.",
+      "ended": "Эта встреча завершена.",
+      "ended_ok": "Встреча завершена.",
+      "not_configured": "MiroTalk не настроен. Укажите MIROTALK_URL в .env.",
+      "join_failed": "Не удалось войти. Проверьте MIROTALK_API_KEY / MIROTALK_HOST_USER / MIROTALK_HOST_PASSWORD — они должны совпадать с .env MiroTalk.",
+      "no_module": "Модуль встреч недоступен.",
+      "chat_missing": "Чат не найден.",
+      "not_chat_member": "Вы не участник этого чата.",
+      "chat_start_error": "Не удалось начать встречу."
     }
   }
 }

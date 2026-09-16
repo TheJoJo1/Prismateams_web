@@ -8,7 +8,7 @@ from app.models.chat import Chat, ChatMember
 from app.models.whitelist import WhitelistEntry
 from app.models.settings import SystemSettings
 from app.utils.i18n import translate
-from app.utils.session_manager import create_session, revoke_session_by_id
+from app.utils.session_manager import create_session, rotate_session_on_login, revoke_session_by_id
 from app.utils.totp import verify_totp
 from app.utils.password_policy import validate_password
 from app.utils.bot_protection import get_template_context, validate_bot_protection
@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urlparse
 import logging
 from app.utils.common import portal_now_naive
+from app.utils.log_privacy import mask_email
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -72,7 +73,9 @@ def _finish_registration(new_user, email_sent, is_whitelisted, *, google_verifie
         if google_verified:
             flash(translate('auth.flash.register_success_google_whitelisted'), 'success')
             return _finalize_portal_login(new_user, remember=False)
+        rotate_session_on_login()
         login_user(new_user, remember=False)
+        session['user_scope'] = 'portal'
         if email_sent:
             flash(translate('auth.flash.register_success_whitelisted'), 'success')
         else:
@@ -96,13 +99,20 @@ def _clear_pending_2fa_login():
 
 
 def _login_2fa_template_context(user, has_passkeys):
+    from flask import current_app
+
+    email_recovery_enabled = bool(
+        current_app.config.get('TWO_FACTOR_EMAIL_RECOVERY_ENABLED', True)
+    )
     recovery_pending = bool(
-        user.totp_recovery_code
+        email_recovery_enabled
+        and user.totp_recovery_code
         and user.totp_recovery_code_expires
         and portal_now_naive() <= user.totp_recovery_code_expires
     )
     return {
         'has_passkeys': has_passkeys,
+        'email_recovery_enabled': email_recovery_enabled,
         'recovery_code_pending': recovery_pending,
         **_auth_template_kwargs(),
     }
@@ -155,7 +165,9 @@ def _finalize_portal_login(user, remember=False, next_page=None):
     # Gast-Accounts benötigen keine E-Mail-Bestätigung
     # Normale Accounts: Check if email confirmation is required (nicht für Admins)
     if not user.is_guest and not user.is_email_confirmed and not user.is_admin:
+        rotate_session_on_login()
         login_user(user, remember=remember)
+        session['user_scope'] = 'portal'
         create_session(user.id)
         flash(translate('auth.flash.confirm_email_required'), 'info')
         return redirect(url_for('auth.confirm_email'))
@@ -164,7 +176,8 @@ def _finalize_portal_login(user, remember=False, next_page=None):
     user.last_login = datetime.utcnow()
     db.session.commit()
 
-    # Log user in
+    # Session-Fixation-Schutz: Cookie-Session rotieren, dann Auth setzen
+    rotate_session_on_login()
     login_user(user, remember=remember)
     session['user_scope'] = 'portal'
 
@@ -286,7 +299,7 @@ def register():
             return render_template('auth/register.html', **_google_register_template_kwargs())
 
         # Registrierung: mind. 12 Zeichen + Groß-/Kleinbuchstaben, Zahl, Sonderzeichen
-        is_valid, _ = validate_password(password, min_length=12, require_complexity=True)
+        is_valid, _ = validate_password(password)
         if not is_valid:
             flash(translate('auth.flash.password_requirements'), 'danger')
             return render_template('auth/register.html', **_google_register_template_kwargs())
@@ -370,7 +383,7 @@ def register():
             return render_template('auth/register.html', **_google_register_template_kwargs())
         except Exception as e:
             db.session.rollback()
-            logging.exception('User create failed during registration for %s: %s', email, e)
+            logging.exception('User create failed during registration for %s: %s', mask_email(email), e)
             flash(translate('auth.flash.fill_all_fields'), 'danger')
             return render_template('auth/register.html', **_google_register_template_kwargs())
 
@@ -402,7 +415,7 @@ def register():
                         db.session.add(member)
                         db.session.commit()
         except Exception as e:
-            logging.exception('Post-create steps failed during registration for %s: %s', email, e)
+            logging.exception('Post-create steps failed during registration for %s: %s', mask_email(email), e)
         
         return _finish_registration(
             new_user, email_sent, is_whitelisted, google_verified=google_verified
@@ -454,7 +467,23 @@ def login():
             from app.models.assessment import AssessmentUser
 
             assessment_user = AssessmentUser.query.filter_by(username=login_input.lower()).first()
+
+            if assessment_user and assessment_user.failed_login_until and datetime.utcnow() < assessment_user.failed_login_until:
+                remaining_seconds = int(
+                    (assessment_user.failed_login_until - datetime.utcnow()).total_seconds()
+                )
+                flash(translate('auth.flash.account_locked', seconds=remaining_seconds), 'danger')
+                return render_template('auth/login.html', **_auth_template_kwargs())
+
             if not assessment_user or not assessment_user.check_password(password):
+                if assessment_user:
+                    assessment_user.failed_login_attempts = (
+                        assessment_user.failed_login_attempts or 0
+                    ) + 1
+                    if assessment_user.failed_login_attempts >= 5:
+                        assessment_user.failed_login_until = datetime.utcnow() + timedelta(minutes=15)
+                        assessment_user.failed_login_attempts = 0
+                    db.session.commit()
                 flash('Ungültiger Benutzername oder Passwort.', 'danger')
                 return render_template('auth/login.html', **_auth_template_kwargs())
 
@@ -462,10 +491,15 @@ def login():
                 flash('Konto ist deaktiviert.', 'warning')
                 return render_template('auth/login.html', **_auth_template_kwargs())
 
+            assessment_user.failed_login_attempts = 0
+            assessment_user.failed_login_until = None
             assessment_user.last_login = datetime.utcnow()
             db.session.commit()
-            login_user(assessment_user, remember=remember)
-            session['user_scope'] = 'assessment'
+            from app.utils.session_manager import start_assessment_session
+            rotate_session_on_login()
+            # Kein Remember-Me: Assessment nutzt kurze Session-Lifetime statt user_sessions.
+            login_user(assessment_user, remember=False)
+            start_assessment_session()
             if assessment_user.must_change_password:
                 return redirect(url_for('assessment.auth.admin_setup'))
             return redirect(url_for('assessment.general.home'))
@@ -595,8 +629,36 @@ def google_callback():
     if state and state == session.get('youtube_oauth_state'):
         return _google_callback_youtube(code, state, err)
 
+    # 2b) Cloud-Import Google Drive
+    if state and state == session.get('cloud_import_google_oauth_state'):
+        return _google_callback_cloud_import(code, state, err)
+
     # 3) Login / Registrierung / Account-Verknüpfung
     return _google_callback_auth(code, state, err)
+
+
+def _google_callback_cloud_import(code, state, err):
+    """Beendet Google-OAuth für Cloud-Import (Drive readonly)."""
+    from flask_login import current_user
+    from app.utils.cloud_import.oauth import handle_google_drive_callback
+
+    if not current_user.is_authenticated:
+        flash(translate('settings.cloud_import.flash.google_oauth_error', error='login_required'), 'danger')
+        return redirect(url_for('auth.login'))
+
+    if err:
+        msg = request.args.get('error_description') or err
+        flash(translate('settings.cloud_import.flash.google_oauth_error', error=msg), 'danger')
+        return redirect(url_for('settings.cloud_import'))
+    if not code:
+        flash(translate('settings.cloud_import.flash.google_oauth_error', error='no_code'), 'danger')
+        return redirect(url_for('settings.cloud_import'))
+    try:
+        handle_google_drive_callback(code, state)
+        flash(translate('settings.cloud_import.flash.google_connected'), 'success')
+    except Exception as e:
+        flash(translate('settings.cloud_import.flash.google_oauth_error', error=str(e)), 'danger')
+    return redirect(url_for('settings.cloud_import'))
 
 
 def _google_callback_mailbox(code, state, err):
@@ -822,8 +884,12 @@ def login_2fa():
 
         verified = verify_totp(user.totp_secret, totp_code)
         if not verified:
-            from app.utils.email_sender import verify_and_consume_2fa_recovery_code
-            verified = verify_and_consume_2fa_recovery_code(user, totp_code)
+            from app.utils.email_sender import (
+                is_2fa_email_recovery_enabled,
+                verify_and_consume_2fa_recovery_code,
+            )
+            if is_2fa_email_recovery_enabled():
+                verified = verify_and_consume_2fa_recovery_code(user, totp_code)
 
         if not verified:
             user.failed_login_attempts += 1
@@ -852,10 +918,18 @@ def login_2fa():
 def login_2fa_recovery():
     """Sendet einen 2FA-Wiederherstellungscode per E-Mail (5 Min. gültig)."""
     import time
-    from app.utils.email_sender import send_2fa_recovery_email, _mail_configured
+    from app.utils.email_sender import (
+        send_2fa_recovery_email,
+        _mail_configured,
+        is_2fa_email_recovery_enabled,
+    )
 
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.index'))
+
+    if not is_2fa_email_recovery_enabled():
+        flash(translate('auth.flash.2fa_recovery_disabled'), 'warning')
+        return redirect(url_for('auth.login_2fa'))
 
     pending_user_id = session.get('pending_2fa_user_id')
     if not pending_user_id:
@@ -1165,14 +1239,17 @@ def change_password():
             flash(translate('auth.flash.passwords_dont_match'), 'danger')
             return render_template('auth/change_password.html', must_change=current_user.must_change_password, color_gradient=color_gradient)
         
-        # Prüfe Passwort-Länge
-        if len(new_password) < 8:
-            flash(translate('auth.flash.password_too_short'), 'danger')
+        # Prüfe Passwort-Policy (einheitlich mit Register)
+        is_valid, error_msg = validate_password(new_password)
+        if not is_valid:
+            flash(error_msg or translate('auth.flash.password_too_short'), 'danger')
             return render_template('auth/change_password.html', must_change=current_user.must_change_password, color_gradient=color_gradient)
         
         # Passwort ändern
         current_user.set_password(new_password)
         current_user.must_change_password = False
+        from app.utils.session_manager import revoke_all_sessions
+        revoke_all_sessions(current_user.id, exclude_current=True)
         db.session.commit()
         
         flash(translate('auth.flash.password_changed_success'), 'success')
@@ -1182,6 +1259,7 @@ def change_password():
 
 
 @auth_bp.route('/forgot-password', methods=['GET', 'POST'])
+@limiter.limit("5 per 15 minutes")
 def forgot_password():
     """Passwort vergessen - E-Mail eingeben."""
     # Prüfe ob Setup nötig ist
@@ -1199,36 +1277,12 @@ def forgot_password():
             flash(translate('auth.flash.enter_email'), 'danger')
             return render_template('auth/forgot_password.html', **_auth_template_kwargs())
         
-        # Rate Limiting: Prüfe ob zu viele Anfragen in der letzten Stunde
-        # Suche nach User mit dieser E-Mail
         user = User.query.filter_by(email=email).first()
-        
         if user and not user.is_guest:
-            # Prüfe Rate Limiting: Maximal 3 Reset-Anfragen pro Stunde
-            recent_resets = 0
-            if user.password_reset_code_expires:
-                # Wenn ein Code existiert und noch nicht abgelaufen ist, zähle als eine Anfrage
-                if datetime.utcnow() < user.password_reset_code_expires:
-                    # Prüfe ob Code in der letzten Stunde erstellt wurde
-                    if user.password_reset_code_expires > datetime.utcnow() - timedelta(hours=1):
-                        recent_resets = 1
-            
-            # Zähle weitere Reset-Codes in der letzten Stunde (vereinfachte Prüfung)
-            # In einer produktiven Umgebung könnte man hier eine separate Tabelle für Rate-Limiting verwenden
-            if recent_resets >= 3:
-                # Zeige trotzdem Erfolgsmeldung (Sicherheit)
-                flash(translate('auth.flash.password_reset_email_sent'), 'success')
-                return render_template('auth/forgot_password.html', **_auth_template_kwargs())
-            
-            # Sende Passwort-Reset-E-Mail
             from app.utils.email_sender import send_password_reset_email
             send_password_reset_email(user)
-            
-            # Weiterleitung zur Reset-Password-Seite mit E-Mail-Adresse
-            flash(translate('auth.flash.password_reset_email_sent'), 'success')
-            return redirect(url_for('auth.reset_password', email=email))
-        
-        # Zeige immer Erfolgsmeldung (auch wenn E-Mail nicht existiert - Sicherheit)
+
+        # Immer gleiche Antwort (keine User-Enumeration)
         flash(translate('auth.flash.password_reset_email_sent'), 'success')
         return render_template('auth/forgot_password.html', **_auth_template_kwargs())
     
@@ -1236,8 +1290,9 @@ def forgot_password():
 
 
 @auth_bp.route('/reset-password', methods=['GET', 'POST'])
+@limiter.limit("10 per 15 minutes")
 def reset_password():
-    """Passwort zurücksetzen mit Code."""
+    """Passwort zurücksetzen mit Token."""
     # Prüfe ob Setup nötig ist
     from app.blueprints.setup import is_setup_needed
     if is_setup_needed():
@@ -1255,7 +1310,7 @@ def reset_password():
         # Validierung
         if not all([email, reset_code, new_password, confirm_password]):
             flash(translate('auth.flash.fill_all_fields'), 'danger')
-            return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
+            return render_template('auth/reset_password.html', email=email, reset_code=reset_code, **_auth_template_kwargs())
         
         # Finde User
         user = User.query.filter_by(email=email).first()
@@ -1263,50 +1318,127 @@ def reset_password():
             flash(translate('auth.flash.invalid_reset_code'), 'danger')
             return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
         
-        # Prüfe Reset-Code
-        from app.utils.email_sender import verify_password_reset_code
+        from app.utils.email_sender import (
+            clear_password_reset_failure_counter,
+            register_password_reset_failure,
+            verify_password_reset_code,
+        )
         if not verify_password_reset_code(user, reset_code):
-            flash(translate('auth.flash.invalid_reset_code'), 'danger')
+            burned = register_password_reset_failure(user)
+            if burned:
+                flash(translate('auth.flash.invalid_reset_code'), 'danger')
+            else:
+                flash(translate('auth.flash.invalid_reset_code'), 'danger')
             return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
         
         # Prüfe Passwort-Bestätigung
         if new_password != confirm_password:
             flash(translate('auth.flash.passwords_dont_match'), 'danger')
-            return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
+            return render_template(
+                'auth/reset_password.html',
+                email=email,
+                reset_code=reset_code,
+                **_auth_template_kwargs(),
+            )
         
-        # Prüfe Passwort-Länge
-        if len(new_password) < 8:
-            flash(translate('auth.flash.password_too_short'), 'danger')
-            return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
+        # Prüfe Passwort-Policy (einheitlich mit Register)
+        is_valid, error_msg = validate_password(new_password)
+        if not is_valid:
+            flash(error_msg or translate('auth.flash.password_too_short'), 'danger')
+            return render_template(
+                'auth/reset_password.html',
+                email=email,
+                reset_code=reset_code,
+                **_auth_template_kwargs(),
+            )
         
         # Setze neues Passwort
         user.set_password(new_password)
-        # Lösche Reset-Code
+        # Lösche Reset-Token
         user.password_reset_code = None
         user.password_reset_code_expires = None
+        clear_password_reset_failure_counter(user)
+        from app.utils.session_manager import revoke_all_sessions
+        revoke_all_sessions(user.id, exclude_current=False)
         db.session.commit()
         
         flash(translate('auth.flash.password_reset_success'), 'success')
         return redirect(url_for('auth.login'))
     
-    # GET: Zeige Formular
+    # GET: Zeige Formular (Token aus E-Mail-Link vorbefüllen)
     email = request.args.get('email', '')
-    return render_template('auth/reset_password.html', email=email, **_auth_template_kwargs())
+    reset_code = request.args.get('token', '') or request.args.get('reset_code', '')
+    return render_template(
+        'auth/reset_password.html',
+        email=email,
+        reset_code=reset_code,
+        **_auth_template_kwargs(),
+    )
 
 
-@auth_bp.route('/logout')
+@auth_bp.route('/logout', methods=['POST'])
 @login_required
 def logout():
-    """User logout."""
-    # Melde Session ab
+    """User logout (nur POST + CSRF — kein Logout per GET)."""
     session_id = session.get('session_id')
     if session_id:
         revoke_session_by_id(session_id)
-    
-    session.pop('user_scope', None)
+
     logout_user()
+    rotate_session_on_login()
     flash(translate('auth.flash.logout_success'), 'success')
     return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/cookie-consent', methods=['POST'])
+@limiter.limit('60 per hour')
+def cookie_consent_record():
+    """Serverseitiger Nachweis von Cookie-Einwilligung / Widerruf (Kategorien)."""
+    import secrets
+    from datetime import timedelta
+    from flask import make_response
+    from app.models.cookie_consent import CookieConsentLog
+
+    payload = request.get_json(silent=True) or {}
+    try:
+        version = int(payload.get('version') or 1)
+    except (TypeError, ValueError):
+        version = 1
+    functional = bool(payload.get('functional'))
+    analytics = bool(payload.get('analytics'))
+
+    cookie_name = 'prismateams_consent_id'
+    anon_id = (request.cookies.get(cookie_name) or '').strip()
+    if not anon_id or len(anon_id) > 64:
+        anon_id = secrets.token_urlsafe(24)
+
+    user_id = current_user.id if current_user.is_authenticated else None
+    row = CookieConsentLog(
+        user_id=user_id,
+        anon_id=anon_id,
+        consent_version=version,
+        necessary=True,
+        functional=functional,
+        analytics=analytics,
+    )
+    db.session.add(row)
+    db.session.commit()
+
+    resp = make_response(jsonify({
+        'ok': True,
+        'id': row.id,
+        'anon_id': anon_id,
+        'created_at': row.created_at.isoformat() + 'Z' if row.created_at else None,
+    }))
+    resp.set_cookie(
+        cookie_name,
+        anon_id,
+        max_age=int(timedelta(days=400).total_seconds()),
+        httponly=True,
+        samesite='Lax',
+        secure=bool(request.is_secure),
+    )
+    return resp
 
 
 @auth_bp.route('/datenschutz')

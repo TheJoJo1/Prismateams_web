@@ -109,18 +109,19 @@ def apply_provider_preset(mailbox: Mailbox, provider: str) -> None:
 
 
 def _setting_bool(key: str, default: bool = False) -> bool:
-    setting = SystemSettings.query.filter_by(key=key).first()
-    if not setting or setting.value is None or str(setting.value).strip() == '':
-        return default
-    return str(setting.value).lower() == 'true'
+    from app.utils.system_settings_cache import setting_bool
+
+    return setting_bool(key, default)
 
 
 def _setting_int(key: str, default: int) -> int:
-    setting = SystemSettings.query.filter_by(key=key).first()
-    if not setting or setting.value is None or str(setting.value).strip() == '':
+    from app.utils.system_settings_cache import get_setting
+
+    value = get_setting(key)
+    if value is None:
         return default
     try:
-        return int(setting.value)
+        return int(value)
     except (TypeError, ValueError):
         return default
 
@@ -156,49 +157,118 @@ def can_manage_team(user, team_id: int) -> bool:
     return bool(team and team.leader_id == user.id)
 
 
-def _encryption_key() -> bytes:
-    """Fernet key from SystemSettings or derived from SECRET_KEY."""
+def _valid_fernet_key(raw) -> Optional[bytes]:
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        key = raw.strip().encode('utf-8')
+    elif isinstance(raw, bytes):
+        key = raw.strip()
+    else:
+        return None
+    if not key:
+        return None
+    try:
+        Fernet(key)
+        return key
+    except Exception:
+        return None
+
+
+def _legacy_db_mailbox_key() -> Optional[bytes]:
     setting = SystemSettings.query.filter_by(key=ENC_KEY_SETTING).first()
-    if setting and setting.value:
-        try:
-            key = setting.value.strip().encode()
-            Fernet(key)
-            return key
-        except Exception:
-            pass
+    if not setting or not setting.value:
+        return None
+    return _valid_fernet_key(setting.value)
 
-    secret_seed = current_app.config.get('SECRET_KEY') or os.environ.get('SECRET_KEY') or 'prismateams-fallback'
+
+def _derived_mailbox_key() -> Optional[bytes]:
+    secret_seed = (
+        (current_app.config.get('SECRET_KEY') or '')
+        or (os.environ.get('SECRET_KEY') or '')
+    ).strip()
+    if not secret_seed:
+        if current_app.testing:
+            secret_seed = 'prismateams-test-mailbox-key'
+        else:
+            return None
     digest = hashlib.sha256(f'email-mailbox:{secret_seed}'.encode('utf-8')).digest()
-    key = base64.urlsafe_b64encode(digest)
+    return base64.urlsafe_b64encode(digest)
 
-    if not setting:
-        db.session.add(SystemSettings(
-            key=ENC_KEY_SETTING,
-            value=key.decode(),
-            description='Fernet-Schlüssel für Multi-Postfach-Passwörter',
-        ))
-        try:
-            db.session.commit()
-        except Exception:
-            db.session.rollback()
-    return key
+
+def _encryption_key_candidates() -> list:
+    """
+    Fernet-Keys für Postfach-Passwörter.
+
+    Primär: MAILBOX_ENCRYPTION_KEY (Env/Config), analog Credentials.
+    Legacy: SystemSettings email_enc_key, dann Ableitung aus SECRET_KEY.
+    Kein Schreiben neuer Keys in die DB.
+    """
+    from app.utils.encryption import read_encryption_key
+
+    keys: list = []
+    seen = set()
+
+    def _add(key: Optional[bytes]):
+        if not key or key in seen:
+            return
+        seen.add(key)
+        keys.append(key)
+
+    _add(_valid_fernet_key(read_encryption_key('MAILBOX_ENCRYPTION_KEY')))
+
+    legacy = _legacy_db_mailbox_key()
+    if legacy:
+        if not keys:
+            current_app.logger.warning(
+                'Mailbox-Verschlüsselung nutzt noch SystemSettings.%s — '
+                'bitte MAILBOX_ENCRYPTION_KEY in der .env setzen und DB-Key entfernen.',
+                ENC_KEY_SETTING,
+            )
+        _add(legacy)
+
+    derived = _derived_mailbox_key()
+    if derived:
+        if not keys:
+            current_app.logger.warning(
+                'Mailbox-Verschlüsselung leitet den Key aus SECRET_KEY ab — '
+                'setzen Sie MAILBOX_ENCRYPTION_KEY (python scripts/generate_encryption_keys.py).'
+            )
+        _add(derived)
+
+    if not keys:
+        raise RuntimeError(
+            'MAILBOX_ENCRYPTION_KEY (oder SECRET_KEY) erforderlich für Postfach-Verschlüsselung.'
+        )
+    return keys
+
+
+def _encryption_key() -> bytes:
+    """Primärer Key zum Verschlüsseln neuer Passwörter."""
+    return _encryption_key_candidates()[0]
 
 
 def encrypt_password(plain: str) -> Optional[str]:
     if plain is None or plain == '':
         return None
-    f = Fernet(_encryption_key())
-    return f.encrypt(plain.encode('utf-8')).decode('utf-8')
+    try:
+        f = Fernet(_encryption_key())
+        return f.encrypt(plain.encode('utf-8')).decode('utf-8')
+    except Exception as exc:
+        current_app.logger.error('Mailbox-Passwort-Verschlüsselung fehlgeschlagen: %s', exc)
+        raise
 
 
 def decrypt_password(enc: Optional[str]) -> Optional[str]:
     if not enc:
         return None
-    try:
-        f = Fernet(_encryption_key())
-        return f.decrypt(enc.encode('utf-8')).decode('utf-8')
-    except Exception:
-        return None
+    raw = enc.encode('utf-8')
+    for key in _encryption_key_candidates():
+        try:
+            return Fernet(key).decrypt(raw).decode('utf-8')
+        except Exception:
+            continue
+    return None
 
 
 def count_private_mailboxes(user_id: int) -> int:
@@ -306,6 +376,34 @@ def get_main_smtp_config() -> dict:
     }
 
 
+def get_mailbox_from_address(mailbox: Optional[Mailbox] = None) -> str:
+    """Absender-Adresse für „Senden als“ (Hauptpostfach oder Multi-Mailbox)."""
+    if mailbox is None:
+        return (
+            current_app.config.get('MAIL_DEFAULT_SENDER')
+            or current_app.config.get('MAIL_USERNAME')
+            or ''
+        ).strip()
+    return (
+        (getattr(mailbox, 'oauth_email', None) or '')
+        or (mailbox.smtp_username or '')
+        or (mailbox.imap_username or '')
+        or ''
+    ).strip()
+
+
+def format_send_as_label(mailbox: Optional[Mailbox] = None, fallback: str = '') -> str:
+    """Anzeige-Label für die Absender-Auswahl — bevorzugt die E-Mail-Adresse."""
+    addr = get_mailbox_from_address(mailbox)
+    if addr:
+        return addr
+    if mailbox is not None:
+        name = (mailbox.display_name or mailbox.name or '').strip()
+        if name:
+            return name
+    return (fallback or '').strip()
+
+
 def get_main_imap_config() -> dict:
     return {
         'server': current_app.config.get('IMAP_SERVER'),
@@ -405,6 +503,7 @@ def get_mailbox_logo_data(mailbox: Optional[Mailbox] = None, user=None, use_logo
                 '.jpeg': 'image/jpeg',
                 '.gif': 'image/gif',
                 '.webp': 'image/webp',
+                '.svg': 'image/svg+xml',
             }.get(ext, 'image/png')
             return data, mime, mailbox.logo_filename
     try:

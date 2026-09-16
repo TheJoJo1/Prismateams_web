@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.models.settings import SystemSettings
+from app.utils.system_settings_cache import setting_bool as _setting_bool
 
 SETTING_ALLOW_PRIVATE = 'modules_allow_private'
 SETTING_ALLOW_TEAM = 'modules_allow_team'
@@ -16,14 +16,8 @@ VISIBILITY_MODULE_KEYS = (
     'shortlinks',
     'excalidraw',
     'surveys',
+    'protocols',
 )
-
-
-def _setting_bool(key: str, default: bool = True) -> bool:
-    row = SystemSettings.query.filter_by(key=key).first()
-    if row is None:
-        return default
-    return str(row.value).lower() in ('true', '1', 'yes', 'on')
 
 
 def is_global_private_enabled() -> bool:
@@ -49,7 +43,8 @@ def sync_legacy_visibility_keys(allow_private: bool, allow_team: bool, allow_pub
     from app.utils.module_visibility import setting_key
 
     for module in VISIBILITY_MODULE_KEYS:
-        upsert_setting(setting_key(module, 'private'), str(allow_private).lower(), f'{module}: Privat')
+        priv = False if module == 'protocols' else allow_private
+        upsert_setting(setting_key(module, 'private'), str(priv).lower(), f'{module}: Privat')
         upsert_setting(setting_key(module, 'team'), str(allow_team).lower(), f'{module}: Team')
         upsert_setting(setting_key(module, 'public'), str(allow_public).lower(), f'{module}: Public')
 

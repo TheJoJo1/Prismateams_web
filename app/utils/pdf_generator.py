@@ -333,10 +333,12 @@ def get_portal_name():
 
 
 def build_standard_header(title, subtitle=None, pagesize=A4, logo_size=2.0 * cm,
-                          content_width=None, show_logo=True, show_accent=True):
+                          content_width=None, show_logo=True, show_accent=True,
+                          logo_align='left'):
     """
-    Einheitlicher PDF-Kopf: Portal-Logo links, Titel (und optional Untertitel) daneben,
+    Einheitlicher PDF-Kopf: Portal-Logo und Titel (optional Untertitel),
     darunter dezente Akzentlinie. show_logo=False für QR-Bögen.
+    logo_align: 'left' (Standard) oder 'right' (z. B. Protokolle).
     """
     ps = pdf_paragraph_styles()
     usable_width = content_width if content_width is not None else (pagesize[0] - 4 * cm)
@@ -357,18 +359,37 @@ def build_standard_header(title, subtitle=None, pagesize=A4, logo_size=2.0 * cm,
     if show_logo and logo_cell != '':
         logo_col = logo_size + 0.6 * cm
         text_col = max(usable_width - logo_col, 8 * cm)
-        header = Table([[logo_cell, text_block]], colWidths=[logo_col, text_col])
+        if logo_align == 'right':
+            header = Table([[text_block, logo_cell]], colWidths=[text_col, logo_col])
+            header.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+        else:
+            header = Table([[logo_cell, text_block]], colWidths=[logo_col, text_col])
+            header.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
     else:
         header = Table([[text_block]], colWidths=[usable_width])
-
-    header.setStyle(TableStyle([
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('LEFTPADDING', (0, 0), (-1, -1), 0),
-        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-        ('TOPPADDING', (0, 0), (-1, -1), 0),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
-    ]))
+        header.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
 
     if not show_accent:
         return header
@@ -1148,6 +1169,61 @@ def generate_qr_code_sheet_pdf(products=None, output=None, label_type='cable', s
         bottomMargin=2.0 * cm,
         output=output,
     )
+
+
+def generate_inventory_barcode_label_pdf(product, output=None):
+    """
+    Einzelnes Thermodirekt-Etikett (~56×30 mm) mit Code-128.
+    Inhalt: Inventar-Nr. (scannbar) + lesbare Inventar-Nr. + Produktname.
+    Kein Logo, nur Schwarz/Weiß — geeignet für Brother TD-2020A.
+    """
+    from reportlab.graphics.barcode import createBarcodeDrawing
+
+    code = (getattr(product, 'external_barcode', None) or '').strip()
+    if not code:
+        pid = getattr(product, 'id', None)
+        if pid is None:
+            raise ValueError("Keine Inventar-Nr. für Etikett vorhanden.")
+        code = f'PROD-{int(pid)}'
+
+    name = (getattr(product, 'name', None) or '').strip() or f'ID {getattr(product, "id", "")}'
+    if len(name) > 42:
+        name = name[:39] + '…'
+
+    page_w = 56 * mm
+    page_h = 30 * mm
+    margin_x = 2 * mm
+    usable_w = page_w - 2 * margin_x
+
+    buffer = output if output is not None else BytesIO()
+    c = pdf_canvas.Canvas(buffer, pagesize=(page_w, page_h))
+
+    barcode_h = 11 * mm
+    drawing = createBarcodeDrawing(
+        'Code128',
+        value=code,
+        barHeight=barcode_h,
+        width=usable_w,
+        humanReadable=False,
+    )
+    barcode_y = page_h - margin_x - barcode_h - 0.5 * mm
+    barcode_x = margin_x + max(0, (usable_w - float(drawing.width)) / 2)
+    drawing.drawOn(c, barcode_x, barcode_y)
+
+    c.setFillColor(colors.black)
+    c.setFont('Helvetica-Bold', 9)
+    code_y = barcode_y - 3.2 * mm
+    c.drawCentredString(page_w / 2, code_y, code)
+
+    c.setFont('Helvetica', 7)
+    name_y = code_y - 3.0 * mm
+    c.drawCentredString(page_w / 2, name_y, name)
+
+    c.showPage()
+    c.save()
+    if output is None:
+        buffer.seek(0)
+    return buffer
 
 
 def generate_inventory_list_pdf(products, output=None):

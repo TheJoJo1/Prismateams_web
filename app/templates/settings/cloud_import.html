@@ -1,0 +1,223 @@
+{% extends "settings/base_settings.html" %}
+{% from 'settings/_macros.html' import sp_info %}
+
+{% block title %}{{ _('settings.cloud_import.page_title') }}{% endblock %}
+{% block settings_mobile_title %}{{ _('settings.cloud_import.title') }}{% endblock %}
+
+{% block settings_content %}
+<div class="sp-page sp-page--fluid settings-cloud-import" id="cloudImportRoot"
+     data-google-configured="{{ '1' if google_configured else '0' }}"
+     data-url-connect-nextcloud="{{ url_for('settings.cloud_import_connect_nextcloud') }}"
+     data-url-connect-google="{{ url_for('settings.cloud_import_connect_google') }}"
+     data-url-start-job="{{ url_for('settings.cloud_import_start_job') }}"
+     data-url-list-jobs="{{ url_for('settings.cloud_import_list_jobs') }}"
+     data-url-dest-folders="{{ url_for('settings.cloud_import_dest_folders') }}"
+     data-browse-base="{{ url_for('settings.cloud_import_browse', connection_id=0) }}"
+     data-delete-base="{{ url_for('settings.cloud_import_delete_connection', connection_id=0) }}"
+     data-job-base="{{ url_for('settings.cloud_import_job_status', job_id=0) }}"
+     data-cancel-base="{{ url_for('settings.cloud_import_cancel_job', job_id=0) }}">
+
+  <header class="sp-page-header">
+    <h1 class="sp-page-title"><i class="bi bi-cloud-arrow-down" aria-hidden="true"></i><span>{{ _('settings.cloud_import.heading') }}</span></h1>
+    <p class="sp-page-lead">{{ _('settings.cloud_import.lead_short') }}</p>
+  </header>
+
+  <div class="sp-card-grid">
+    <section class="sp-group" aria-labelledby="cloud-import-space-heading" id="cloud-import-space" data-settings-search-id="cloud-import-space">
+      <div class="sp-group-head">
+        <h2 id="cloud-import-space-heading" class="sp-group-title"><i class="bi bi-hdd-stack" aria-hidden="true"></i>{{ _('settings.cloud_import.target_space') }}</h2>
+        {{ sp_info(_('settings.cloud_import.target_space_hint')) }}
+      </div>
+      <div class="sp-group-body">
+        <div class="sp-row sp-row--stack">
+          <div class="sp-row-label"><span class="sp-row-label-text">{{ _('settings.cloud_import.target_space') }}</span></div>
+          <div class="sp-row-control">
+            <div class="sp-seg sp-seg--wrap" role="radiogroup" aria-label="{{ _('settings.cloud_import.target_space') }}" id="cloudImportSpaceToggle">
+              {% for s in spaces %}
+              <button type="button"
+                      class="cloud-import-space-btn{% if loop.first %} active{% endif %}"
+                      data-space="{{ s.space }}"
+                      data-team-id="{{ s.team_id or '' }}"
+                      aria-pressed="{{ 'true' if loop.first else 'false' }}">
+                {% if s.space == 'team' and s.team_name %}
+                  {{ _('settings.cloud_import.space.team') }}: {{ s.team_name }}
+                {% else %}
+                  {{ _(s.label_key) }}
+                {% endif %}
+              </button>
+              {% else %}
+              <p class="text-muted mb-0">{{ _('settings.cloud_import.no_spaces') }}</p>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="sp-row" id="cloudImportDestFolderWrap">
+          <div class="sp-row-label"><span class="sp-row-label-text">{{ _('settings.cloud_import.dest_folder') }}</span></div>
+          <div class="sp-row-control">
+            <select class="form-select" id="cloudImportDestFolder" style="min-width:14rem">
+              <option value="">{{ _('settings.cloud_import.dest_root') }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="sp-group" aria-labelledby="cloud-import-connect-heading" id="cloud-import-connect" data-settings-search-id="cloud-import-connect">
+      <div class="sp-group-head">
+        <h2 id="cloud-import-connect-heading" class="sp-group-title"><i class="bi bi-plug" aria-hidden="true"></i>{{ _('settings.cloud_import.connections') }}</h2>
+      </div>
+      <div class="sp-group-body">
+        <div class="sp-row sp-row--stack">
+          <div class="sp-row-control settings-about-repo-actions" style="justify-content:flex-start">
+            <button type="button" class="btn btn-accent rounded-pill mod-pill-btn" id="cloudImportShowNextcloud">
+              <i class="bi bi-cloud" aria-hidden="true"></i>
+              {{ _('settings.cloud_import.connect_nextcloud') }}
+            </button>
+            {% if google_configured %}
+            <a href="{{ url_for('settings.cloud_import_connect_google') }}" class="btn btn-outline-secondary rounded-pill mod-pill-btn">
+              <i class="bi bi-google" aria-hidden="true"></i>
+              {{ _('settings.cloud_import.connect_google') }}
+            </a>
+            {% else %}
+            <button type="button" class="btn btn-outline-secondary rounded-pill mod-pill-btn" disabled title="{{ _('settings.cloud_import.flash.google_not_configured') }}">
+              <i class="bi bi-google" aria-hidden="true"></i>
+              {{ _('settings.cloud_import.connect_google') }}
+            </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="cloud-import-nextcloud-form d-none" id="cloudImportNextcloudForm">
+          <div class="sp-row sp-row--stack">
+            <div class="sp-row-label"><span class="sp-row-label-text">{{ _('settings.cloud_import.nextcloud.server') }}</span></div>
+            <div class="sp-row-control" style="width:100%">
+              <input type="url" class="form-control" id="ncServer" placeholder="https://cloud.example.com" autocomplete="off">
+            </div>
+          </div>
+          <div class="sp-row">
+            <div class="sp-row-label"><span class="sp-row-label-text">{{ _('settings.cloud_import.nextcloud.username') }}</span></div>
+            <div class="sp-row-control">
+              <input type="text" class="form-control" id="ncUser" autocomplete="username" style="min-width:10rem">
+            </div>
+          </div>
+          <div class="sp-row">
+            <div class="sp-row-label"><span class="sp-row-label-text">{{ _('settings.cloud_import.nextcloud.app_password') }}</span></div>
+            <div class="sp-row-control">
+              <input type="password" class="form-control" id="ncPass" autocomplete="current-password" style="min-width:10rem">
+            </div>
+          </div>
+          <div class="sp-row sp-row--stack">
+            <p class="sp-row-meta mb-0 px-0">{{ _('settings.cloud_import.nextcloud.hint') }}</p>
+            <div class="sp-row-control" style="justify-content:flex-start">
+              <button type="button" class="btn btn-accent rounded-pill mod-pill-btn" id="cloudImportConnectNextcloudBtn">
+                {{ _('settings.cloud_import.connect') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ul class="sp-conn-list cloud-import-conn-list" id="cloudImportConnections">
+          {% for c in connections %}
+          <li class="sp-conn-row cloud-import-conn"
+              data-connection-id="{{ c.id }}"
+              data-provider="{{ c.provider }}">
+            <button type="button" class="sp-conn-select cloud-import-select-conn">
+              <i class="bi {% if c.provider == 'google_drive' %}bi-google{% else %}bi-cloud{% endif %}" aria-hidden="true"></i>
+              <strong>{{ c.display_name or c.provider }}</strong>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-danger rounded-pill cloud-import-delete-conn" aria-label="{{ _('common.delete') }}">
+              <i class="bi bi-trash"></i>
+            </button>
+          </li>
+          {% else %}
+          <li class="sp-conn-empty cloud-import-empty-conn" id="cloudImportEmptyConn">
+            {{ _('settings.cloud_import.no_connections') }}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+
+    <section class="sp-group sp-group--span2 d-none" id="cloudImportBrowseSection" aria-labelledby="cloud-import-browse-heading" data-settings-search-id="cloud-import-browse">
+      <div class="sp-group-head">
+        <h2 id="cloud-import-browse-heading" class="sp-group-title"><i class="bi bi-folder2-open" aria-hidden="true"></i>{{ _('settings.cloud_import.browse') }}</h2>
+      </div>
+      <div class="sp-group-body">
+        <div class="sp-row">
+          <div class="sp-row-control" style="justify-content:flex-start;gap:0.65rem;flex-wrap:wrap;width:100%">
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" id="cloudImportBrowseUp" disabled>
+              <i class="bi bi-arrow-up"></i> {{ _('layout.nav.back') }}
+            </button>
+            <code class="small text-muted mb-0" id="cloudImportBrowsePath">/</code>
+          </div>
+        </div>
+        <div class="table-responsive px-3 pb-2">
+          <table class="table table-sm align-middle mb-0 sp-table">
+            <thead>
+              <tr>
+                <th style="width:2rem"></th>
+                <th>{{ _('settings.cloud_import.col.name') }}</th>
+                <th style="width:6rem">{{ _('settings.cloud_import.col.size') }}</th>
+              </tr>
+            </thead>
+            <tbody id="cloudImportBrowseBody"></tbody>
+          </table>
+        </div>
+        <div class="sp-row">
+          <div class="sp-row-control" style="justify-content:flex-start;gap:0.75rem;flex-wrap:wrap;width:100%">
+            <button type="button" class="btn btn-accent rounded-pill mod-pill-btn" id="cloudImportStartBtn" disabled>
+              <i class="bi bi-download" aria-hidden="true"></i>
+              {{ _('settings.cloud_import.start') }}
+            </button>
+            <span class="text-muted small" id="cloudImportSelectionHint"></span>
+          </div>
+        </div>
+        <div class="alert alert-danger d-none mx-3 mb-3" id="cloudImportError" role="alert"></div>
+      </div>
+    </section>
+
+    <section class="sp-group sp-group--span2" aria-labelledby="cloud-import-jobs-heading" id="cloud-import-jobs" data-settings-search-id="cloud-import-jobs">
+      <div class="sp-group-head">
+        <h2 id="cloud-import-jobs-heading" class="sp-group-title"><i class="bi bi-list-task" aria-hidden="true"></i>{{ _('settings.cloud_import.jobs') }}</h2>
+      </div>
+      <div class="sp-group-body">
+        <ul class="sp-conn-list" id="cloudImportJobs">
+          {% for j in jobs %}
+          <li class="sp-job-row cloud-import-job" data-job-id="{{ j.id }}" data-status="{{ j.status }}">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+              <div>
+                <strong>{{ j.connection.display_name if j.connection else '—' }}</strong>
+                <span class="badge text-bg-secondary ms-1 cloud-import-job-status">{{ j.status }}</span>
+                <div class="small text-muted">
+                  {{ j.target_space }}
+                  · <span class="cloud-import-job-progress-text">{{ j.files_done or 0 }}/{{ j.files_total or 0 }}</span>
+                </div>
+                {% if j.error_message %}
+                <div class="small text-danger cloud-import-job-error">{{ j.error_message }}</div>
+                {% endif %}
+              </div>
+              {% if j.status in ('pending', 'running') %}
+              <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill cloud-import-cancel-job">
+                {{ _('common.cancel') }}
+              </button>
+              {% endif %}
+            </div>
+            <div class="progress mt-2" style="height:6px">
+              <div class="progress-bar cloud-import-job-bar" role="progressbar"
+                   style="width: {% if j.files_total %}{{ ((j.files_done or 0) / j.files_total * 100)|round|int }}{% elif j.status == 'completed' %}100{% else %}0{% endif %}%"></div>
+            </div>
+          </li>
+          {% else %}
+          <li class="sp-conn-empty" id="cloudImportEmptyJobs">{{ _('settings.cloud_import.no_jobs') }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ super() }}
+<script src="{{ url_for('static', filename='js/cloud_import.js') }}"></script>
+{% endblock %}

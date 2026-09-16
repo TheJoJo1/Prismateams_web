@@ -1,6 +1,6 @@
 {% extends "inventory/layout.html" %}
 
-{% block title %}Ausleihe / Rückgabe - {{ app_name or 'Rpismateams' }}{% endblock %}
+{% block title %}{{ _('inventory.checkout.page_title') }}{% endblock %}
 {% block inventory_heading_icon %}bi-box-arrow-right{% endblock %}
 {% block inventory_heading %}{{ _('inventory.shell.nav.checkout') }}{% endblock %}
 
@@ -27,14 +27,14 @@
         <div class="row g-3">
             <div class="col-md-4">
                 <label for="event_name" class="form-label">Projekt / Veranstaltung <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" id="event_name" name="event_name" form="checkoutForm" required
+                <input type="text" class="form-control mod-pill-input" id="event_name" name="event_name" form="checkoutForm" required
                        value="{{ preset_event_name or '' }}"
                        placeholder="z.B. Stadtfest 2026" autocomplete="off">
             </div>
             <div class="col-md-4">
                 <label for="borrower_name" class="form-label">Verantwortlicher <span class="text-danger">*</span></label>
                 <div class="position-relative">
-                    <input type="text" class="form-control" id="borrower_name" name="borrower_name" form="checkoutForm" required
+                    <input type="text" class="form-control mod-pill-input" id="borrower_name" name="borrower_name" form="checkoutForm" required
                            value="{% if preset_borrower_name %}{{ preset_borrower_name }}{% else %}{{ current_user.full_name }}{% endif %}" placeholder="Name suchen oder frei eingeben" autocomplete="off">
                     <input type="hidden" id="borrower_id" name="borrower_id" form="checkoutForm"
                            value="{% if preset_borrower_id %}{{ preset_borrower_id }}{% elif not preset_event_appointment_id %}{{ current_user.id }}{% endif %}">
@@ -44,18 +44,18 @@
             </div>
             <div class="col-md-4" id="contactEmailWrap">
                 <label for="contact_email" class="form-label">Kontakt-E-Mail <span class="text-danger" id="emailRequiredMark" style="display:none;">*</span></label>
-                <input type="email" class="form-control inventory-input-locked" id="contact_email" name="contact_email" form="checkoutForm"
+                <input type="email" class="form-control inventory-input-locked mod-pill-input" id="contact_email" name="contact_email" form="checkoutForm"
                        value="{{ preset_contact_email or current_user.email or '' }}" placeholder="name@example.com" autocomplete="off" disabled
                        title="E-Mail des Portal-Users">
                 <small class="form-text text-muted" id="contactEmailHint">E-Mail des verknüpften Portal-Users (nicht änderbar).</small>
             </div>
             <div class="col-md-3">
                 <label for="start_date" class="form-label">Von</label>
-                <input type="datetime-local" class="form-control" id="start_date" name="start_date" form="checkoutForm">
+                <input type="datetime-local" class="form-control mod-pill-input" id="start_date" name="start_date" form="checkoutForm">
             </div>
             <div class="col-md-3">
                 <label for="end_date" class="form-label">Bis <span class="text-danger">*</span></label>
-                <input type="datetime-local" class="form-control" id="end_date" name="end_date" form="checkoutForm" required>
+                <input type="datetime-local" class="form-control mod-pill-input" id="end_date" name="end_date" form="checkoutForm" required>
             </div>
         </div>
         <input type="hidden" id="event_id" name="event_id" form="checkoutForm" value="{{ preset_event_id or '' }}">
@@ -85,10 +85,10 @@
                         </div>
                     </div>
                     <div class="inventory-scan-controls">
-                        <button class="btn inventory-pill-btn inventory-pill-btn--outline" id="startScannerBtn" type="button">
+                        <button class="btn mod-pill-btn mod-pill-btn--outline" id="startScannerBtn" type="button">
                             <i class="bi bi-camera"></i> Kamera starten
                         </button>
-                        <button class="btn inventory-pill-btn inventory-pill-btn--outline-danger" id="stopScannerBtn" type="button" style="display: none;">
+                        <button class="btn mod-pill-btn mod-pill-btn--outline-danger" id="stopScannerBtn" type="button" style="display: none;">
                             <i class="bi bi-stop-circle"></i> Kamera stoppen
                         </button>
                     </div>
@@ -96,23 +96,23 @@
                     <div id="scannerFeedback" class="alert mt-2 d-none"></div>
                 </div>
                 <div class="mb-3">
-                    <label for="manualQrInput" class="form-label">ID</label>
+                    <label for="manualQrInput" class="form-label">ID / Inventar-Nr.</label>
                     <div class="inventory-manual-input-wrap">
-                        <input type="text" class="form-control" id="manualQrInput" autofocus
-                               placeholder="PROD, SET, BORROW" autocomplete="off">
+                        <input type="text" class="form-control mod-pill-input" id="manualQrInput" autofocus
+                               placeholder="PROD, SET, BORROW oder Inventar-Nr." autocomplete="off">
                     </div>
                 </div>
                 <div class="mb-3">
                     <label for="productSearchInput" class="form-label">Produkt suchen</label>
                     <div class="inventory-manual-input-wrap position-relative">
-                        <input type="text" class="form-control" id="productSearchInput"
+                        <input type="text" class="form-control mod-pill-input" id="productSearchInput"
                                placeholder="Name, Seriennummer, Kategorie…"
                                autocomplete="off">
                         <div id="productSuggest" class="list-group inventory-suggest-dropdown" style="display: none;" role="listbox"></div>
                     </div>
                 </div>
                 <div class="mb-3">
-                    <button class="btn btn-accent inventory-pill-btn" id="addToCartBtn" type="button">
+                    <button class="btn btn-accent mod-pill-btn" id="addToCartBtn" type="button">
                         <i class="bi bi-plus-circle"></i> Hinzufügen
                     </button>
                 </div>
@@ -142,7 +142,7 @@
                 </div>
                 <hr>
                 <form method="POST" action="{{ url_for('inventory.inventory_checkout_confirm') }}" id="checkoutForm">
-                    <button type="submit" class="btn btn-accent inventory-pill-btn w-100" {% if not cart_products %}disabled{% endif %}>
+                    <button type="submit" class="btn btn-accent mod-pill-btn w-100" {% if not cart_products %}disabled{% endif %}>
                         <i class="bi bi-check-circle"></i> Ausleihe bestätigen
                     </button>
                 </form>
@@ -155,7 +155,10 @@
 
 {% block inventory_extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <script src="{{ url_for('static', filename='js/inventory.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inventory_scan_lookup.js') }}"></script>
+<script src="{{ url_for('static', filename='js/inventory-borrow-scanner.js') }}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     window.inventoryScanMode = 'borrow';

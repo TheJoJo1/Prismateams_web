@@ -10,12 +10,44 @@ from app import db
 from app.models.inventory import Checkout, CheckoutItem, Product
 from app.utils.qr_code import generate_borrow_qr_code
 from app.utils.common import portal_now_naive
+from sqlalchemy import or_
 import secrets
 import string
 
 
 BLOCKED_STATUSES = frozenset({"borrowed", "in_repair", "defective", "missing", "retired"})
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class CheckoutUnavailableError(ValueError):
+    """Mindestens ein angefragtes Produkt ist nicht ausleihbar — Checkout wird nicht angelegt."""
+
+    def __init__(self, product_labels: Sequence[str]):
+        labels = [str(label).strip() for label in product_labels if str(label).strip()]
+        self.product_labels = labels
+        super().__init__("products_unavailable")
+
+    @property
+    def products_display(self) -> str:
+        return ", ".join(self.product_labels)
+
+
+def checkout_error_message(exc: BaseException) -> str:
+    """User-facing Meldung für create_checkout-Fehler (i18n)."""
+    from app.utils.i18n import translate
+
+    if isinstance(exc, CheckoutUnavailableError):
+        return translate(
+            "inventory.flash.products_unavailable",
+            products=exc.products_display or "—",
+        )
+    code = str(exc)
+    if code:
+        key = f"inventory.flash.{code}"
+        msg = translate(key)
+        if msg != key:
+            return msg
+    return translate("inventory.flash.borrow_failed")
 
 
 def generate_checkout_number() -> str:
@@ -107,11 +139,14 @@ def create_checkout(
     )
     by_id = {p.id: p for p in products}
     available = []
+    unavailable_labels: list[str] = []
     for pid in unique_ids:
         product = by_id.get(pid)
         if not product:
+            unavailable_labels.append(f"#{pid}")
             continue
         if product.status != "available":
+            unavailable_labels.append(product.name or f"#{pid}")
             continue
         available.append(product)
 
@@ -119,6 +154,7 @@ def create_checkout(
     available_consumables = {}
     if consumable_quantities:
         consumable_ids = []
+        requested_by_id: dict[int, int] = {}
         for raw_pid, raw_qty in consumable_quantities.items():
             try:
                 pid = int(raw_pid)
@@ -128,7 +164,7 @@ def create_checkout(
             if qty <= 0:
                 continue
             consumable_ids.append(pid)
-            available_consumables[pid] = qty
+            requested_by_id[pid] = qty
         if consumable_ids:
             consumables = (
                 Product.query.filter(Product.id.in_(consumable_ids))
@@ -136,19 +172,30 @@ def create_checkout(
                 .with_for_update()
                 .all()
             )
+            found_ids = {p.id for p in consumables}
+            for pid in consumable_ids:
+                if pid not in found_ids:
+                    unavailable_labels.append(f"#{pid}")
             valid = {}
             for product in consumables:
-                requested_qty = available_consumables.get(product.id, 0)
+                requested_qty = requested_by_id.get(product.id, 0)
+                label = product.name or f"#{product.id}"
                 if product.item_type != "consumable":
+                    unavailable_labels.append(label)
                     continue
                 if product.status != "available":
+                    unavailable_labels.append(label)
                     continue
                 if requested_qty > int(product.total_available or 0):
-                    raise ValueError("insufficient_stock")
+                    unavailable_labels.append(label)
+                    continue
                 valid[product.id] = (product, requested_qty)
             available_consumables = valid
         else:
             available_consumables = {}
+
+    if unavailable_labels:
+        raise CheckoutUnavailableError(unavailable_labels)
 
     if not available_assets and not available_consumables:
         raise ValueError("no_available_products")
@@ -189,7 +236,14 @@ def create_checkout(
                 returned_at=None,
             )
         )
-        product.status = "borrowed"
+        from app.services.inventory import LifecycleService
+        LifecycleService.change_status(
+            product,
+            "borrowed",
+            created_by_id,
+            reason="checkout",
+            note=checkout_number,
+        )
 
     if available_consumables:
         from app.services.inventory.stock_service import StockService
@@ -234,17 +288,52 @@ def create_checkout(
     return checkout
 
 
+def user_can_return_checkout(user, checkout: Checkout) -> bool:
+    """Admin, Ausleiher oder Ersteller dürfen zurückgeben (wie PDF-Endpoints)."""
+    if not user or not checkout:
+        return False
+    if getattr(user, "is_admin", False):
+        return True
+    uid = getattr(user, "id", None)
+    if uid is None:
+        return False
+    return checkout.borrower_id == uid or checkout.created_by == uid
+
+
+def ensure_user_can_return_checkout(user, checkout: Checkout) -> None:
+    if not user_can_return_checkout(user, checkout):
+        raise PermissionError("return_forbidden")
+
+
 def return_checkout_items(
     item_ids: Iterable[int],
     *,
     mark_defective: bool = False,
     damage_image_path: Optional[str] = None,
+    actor=None,
 ) -> list[CheckoutItem]:
     from app.services.inventory.stock_service import StockService
 
-    items = CheckoutItem.query.filter(CheckoutItem.id.in_(list(item_ids))).all()
+    id_list = sorted({int(i) for i in item_ids})
+    items = (
+        CheckoutItem.query.filter(CheckoutItem.id.in_(id_list))
+        .order_by(CheckoutItem.id.asc())
+        .with_for_update()
+        .all()
+    )
     if not items:
         raise ValueError("no_items")
+
+    if actor is not None:
+        seen_checkout_ids: set[int] = set()
+        for item in items:
+            checkout = item.checkout
+            if not checkout:
+                raise PermissionError("return_forbidden")
+            if checkout.id in seen_checkout_ids:
+                continue
+            seen_checkout_ids.add(checkout.id)
+            ensure_user_can_return_checkout(actor, checkout)
 
     now = portal_now_naive()
     checkouts = {}
@@ -258,24 +347,41 @@ def return_checkout_items(
                 qty = int(item.legacy_transaction_id or 1)
                 qty = max(1, qty)
                 if item.checkout and item.checkout.created_by:
-                    try:
-                        StockService.release_reserved_stock(
-                            item.product,
-                            qty,
-                            user_id=item.checkout.created_by,
-                            reason=f"Return {item.checkout.checkout_number}",
-                            context_type="borrow",
-                            context_id=item.checkout.checkout_number,
-                        )
-                    except ValueError:
-                        pass
+                    # ValueError (z. B. insufficient_reserved_stock) bewusst durchreichen —
+                    # sonst bleibt quantity_reserved inkonsistent bei „erfolgreicher“ Rückgabe.
+                    StockService.release_reserved_stock(
+                        item.product,
+                        qty,
+                        user_id=item.checkout.created_by,
+                        reason=f"Return {item.checkout.checkout_number}",
+                        context_type="borrow",
+                        context_id=item.checkout.checkout_number,
+                    )
             else:
+                from app.services.inventory import LifecycleService
+                actor_id = (
+                    getattr(actor, "id", None)
+                    or (item.checkout.created_by if item.checkout else None)
+                )
                 if mark_defective:
-                    item.product.status = "defective"
                     if damage_image_path:
                         item.product.damage_image_path = damage_image_path
-                else:
-                    item.product.status = "available"
+                    if actor_id:
+                        LifecycleService.change_status(
+                            item.product,
+                            "defective",
+                            actor_id,
+                            reason="return_defective",
+                            note=item.checkout.checkout_number if item.checkout else None,
+                        )
+                elif actor_id:
+                    LifecycleService.change_status(
+                        item.product,
+                        "available",
+                        actor_id,
+                        reason="return",
+                        note=item.checkout.checkout_number if item.checkout else None,
+                    )
         checkouts[item.checkout_id] = item.checkout
         returned.append(item)
 
@@ -317,11 +423,19 @@ def return_checkout_items(
     return returned
 
 
-def return_checkout_by_ref(ref: str, item_ids: Optional[Sequence[int]] = None) -> Checkout:
+def return_checkout_by_ref(
+    ref: str,
+    item_ids: Optional[Sequence[int]] = None,
+    *,
+    actor=None,
+) -> Checkout:
     """Return items by checkout_number, qr payload, or numeric id."""
     checkout = find_checkout(ref)
     if not checkout:
         raise ValueError("checkout_not_found")
+
+    if actor is not None:
+        ensure_user_can_return_checkout(actor, checkout)
 
     targets = checkout.active_items
     if item_ids:
@@ -330,7 +444,7 @@ def return_checkout_by_ref(ref: str, item_ids: Optional[Sequence[int]] = None) -
     if not targets:
         raise ValueError("no_active_items")
 
-    returned = return_checkout_items([i.id for i in targets])
+    returned = return_checkout_items([i.id for i in targets], actor=actor)
     db.session.refresh(checkout)
     checkout.return_email_sent = (
         getattr(returned[0], "return_email_sent", True) if returned else True
@@ -340,6 +454,32 @@ def return_checkout_by_ref(ref: str, item_ids: Optional[Sequence[int]] = None) -
     except Exception:
         db.session.rollback()
     return checkout
+
+
+def resolve_return_item_ids(raw_id: int) -> list[int]:
+    """Ambige transaction_id auf CheckoutItem-IDs auflösen.
+
+    Reihenfolge (wie return-pdf / Mobile):
+    1. CheckoutItem.id (Historie-UI)
+    2. Checkout.id → aktive Items, sonst alle Items
+    3. legacy_transaction_id
+    """
+    item = CheckoutItem.query.get(int(raw_id))
+    if item:
+        return [item.id]
+
+    checkout = Checkout.query.get(int(raw_id))
+    if checkout:
+        active = [i.id for i in checkout.active_items]
+        if active:
+            return active
+        return [i.id for i in checkout.items]
+
+    legacy_items = CheckoutItem.query.filter_by(legacy_transaction_id=int(raw_id)).all()
+    if legacy_items:
+        return [i.id for i in legacy_items]
+
+    raise ValueError("no_items")
 
 
 def find_checkout(ref: str) -> Optional[Checkout]:
@@ -368,17 +508,24 @@ def find_checkout(ref: str) -> Optional[Checkout]:
     return None
 
 
-def find_active_checkout_item_for_product(product_id: int) -> Optional[CheckoutItem]:
-    return (
+def find_active_checkout_item_for_product(
+    product_id: int,
+    *,
+    actor=None,
+) -> Optional[CheckoutItem]:
+    q = (
         CheckoutItem.query.join(Checkout)
         .filter(
             CheckoutItem.product_id == product_id,
             CheckoutItem.returned_at.is_(None),
             Checkout.status.in_(("active", "partially_returned")),
         )
-        .order_by(CheckoutItem.id.desc())
-        .first()
     )
+    if actor is not None and not getattr(actor, "is_admin", False):
+        uid = getattr(actor, "id", None)
+        if uid is not None:
+            q = q.filter(or_(Checkout.borrower_id == uid, Checkout.created_by == uid))
+    return q.order_by(CheckoutItem.id.desc()).first()
 
 
 def looks_like_return_qr(ref: str) -> bool:

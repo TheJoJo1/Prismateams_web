@@ -18,12 +18,14 @@ from app.utils.module_visibility import (
     visibility_nav_context,
 )
 from datetime import datetime
+from sqlalchemy.orm import defer, joinedload, selectinload
 import os
 import re
 
 wiki_bp = Blueprint('wiki', __name__, url_prefix='/wiki')
 
 MAX_WIKI_VERSIONS = 3
+WIKI_LIST_PER_PAGE = 24
 
 
 def check_wiki_module():
@@ -107,13 +109,19 @@ def index():
     favorites_only = request.args.get('favorites', type=int) == 1 or section == 'favorites'
     sort_by = request.args.get('sort', 'updated')  # updated, created, title
     sort_dir = request.args.get('dir', 'desc')
+    list_page = max(1, request.args.get('page', 1, type=int) or 1)
     if sort_dir not in ('asc', 'desc'):
         sort_dir = 'desc'
     if sort_by not in ('updated', 'created', 'title'):
         sort_by = 'updated'
     
-    # Basis-Query
-    query = accessible_query(current_user, WikiPage, 'wiki')
+    # Basis-Query (ohne Markdown-Content in der Liste)
+    query = accessible_query(current_user, WikiPage, 'wiki').options(
+        defer(WikiPage.content),
+        joinedload(WikiPage.category),
+        joinedload(WikiPage.creator),
+        selectinload(WikiPage.tags),
+    )
     favorite_rows = WikiFavorite.query.filter_by(user_id=current_user.id).all()
     favorite_ids = [fav.wiki_page_id for fav in favorite_rows]
     show_favorites_nav = bool(favorite_ids)
@@ -127,14 +135,14 @@ def index():
     elif section in ('private', 'team', 'public'):
         query = apply_section_filter(query, WikiPage, section, filter_team_id)
     
-    # Suche
+    # Suche: Titel/Slug immer; Content nur als Filter (Spalte bleibt deferred)
     if search_query:
         search_filter = f'%{search_query}%'
         query = query.filter(
             db.or_(
                 WikiPage.title.ilike(search_filter),
+                WikiPage.slug.ilike(search_filter),
                 WikiPage.content.ilike(search_filter),
-                WikiPage.slug.ilike(search_filter)
             )
         )
     
@@ -159,12 +167,15 @@ def index():
     else:
         query = query.order_by(sort_col.desc())
     
-    pages = query.all()
+    pagination = query.paginate(page=list_page, per_page=WIKI_LIST_PER_PAGE, error_out=False)
+    pages = pagination.items
     sidebar = _wiki_sidebar_context()
     nav = visibility_nav_context('wiki', current_user, section, filter_team_id)
     
     return render_template('wiki/index.html',
                          pages=pages,
+                         pagination=pagination,
+                         wiki_has_more=pagination.has_next,
                          categories=sidebar['categories'],
                          tags=sidebar['tags'],
                          search_query=search_query,
@@ -557,56 +568,35 @@ def toggle_favorite(page_id):
     if not can_view_item(current_user, page, 'wiki'):
         return jsonify({'error': _('visibility.flash.access_denied')}), 403
     
+    from app.utils.favorites import add_user_favorite, remove_user_favorite
+
     if request.method == 'POST':
-        # Prüfe ob bereits favorisiert
-        existing_favorite = WikiFavorite.query.filter_by(
-            user_id=current_user.id,
-            wiki_page_id=page_id
-        ).first()
-        
-        if existing_favorite:
-            return jsonify({'error': _('wiki.api.favorite.already'), 'is_favorite': True}), 400
-        
-        # Prüfe ob bereits 5 Favoriten vorhanden
-        favorite_count = WikiFavorite.query.filter_by(user_id=current_user.id).count()
-        if favorite_count >= 5:
-            return jsonify({'error': _('wiki.api.favorite.limit'), 'is_favorite': False}), 400
-        
-        # Füge zu Favoriten hinzu
-        favorite = WikiFavorite(
-            user_id=current_user.id,
-            wiki_page_id=page_id
+        status, is_favorite, favorites_count = add_user_favorite(
+            current_user.id, WikiFavorite, 'wiki_page_id', page_id, max_count=5
         )
-        db.session.add(favorite)
-        db.session.commit()
-        favorites_count = WikiFavorite.query.filter_by(user_id=current_user.id).count()
-        
+        if status == 'already':
+            return jsonify({'error': _('wiki.api.favorite.already'), 'is_favorite': True}), 400
+        if status == 'limit':
+            return jsonify({'error': _('wiki.api.favorite.limit'), 'is_favorite': False}), 400
         return jsonify({
             'success': True,
-            'is_favorite': True,
+            'is_favorite': is_favorite,
             'favorites_count': favorites_count,
             'message': _('wiki.api.favorite.added')
         })
-    
+
     elif request.method == 'DELETE':
-        # Entferne aus Favoriten
-        favorite = WikiFavorite.query.filter_by(
-            user_id=current_user.id,
-            wiki_page_id=page_id
-        ).first()
-        
-        if favorite:
-            db.session.delete(favorite)
-            db.session.commit()
-            favorites_count = WikiFavorite.query.filter_by(user_id=current_user.id).count()
-            return jsonify({
-                'success': True,
-                'is_favorite': False,
-                'favorites_count': favorites_count,
-                'message': _('wiki.api.favorite.removed')
-            })
-        else:
+        status, is_favorite, favorites_count = remove_user_favorite(
+            current_user.id, WikiFavorite, 'wiki_page_id', page_id
+        )
+        if status == 'missing':
             return jsonify({'error': _('wiki.api.favorite.missing'), 'is_favorite': False}), 404
+        return jsonify({
+            'success': True,
+            'is_favorite': is_favorite,
+            'favorites_count': favorites_count,
+            'message': _('wiki.api.favorite.removed')
+        })
 
 
 @wiki_bp.route('/api/favorite/check/<int:page_id>', methods=['GET'])

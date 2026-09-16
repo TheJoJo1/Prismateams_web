@@ -40,13 +40,38 @@
         return answers;
     }
 
+    function coerceNumber(value) {
+        if (value === null || value === undefined || value === '') return null;
+        const num = Number(value);
+        return Number.isFinite(num) ? num : null;
+    }
+
     function evaluate(operator, answer, expected) {
         const empty = answer === null || answer === undefined || answer === '' || (Array.isArray(answer) && !answer.length);
         if (operator === 'is_empty') return empty;
         if (operator === 'is_not_empty') return !empty;
-        if (operator === 'equals') return String(answer) === String(expected);
-        if (operator === 'not_equals') return String(answer) !== String(expected);
-        if (operator === 'contains') return String(answer).includes(String(expected));
+        if (operator === 'equals') {
+            if (Array.isArray(answer)) return answer.map(String).includes(String(expected));
+            return String(answer) === String(expected);
+        }
+        if (operator === 'not_equals') return !evaluate('equals', answer, expected);
+        if (operator === 'contains') {
+            if (answer == null) return false;
+            if (Array.isArray(answer)) return answer.some((item) => String(item).includes(String(expected)));
+            return String(answer).includes(String(expected));
+        }
+        if (operator === 'one_of') {
+            const options = Array.isArray(expected) ? expected : [expected];
+            const optionSet = options.map(String);
+            if (Array.isArray(answer)) return answer.some((item) => optionSet.includes(String(item)));
+            return optionSet.includes(String(answer));
+        }
+        if (operator === 'greater_than' || operator === 'less_than') {
+            const aNum = coerceNumber(Array.isArray(answer) ? answer[0] : answer);
+            const eNum = coerceNumber(expected);
+            if (aNum == null || eNum == null) return false;
+            return operator === 'greater_than' ? aNum > eNum : aNum < eNum;
+        }
         return false;
     }
 

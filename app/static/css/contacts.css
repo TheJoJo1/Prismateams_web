@@ -1,4 +1,4 @@
-/* Kontakt-Chip-Komponente Styles */
+/* Kontakt-Chip-Komponente (E-Mail-Compose) + Modul-UI (Shell / Listen / Form) */
 
 .contact-chip-wrapper {
     position: relative;
@@ -34,7 +34,7 @@
     gap: 0.5rem;
     background: var(--bs-secondary-bg);
     border: 1px solid var(--bs-border-color);
-    border-radius: 1.5rem;
+    border-radius: var(--mod-radius-pill);
     padding: 0.25rem 0.5rem 0.25rem 0.25rem;
     font-size: 0.875rem;
     max-width: 100%;
@@ -45,7 +45,7 @@
     width: 24px;
     height: 24px;
     border-radius: 50% !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     color: white !important;
     display: flex;
     align-items: center;
@@ -100,6 +100,7 @@
 }
 
 /* Autocomplete Dropdown */
+
 .contact-autocomplete-dropdown {
     position: absolute;
     top: 100%;
@@ -142,7 +143,7 @@
     width: 32px;
     height: 32px;
     border-radius: 50% !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     color: white !important;
     display: flex;
     align-items: center;
@@ -172,6 +173,7 @@
 }
 
 /* Dark Mode Anpassungen */
+
 [data-bs-theme="dark"] .contact-chip-wrapper {
     background: var(--bs-secondary-bg);
     border-color: var(--bs-border-color);
@@ -188,6 +190,7 @@
 }
 
 /* Mobile Optimierungen */
+
 @media (max-width: 767.98px) {
     .contact-chip-wrapper {
         min-height: 44px;
@@ -226,108 +229,8 @@
     }
 }
 
-.mod-sidebar-brand .bi {
-    font-size: 1.45rem;
-    opacity: 0.95;
-}
-
-.mod-sidebar-form .form-label {
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
-}
-
-.mod-sidebar-form .form-control,
-.mod-sidebar-form .form-select {
-    font-size: 0.85rem;
-}
-
-.mod-sidebar-action .bi,
-.mod-sidebar-action span,
-.btn.mod-sidebar-action .bi,
-.btn.mod-sidebar-action span {
-    color: var(--accent-color, #0d6efd) !important;
-}
-
-.mod-sidebar-action--muted .bi,
-.mod-sidebar-action--muted span,
-.btn.mod-sidebar-action--muted .bi,
-.btn.mod-sidebar-action--muted span {
-    color: var(--bs-secondary-color, #6c757d) !important;
-}
-
-/* ——— Suche oben mittig (wie Dateien) ——— */
-.contacts-search {
-    position: relative;
-    max-width: 28rem;
-    margin: 0 auto;
-    width: 100%;
-}
-
-.contacts-search-icon {
-    position: absolute;
-    left: 0.95rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--accent-color, #0d6efd);
-    pointer-events: none;
-    font-size: 0.95rem;
-}
-
-.contacts-search-input,
-.form-control.contacts-search-input {
-    border-radius: var(--mod-radius-pill, 1.5rem) !important;
-    padding-left: 2.35rem;
-    padding-right: 2.35rem;
-    height: 2.55rem;
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
-    box-shadow: none;
-}
-
-.contacts-search-input:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 55%, var(--bs-border-color));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-}
-
-.contacts-search-clear {
-    position: absolute;
-    right: 0.35rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.85rem;
-    height: 1.85rem;
-    padding: 0;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--bs-secondary-color, #6c757d);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-}
-
-.contacts-search-clear:hover {
-    background: rgba(127, 127, 127, 0.12);
-    color: var(--bs-body-color);
-}
-
-/* ——— List / Grid pill toggle (uses files-view-toggle classes) ——— */
-.contacts-mobile-view-toggle .files-view-toggle__btn {
-    width: 2.1rem;
-    height: 2.1rem;
-}
-
-.page-toolbar-row .files-view-toggle {
-    flex-shrink: 0;
-}
-
-.contacts-mobile-view-toggle {
-    display: flex;
-    justify-content: flex-start;
-}
-
 /* Mobile Neu — Akzent-Pill */
+
 .contacts-shell .mod-new-btn,
 .btn.mod-new-btn {
     border-radius: var(--mod-radius-pill, 1.5rem) !important;
@@ -335,7 +238,7 @@
     font-weight: 600;
     padding: 0.4rem 1rem;
     color: #fff !important;
-    background: var(--accent-style, var(--accent-color, #0d6efd)) !important;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary))) !important;
     box-shadow: 0 0.2rem 0.55rem rgba(0, 0, 0, 0.14);
     display: inline-flex;
     align-items: center;
@@ -356,13 +259,13 @@
     gap: 0.5rem;
 }
 
-.contacts-mobile-search .contacts-search {
+.contacts-mobile-search .mod-search {
     max-width: none;
     margin: 0;
 }
 
-.contacts-mobile-search .contacts-search-input,
-.contacts-mobile-search .form-control.contacts-search-input {
+.contacts-mobile-search .mod-search-input,
+.contacts-mobile-search .form-control.mod-search-input {
     height: 2.35rem;
 }
 
@@ -393,7 +296,7 @@
 
 .mod-list-hover-actions .btn-link:hover,
 .mod-list-hover-actions .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .mod-list-actions .dropdown .btn-link {
@@ -404,6 +307,7 @@
 }
 
 /* ——— 3-Punkte-Menü (Pillen, wie Dateien/E-Mail) ——— */
+
 .contacts-actions-menu,
 .mod-list-actions .contacts-actions-menu,
 .contacts-card-menu .contacts-actions-menu,
@@ -428,7 +332,7 @@
 
 .contacts-actions-menu .dropdown-item:hover,
 .contacts-actions-menu .dropdown-item:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
     color: var(--bs-body-color, #212529);
 }
 
@@ -452,10 +356,11 @@
 
 .contacts-card-menu .btn-link:hover,
 .contacts-card-menu .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 /* Grid-Hover-Shortcuts: nur große Screens (lg+), wie Dateien */
+
 .contacts-grid-hover-actions {
     display: none !important;
     align-items: center;
@@ -479,16 +384,18 @@
 
 .contacts-grid-hover-actions .btn-link:hover,
 .contacts-grid-hover-actions .btn-link:focus {
-    color: var(--accent-color, #0d6efd);
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 10%, transparent);
+    color: var(--accent-color, var(--bs-primary));
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
 }
 
 .contact-favorite-btn .bi-star-fill {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 /* ——— Grid-Karten ——— */
+
 .contacts-card {
+    position: relative;
     border-radius: var(--mod-radius-card, 0.9rem);
     border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.22));
     overflow: visible;
@@ -496,8 +403,8 @@
 }
 
 .contacts-card:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 35%, transparent);
-    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, transparent);
+    box-shadow: 0 0.35rem 1rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
 }
 
 .contacts-card .card-body {
@@ -506,7 +413,7 @@
 
 .contacts-card-avatar {
     border-radius: 50%;
-    background: var(--accent-style, var(--accent-color, #0d6efd));
+    background: var(--accent-style, var(--accent-color, var(--bs-primary)));
     color: #fff;
 }
 
@@ -524,7 +431,7 @@
 }
 
 .contacts-card-meta a:hover {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .contacts-card-notes {
@@ -541,7 +448,6 @@
 }
 
 .contacts-card:has(.dropdown.show),
-.mod-list-row:has(.dropdown.show),
 #gridViewContainer > .row > [class*="col-"]:has(.dropdown.show) {
     position: relative;
     z-index: 1100;
@@ -568,12 +474,14 @@
 }
 
 /* Sidebar-Filter: Pill-Inputs */
+
 .contacts-shell .mod-sidebar-form .form-control,
 .contacts-shell .mod-sidebar-form .form-select {
     border-radius: var(--mod-radius-pill, 1.5rem) !important;
 }
 
 /* ——— Create / Edit Formulare (wie Veranstaltungen) ——— */
+
 .contacts-form {
     --contacts-form-surface: var(--bs-tertiary-bg, #f8f9fa);
     --contacts-form-elevated: var(--bs-body-bg, #fff);
@@ -603,13 +511,13 @@
     font-size: 0.95rem;
     margin-bottom: 0.65rem;
     padding: 0.25rem 0.15rem;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     width: fit-content;
 }
 
 .contacts-form-back:hover,
 .contacts-form-back:focus {
-    color: var(--accent-color, #0d6efd);
+    color: var(--accent-color, var(--bs-primary));
 }
 
 .contacts-form-back i {
@@ -701,8 +609,8 @@
 
 .contacts-form .form-control:focus,
 .contacts-form .form-select:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 45%, var(--contacts-form-border));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 45%, var(--contacts-form-border));
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
 }
 
 .contacts-form-actions {
@@ -722,4 +630,86 @@
     --contacts-form-surface: color-mix(in srgb, var(--bs-body-bg, #212529) 88%, #fff);
     --contacts-form-elevated: var(--bs-body-bg, #212529);
     --contacts-form-border: rgba(255, 255, 255, 0.12);
+}
+
+/* ——— Multi-select / Premium list polish ——— */
+
+.contacts-card:hover .mod-select-check,
+.contacts-card.is-selected .mod-select-check,
+body.mod-has-selection .contacts-card .mod-select-check {
+    opacity: 1;
+}
+
+.contacts-card.is-selected {
+    outline: 2px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 55%, transparent);
+    outline-offset: 1px;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 6%, transparent);
+}
+
+.contacts-list-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 650;
+    background: var(--accent-style, var(--accent-color, var(--bs-primary)));
+    color: #fff;
+    line-height: 1;
+}
+
+.mod-list-row:hover .mod-list-name-cell > .d-flex,
+.mod-list-row.is-selected .mod-list-name-cell > .d-flex,
+body.mod-has-selection .mod-list-name-cell > .d-flex {
+    padding-left: 1.55rem;
+    transition: padding-left 0.12s ease;
+}
+
+.contacts-shell .mod-list-name-cell {
+    max-width: 18rem;
+}
+
+.contacts-vis-badge {
+    font-weight: 550;
+    font-size: 0.72rem;
+    border-radius: var(--mod-radius-pill, 1.5rem);
+    padding: 0.25em 0.65em;
+}
+
+.contacts-vis-badge--public {
+    background: color-mix(in srgb, #0dcaf0 22%, transparent);
+    color: var(--bs-body-color);
+}
+
+.contacts-vis-badge--team {
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 22%, transparent);
+    color: var(--bs-body-color);
+}
+
+.contacts-vis-badge--private {
+    background: var(--bs-secondary-bg, #e9ecef);
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.contacts-share-preview {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.25));
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    max-height: 14rem;
+    overflow: auto;
+}
+
+.contacts-form-header .mod-back-row {
+    margin-bottom: 0.35rem;
+}
+
+.contacts-form .mod-pill-select {
+    width: 100%;
 }

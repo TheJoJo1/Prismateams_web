@@ -19,6 +19,11 @@ _redis_client = None
 _redis_lock = threading.Lock()
 _redis_url = None  # Wird beim ersten Aufruf gesetzt
 
+# Sync-/gthread-Worker nicht endlos blockieren: Stream nach TTL schließen.
+# EventSource reconnectet automatisch; unter gunicorn --timeout halten.
+SSE_MAX_STREAM_SECONDS = int(os.environ.get('SSE_MAX_STREAM_SECONDS', '45'))
+SSE_HEARTBEAT_SECONDS = 15
+
 
 def get_redis_client():
     """Lazy-load Redis client."""
@@ -79,49 +84,51 @@ def event_stream(channels, user_id=None):
         for channel in channels:
             pubsub.subscribe(channel)
         
-        # Sende initiales Heartbeat
         yield f"event: connected\ndata: {json.dumps({'channels': channels})}\n\n"
-        
-        # Heartbeat-Thread starten
-        last_heartbeat = time.time()
-        
+
+        started = time.time()
+        last_heartbeat = started
+        max_age = max(15, SSE_MAX_STREAM_SECONDS)
+
         while True:
             try:
-                # Warte auf Nachrichten (mit Timeout für Heartbeat)
+                if (time.time() - started) >= max_age:
+                    # Graceful close → Browser EventSource reconnects; frees worker/thread.
+                    yield f"event: reconnect\ndata: {json.dumps({'reason': 'ttl', 'after': max_age})}\n\n"
+                    break
+
                 message = pubsub.get_message(timeout=5.0)
-                
+
                 if message and message['type'] == 'message':
                     try:
                         data = json.loads(message['data'])
                         event_type = data.get('event', 'update')
                         event_data = data.get('data', {})
-                        
-                        # Filter nach User-ID wenn angegeben
+
                         target_user = event_data.get('user_id')
                         if target_user and user_id and target_user != user_id:
                             continue
-                        
+
                         yield f"event: {event_type}\ndata: {json.dumps(event_data)}\n\n"
                     except json.JSONDecodeError:
                         pass
-                
-                # Heartbeat alle 30 Sekunden
-                if time.time() - last_heartbeat > 30:
+
+                if time.time() - last_heartbeat > SSE_HEARTBEAT_SECONDS:
                     yield f"event: heartbeat\ndata: {json.dumps({'time': time.time()})}\n\n"
                     last_heartbeat = time.time()
-                    
+
             except GeneratorExit:
                 break
             except Exception as e:
                 import logging
                 logging.getLogger(__name__).warning(f"SSE stream error: {e}")
                 break
-                
+
     finally:
         try:
             pubsub.unsubscribe()
             pubsub.close()
-        except:
+        except Exception:
             pass
 
 
@@ -227,6 +234,56 @@ def emit_kanban_update(board_id, event_type, data):
     return publish_event(channel, f'kanban:{event_type}', data)
 
 
+def emit_chat_update(chat_id, event_type, data):
+    """Sendet ein Chat-Live-Update an alle verbundenen Clients des Chats."""
+    channel = f'chat:{chat_id}'
+    payload = dict(data or {})
+    payload.setdefault('chat_id', chat_id)
+    return publish_event(channel, f'chat:{event_type}', payload)
+
+
+def emit_inventory_update(inventory_id, event_type, data=None):
+    """Sendet ein Inventur-Update an alle verbundenen Clients der Session."""
+    channel = f'inventory:{inventory_id}'
+    payload = dict(data or {})
+    payload.setdefault('inventory_id', inventory_id)
+    return publish_event(channel, f'inventory:{event_type}', payload)
+
+
+@sse_bp.route('/events/chat/<int:chat_id>')
+@login_required
+def chat_events(chat_id):
+    """SSE-Endpoint für Chat-Live-Updates (Nachrichten, Polls, RSVP)."""
+    from app.models.chat import Chat, ChatMember
+
+    Chat.query.get_or_404(chat_id)
+    membership = ChatMember.query.filter_by(
+        chat_id=chat_id,
+        user_id=current_user.id,
+    ).first()
+    if not membership:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not get_redis_client():
+        return jsonify({'error': 'SSE unavailable'}), 503
+
+    channels = [f'chat:{chat_id}']
+
+    def generate():
+        yield from event_stream(channels, current_user.id)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*',
+        },
+    )
+
+
 @sse_bp.route('/events/kanban/<int:board_id>')
 @login_required
 def kanban_events(board_id):
@@ -239,6 +296,9 @@ def kanban_events(board_id):
         board.closed_at and getattr(current_user, 'is_admin', False)
     ):
         return jsonify({'error': 'Forbidden'}), 403
+
+    if not get_redis_client():
+        return jsonify({'error': 'SSE unavailable'}), 503
 
     channels = [f'kanban:board:{board_id}']
 
@@ -256,3 +316,34 @@ def kanban_events(board_id):
         },
     )
     return response
+
+
+@sse_bp.route('/events/inventory/<int:inventory_id>')
+@login_required
+def inventory_events(inventory_id):
+    """SSE-Endpoint für Inventur-Session-Live-Updates."""
+    from app.models.inventory import Inventory
+    from app.utils.access_control import has_module_access
+    from app.utils.common import is_module_enabled
+
+    if not is_module_enabled('module_inventory') or not has_module_access(
+        current_user, 'module_inventory'
+    ):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    Inventory.query.get_or_404(inventory_id)
+    channels = [f'inventory:{inventory_id}']
+
+    def generate():
+        yield from event_stream(channels, current_user.id)
+
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no',
+            'Access-Control-Allow-Origin': '*',
+        },
+    )

@@ -1,18 +1,18 @@
 {% macro settings_search(id_suffix='') %}
-<div class="settings-search" role="search" data-settings-search-root>
-    <label class="settings-search-field" for="settingsSearchInput{{ id_suffix }}">
+<div class="mod-search" role="search" data-settings-search-root>
+    <label class="mod-search-field" for="settingsSearchInput{{ id_suffix }}">
         <i class="bi bi-search" aria-hidden="true"></i>
         <input type="search"
                id="settingsSearchInput{{ id_suffix }}"
-               class="settings-search-input"
+               class="mod-search-input"
                placeholder="{{ _('settings.search.placeholder') }}"
                aria-label="{{ _('settings.search.label') }}"
                autocomplete="off"
                spellcheck="false"
                enterkeyhint="search"
-               data-settings-search-input>
+               data-mod-search-input>
     </label>
-    <button type="button" class="btn settings-search-clear d-none" id="settingsSearchClear{{ id_suffix }}" aria-label="{{ _('common.cancel') }}" data-settings-search-clear>
+    <button type="button" class="btn mod-search-clear d-none" id="settingsSearchClear{{ id_suffix }}" aria-label="{{ _('common.cancel') }}" data-settings-search-clear>
         <i class="bi bi-x-lg"></i>
     </button>
     <div class="settings-search-results d-none" id="settingsSearchResults{{ id_suffix }}" role="listbox" aria-label="{{ _('settings.search.label') }}" data-settings-search-results></div>
@@ -22,13 +22,14 @@
 {% macro settings_sidebar_chrome(id_suffix='', dismiss_offcanvas=false) %}
 {% set ep = request.endpoint or '' %}
 
-{# Active groups #}
 {% set start_active = ep == 'settings.index' %}
 {% set profile_active = ep in ['settings.profile', 'settings.remove_profile_picture'] %}
 {% set appearance_active = ep == 'settings.appearance' %}
 {% set notifications_active = ep == 'settings.notifications' %}
 {% set security_active = ep.startswith('settings.security') %}
+{% set privacy_active = ep in ['settings.privacy', 'settings.privacy_export'] %}
 {% set about_active = ep == 'settings.about' %}
+{% set kanban_import_active = ep == 'settings.kanban_import' %}
 
 {% set users_active = ep in [
     'settings.admin_users',
@@ -88,6 +89,9 @@
 {% set inventory_active = ep == 'settings.admin_inventory_settings' %}
 {% set calendar_active = ep == 'settings.admin_calendar_settings' %}
 {% set files_active = ep == 'settings.admin_file_settings' %}
+{% set cloud_import_active = ep.startswith('settings.cloud_import') %}
+{% set show_cloud_import = is_module_enabled('module_files') %}
+{% set show_kanban_import = is_module_enabled('module_kanban') and (kanban_import_targets is defined and kanban_import_targets) %}
 
 <div class="settings-sidebar-scroll">
 <nav class="mod-sidebar-nav nav flex-column gap-1" aria-label="{{ _('settings.sidebar.nav_label') }}">
@@ -98,7 +102,6 @@
     <div class="settings-nav-section">
         <div class="settings-nav-section-title">{{ _('settings.sidebar.sections.account') }}</div>
     </div>
-
     <a href="{{ url_for('settings.profile') }}" class="nav-link mod-nav-link{% if profile_active %} active{% endif %}"{% if dismiss_offcanvas %} data-settings-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-person-circle me-2"></i>{{ _('settings.index.cards.profile.title') }}
     </a>
@@ -115,9 +118,25 @@
         <i class="bi bi-info-circle me-2"></i>{{ _('settings.index.cards.about.title') }}
     </a>
 
+    <div class="settings-nav-section">
+        <div class="settings-nav-section-title">{{ _('settings.sidebar.sections.tools') }}</div>
+    </div>
+    <a href="{{ url_for('settings.privacy') }}" class="nav-link mod-nav-link{% if privacy_active %} active{% endif %}"{% if dismiss_offcanvas %} data-settings-dismiss-offcanvas="1"{% endif %}>
+        <i class="bi bi-shield-check me-2"></i>{{ _('settings.index.cards.privacy.title') }}
+    </a>
+    {% if show_cloud_import %}
+    <a href="{{ url_for('settings.cloud_import') }}" class="nav-link mod-nav-link{% if cloud_import_active %} active{% endif %}"{% if dismiss_offcanvas %} data-settings-dismiss-offcanvas="1"{% endif %}>
+        <i class="bi bi-cloud-arrow-down me-2"></i>{{ _('settings.cloud_import.title') }}
+    </a>
+    {% endif %}
     {% if is_module_enabled('module_email') and is_email_multi_enabled() %}
     <a href="{{ url_for('settings.my_mailboxes') }}" class="nav-link mod-nav-link{% if my_mailboxes_active %} active{% endif %}"{% if dismiss_offcanvas %} data-settings-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-mailbox me-2"></i>{{ _('settings.mailboxes.my_title') }}
+    </a>
+    {% endif %}
+    {% if show_kanban_import %}
+    <a href="{{ url_for('settings.kanban_import') }}" class="nav-link mod-nav-link{% if kanban_import_active %} active{% endif %}"{% if dismiss_offcanvas %} data-settings-dismiss-offcanvas="1"{% endif %}>
+        <i class="bi bi-kanban me-2"></i>{{ _('settings.kanban_import.nav') }}
     </a>
     {% endif %}
 

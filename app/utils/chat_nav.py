@@ -2,10 +2,22 @@
 
 from datetime import datetime
 
-from sqlalchemy import func
+from sqlalchemy import func, inspect as sa_inspect
+from sqlalchemy.orm import joinedload, selectinload
 
 from app import db
 from app.models.chat import Chat, ChatMember, ChatMessage, ChatPin
+from app.utils.chat_unread import unread_counts_by_chat_for_user
+from app.utils.chat_visibility import SYSTEM_ANONYMOUS_EMAIL
+from app.utils.i18n import translate
+
+CHAT_MEMBERS_WITH_USER = (
+    joinedload(ChatMember.chat)
+    .selectinload(Chat.members)
+    .joinedload(ChatMember.user)
+)
+CHAT_WITH_MEMBERS = selectinload(Chat.members).joinedload(ChatMember.user)
+MESSAGE_WITH_SENDER = joinedload(ChatMessage.sender)
 
 CHAT_PINS_MAX = 6
 
@@ -13,6 +25,33 @@ CHAT_PINS_MAX = 6
 def _team_chat_visible(team_id) -> bool:
     from app.utils.team_module_settings import is_team_section_enabled
     return is_team_section_enabled(team_id, 'chat')
+
+
+def _visible_team_chat_ids(team_ids) -> set:
+    """Batch-check which team chats are visible (one TeamModuleSetting query)."""
+    ids = {int(tid) for tid in team_ids if tid}
+    if not ids:
+        return set()
+
+    from app.utils.common import is_module_enabled
+    from app.utils.module_visibility_settings import is_global_team_enabled
+    from app.models.team import TeamModuleSetting
+
+    if not is_global_team_enabled() or not is_module_enabled('module_chat'):
+        return set()
+
+    rows = (
+        TeamModuleSetting.query.filter(
+            TeamModuleSetting.team_id.in_(ids),
+            TeamModuleSetting.module_key == 'chat',
+        ).all()
+    )
+    disabled = {
+        int(row.team_id)
+        for row in rows
+        if not bool(row.team_section_enabled)
+    }
+    return ids - disabled
 
 
 def wants_desktop_chat_layout(user, request):
@@ -136,6 +175,54 @@ def _unread_count_for_membership(membership, user_id):
     ).count()
 
 
+def _chat_members(chat):
+    """ChatMember rows with .user available; one query only if not already loaded."""
+    if chat is None:
+        return []
+    try:
+        state = sa_inspect(chat)
+        if 'members' not in state.unloaded:
+            return list(chat.members or [])
+    except Exception:
+        pass
+    chat_id = getattr(chat, 'id', None)
+    if not chat_id:
+        return []
+    return (
+        ChatMember.query
+        .options(joinedload(ChatMember.user))
+        .filter_by(chat_id=chat_id)
+        .all()
+    )
+
+
+def other_user_for_chat(chat, current_user_id):
+    """Peer in a DM from loaded members (no extra query when eager-loaded)."""
+    if not chat or not chat.is_direct_message or chat.is_main_chat:
+        return None
+    for member in _chat_members(chat):
+        if member.user_id == current_user_id:
+            continue
+        user = member.user
+        if user is None or getattr(user, 'email', None) == SYSTEM_ANONYMOUS_EMAIL:
+            continue
+        return user
+    return None
+
+
+def display_name_for_chat(chat, current_user_id):
+    """Same labels as the previous template helpers, without per-call queries."""
+    if chat is None:
+        return ''
+    if chat.is_main_chat:
+        return translate('chat.common.main_chat_name')
+    if chat.is_direct_message:
+        peer = other_user_for_chat(chat, current_user_id)
+        if peer is not None:
+            return peer.full_name
+    return chat.name
+
+
 def _last_message_times(chat_ids):
     if not chat_ids:
         return {}
@@ -157,7 +244,12 @@ def build_chat_nav_items(user):
 
     Order: main chat → pinned (by pin created_at) → rest by last message desc.
     """
-    memberships = ChatMember.query.filter_by(user_id=user.id).all()
+    memberships = (
+        ChatMember.query
+        .options(CHAT_MEMBERS_WITH_USER)
+        .filter_by(user_id=user.id)
+        .all()
+    )
     if not memberships:
         return []
 
@@ -175,14 +267,16 @@ def build_chat_nav_items(user):
     pinned_ids = set(pin_order.keys())
 
     last_times = _last_message_times(chat_ids)
+    unread_by_chat = unread_counts_by_chat_for_user(user.id, chat_ids)
     epoch = datetime.min
 
     main = [c for c in chats if c.is_main_chat][:1]  # only one Haupt-Chat in the nav
+    team_ids_present = {c.team_id for c in chats if c.team_id}
+    visible_teams = _visible_team_chat_ids(team_ids_present)
     team_chats = sorted(
         [
             c for c in chats
-            if not c.is_main_chat and c.team_id
-            and _team_chat_visible(c.team_id)
+            if not c.is_main_chat and c.team_id and c.team_id in visible_teams
         ],
         key=lambda c: (c.name or '').lower(),
     )
@@ -206,10 +300,12 @@ def build_chat_nav_items(user):
             'chat': chat,
             'nav_id': 1 if chat.is_main_chat else chat.id,
             'member_count': len(chat.members) if chat.members is not None else 0,
-            'unread_count': _unread_count_for_membership(membership, user.id) if membership else 0,
+            'unread_count': unread_by_chat.get(chat.id, 0) if membership else 0,
             'is_pinned': chat.id in pinned_ids and not chat.is_main_chat and not is_team,
             'can_pin': not chat.is_main_chat and not is_team,
             'is_team_chat': is_team,
+            'display_name': display_name_for_chat(chat, user.id),
+            'other_user': other_user_for_chat(chat, user.id),
         })
     return items
 

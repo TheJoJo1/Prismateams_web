@@ -1,5 +1,8 @@
 """
-ONLYOFFICE helper functions and utilities.
+Euro-Office / Document Server helpers (ONLYOFFICE-compatible API).
+
+Product branding is Euro-Office; configuration keys remain ONLYOFFICE_* for
+compatibility with Document Server JWT and existing deployments.
 """
 import hashlib
 import os
@@ -8,7 +11,7 @@ import secrets
 from datetime import datetime, timedelta
 from urllib.parse import urlparse
 
-from flask import current_app
+from flask import current_app, has_request_context, request
 
 try:
     import jwt
@@ -29,8 +32,40 @@ _ONLYOFFICE_VERSION_RE = re.compile(
 
 
 def is_onlyoffice_enabled():
-    """Check if ONLYOFFICE is enabled in configuration."""
+    """Check if Euro-Office (Document Server) is enabled in configuration."""
     return current_app.config.get('ONLYOFFICE_ENABLED', False)
+
+
+def get_onlyoffice_document_server_url():
+    """
+    Return configured Document Server base URL or path.
+
+    Empty values normalize to ``/eurooffice`` (new installs). Legacy
+    ``/onlyoffice`` remains valid when set explicitly in .env.
+    """
+    url = (current_app.config.get('ONLYOFFICE_DOCUMENT_SERVER_URL') or '').strip()
+    return url or '/eurooffice'
+
+
+def get_onlyoffice_secret_key():
+    """Return trimmed ONLYOFFICE_SECRET_KEY (empty if unset)."""
+    return (current_app.config.get('ONLYOFFICE_SECRET_KEY') or '').strip()
+
+
+def onlyoffice_allows_unsigned_callbacks():
+    """
+    Whether callbacks may be accepted without JWT when no secret is configured.
+
+    Compatibility:
+    - Document Server with JWT_ENABLED=false needs empty ONLYOFFICE_SECRET_KEY.
+    - Auto (config None): allow unsigned only in debug/testing (local setups).
+    - Production: reject unsigned unless ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS=true.
+    - When ONLYOFFICE_SECRET_KEY is set, JWT is always required (this flag ignored).
+    """
+    configured = current_app.config.get('ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS')
+    if configured is not None:
+        return bool(configured)
+    return bool(current_app.debug or current_app.testing)
 
 
 def get_file_mtime(file_path):
@@ -51,10 +86,28 @@ def build_onlyoffice_document_key(prefix, resource_id, version_token, file_path)
 
     The key stays the same while co-editing one revision (same version_token + mtime)
     and changes after a successful save updates the file on disk.
+
+    Format embeds ``{prefix}{resource_id}-`` so callbacks can bind payload.key to
+    the URL resource id and reject cross-file replay.
     """
     mtime = get_file_mtime(file_path)
-    raw = f"{prefix}_{resource_id}_{version_token}_{mtime}"
-    return hashlib.md5(raw.encode()).hexdigest()
+    rid = int(resource_id)
+    raw = f"{prefix}_{rid}_{version_token}_{mtime}"
+    digest = hashlib.md5(raw.encode()).hexdigest()
+    # OnlyOffice allows [0-9a-zA-Z._=] and '-' ; max length 128
+    key = f"{prefix}{rid}-{digest}"
+    return key[:128]
+
+
+def onlyoffice_document_key_matches_resource(key, prefix, resource_id):
+    """True if document key was minted for prefix+resource_id."""
+    if not key or not prefix:
+        return False
+    try:
+        rid = int(resource_id)
+    except (TypeError, ValueError):
+        return False
+    return str(key).startswith(f"{prefix}{rid}-")
 
 
 def resolve_storage_path(file_path):
@@ -83,7 +136,7 @@ def get_onlyoffice_internal_base_urls():
 
     add('http://127.0.0.1:8080')
     add('http://localhost:8080')
-    configured = (current_app.config.get('ONLYOFFICE_DOCUMENT_SERVER_URL') or '').strip()
+    configured = get_onlyoffice_document_server_url()
     if configured.startswith('http://') or configured.startswith('https://'):
         add(configured)
     return candidates
@@ -106,7 +159,7 @@ def send_onlyoffice_command(command, document_key, userdata=None):
 
     headers = {'Content-Type': 'application/json'}
     body = dict(payload)
-    secret_key = (current_app.config.get('ONLYOFFICE_SECRET_KEY') or '').strip()
+    secret_key = get_onlyoffice_secret_key()
     if secret_key and JWT_AVAILABLE:
         try:
             token = jwt.encode(payload, secret_key, algorithm='HS256')
@@ -306,9 +359,9 @@ def generate_onlyoffice_token(payload):
     Returns:
         str: JWT token string, or None if JWT is not available or secret key is not set
     """
-    secret_key = current_app.config.get('ONLYOFFICE_SECRET_KEY', '').strip()
+    secret_key = get_onlyoffice_secret_key()
     
-    # If no secret key is set, return None (token not required)
+    # If no secret key is set, return None (token not required / unsigned DS mode)
     if not secret_key:
         current_app.logger.debug("ONLYOFFICE_SECRET_KEY not set, skipping token generation")
         return None
@@ -331,71 +384,136 @@ def generate_onlyoffice_token(payload):
         return None
 
 
-def generate_onlyoffice_access_token(file_id, user_id=None):
-    """
-    Generate a temporary access token for OnlyOffice to access documents.
-    This token allows OnlyOffice to download files without session cookies.
-    
-    Args:
-        file_id: ID of the file to access
-        user_id: ID of the user requesting access (optional)
-        
-    Returns:
-        str: Access token string
-    """
-    # Create a token that includes file_id, user_id, and timestamp
-    timestamp = datetime.utcnow().isoformat()
-    token_data = f"{file_id}_{user_id or 'anonymous'}_{timestamp}"
-    
-    # Use secret key for signing
-    secret_key = current_app.config.get('ONLYOFFICE_SECRET_KEY', current_app.config.get('SECRET_KEY', 'default-secret'))
-    
-    # Create hash-based token
-    token_string = f"{token_data}_{secret_key}"
-    token = hashlib.sha256(token_string.encode()).hexdigest()[:32]
-    
-    # Store token in a way that can be validated (using session or cache)
-    # For now, we'll use a simple approach: token is valid for 1 hour
-    # In production, you might want to use Redis or similar
-    return token
+_ACCESS_TOKEN_PURPOSE = 'onlyoffice_document'
+_ACCESS_TOKEN_DEFAULT_TTL_SECONDS = 3600
 
 
-def validate_onlyoffice_access_token(token, file_id):
+def _onlyoffice_access_token_secret():
+    """Signing secret for document access tokens (never a hardcoded default)."""
+    secret = get_onlyoffice_secret_key() or (current_app.config.get('SECRET_KEY') or '').strip()
+    return secret or None
+
+
+def generate_onlyoffice_access_token(file_id, user_id=None, ttl_seconds=None, share_token=None):
     """
-    Validate an OnlyOffice access token.
-    
-    Since tokens are generated deterministically, we can validate by checking format
-    and ensuring the token structure is correct. For now, we accept any valid format
-    token for the given file_id, as the token includes file_id in its generation.
-    
-    Args:
-        token: The access token to validate
-        file_id: The file ID the token should grant access to
-        
-    Returns:
-        bool: True if token format is valid, False otherwise
+    Generate a signed, time-limited access token for OnlyOffice document download.
+
+    Claims bind the token to a specific resource id (file or attachment) so it
+    cannot be reused for another document. Optional share_token binds the token
+    to a public share (issued only after share password/guest gate).
+    """
+    if not JWT_AVAILABLE:
+        current_app.logger.error('ONLYOFFICE access token: PyJWT not available')
+        return None
+
+    secret_key = _onlyoffice_access_token_secret()
+    if not secret_key:
+        current_app.logger.error('ONLYOFFICE access token: no signing secret configured')
+        return None
+
+    try:
+        resource_id = int(file_id)
+    except (TypeError, ValueError):
+        current_app.logger.error('ONLYOFFICE access token: invalid file_id %r', file_id)
+        return None
+
+    if ttl_seconds is None:
+        ttl_seconds = int(
+            current_app.config.get('ONLYOFFICE_ACCESS_TOKEN_TTL', _ACCESS_TOKEN_DEFAULT_TTL_SECONDS)
+        )
+    ttl_seconds = max(60, min(int(ttl_seconds), 24 * 3600))
+
+    now = datetime.utcnow()
+    payload = {
+        'purpose': _ACCESS_TOKEN_PURPOSE,
+        'fid': resource_id,
+        'uid': int(user_id) if user_id is not None else None,
+        'iat': now,
+        'exp': now + timedelta(seconds=ttl_seconds),
+    }
+    if share_token:
+        payload['share'] = str(share_token)
+    try:
+        token = jwt.encode(payload, secret_key, algorithm='HS256')
+        if isinstance(token, bytes):
+            token = token.decode('utf-8')
+        return token
+    except Exception as e:
+        current_app.logger.error('Error generating ONLYOFFICE access token: %s', e)
+        return None
+
+
+def validate_onlyoffice_access_token(token, file_id, share_token=None):
+    """
+    Validate a signed OnlyOffice document access token for the given resource id.
+
+    Requires matching purpose claim, matching fid, and a non-expired signature.
+    When share_token is provided, the JWT must carry the same share claim
+    (tokens minted for authenticated portal use have no share claim).
     """
     if not token:
-        current_app.logger.debug("ONLYOFFICE access token validation failed: token is empty")
+        current_app.logger.debug('ONLYOFFICE access token validation failed: token is empty')
         return False
-    
-    # Token should be 32 characters hex string
-    if len(token) != 32:
-        current_app.logger.debug(f"ONLYOFFICE access token validation failed: invalid length ({len(token)})")
+
+    if not JWT_AVAILABLE:
+        current_app.logger.error('ONLYOFFICE access token validation failed: PyJWT not available')
         return False
-    
-    # Basic format validation - token should be hexadecimal
+
+    secret_key = _onlyoffice_access_token_secret()
+    if not secret_key:
+        current_app.logger.error('ONLYOFFICE access token validation failed: no signing secret')
+        return False
+
     try:
-        int(token, 16)
-    except ValueError:
-        current_app.logger.debug("ONLYOFFICE access token validation failed: not hexadecimal")
+        expected_fid = int(file_id)
+    except (TypeError, ValueError):
+        current_app.logger.debug('ONLYOFFICE access token validation failed: invalid file_id')
         return False
-    
-    # Token format is valid - accept it
-    # Note: In production, you might want to store tokens in Redis with expiration
-    # and validate against stored tokens. For now, format validation is sufficient
-    # since tokens are generated with file_id and secret key.
-    current_app.logger.debug(f"ONLYOFFICE access token validated successfully for file {file_id}")
+
+    try:
+        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+    except jwt.ExpiredSignatureError:
+        current_app.logger.debug(
+            'ONLYOFFICE access token validation failed: expired (file_id=%s)', expected_fid
+        )
+        return False
+    except jwt.InvalidTokenError as e:
+        current_app.logger.debug(
+            'ONLYOFFICE access token validation failed: %s (file_id=%s)', e, expected_fid
+        )
+        return False
+
+    if payload.get('purpose') != _ACCESS_TOKEN_PURPOSE:
+        current_app.logger.debug('ONLYOFFICE access token validation failed: wrong purpose')
+        return False
+
+    try:
+        token_fid = int(payload.get('fid'))
+    except (TypeError, ValueError):
+        current_app.logger.debug('ONLYOFFICE access token validation failed: missing fid claim')
+        return False
+
+    if token_fid != expected_fid:
+        current_app.logger.debug(
+            'ONLYOFFICE access token validation failed: fid mismatch (%s != %s)',
+            token_fid,
+            expected_fid,
+        )
+        return False
+
+    token_share = payload.get('share')
+    if share_token is not None:
+        if not token_share or str(token_share) != str(share_token):
+            current_app.logger.debug(
+                'ONLYOFFICE access token validation failed: share claim mismatch'
+            )
+            return False
+    elif token_share:
+        current_app.logger.debug(
+            'ONLYOFFICE access token validation failed: share token used on non-share endpoint'
+        )
+        return False
+
     return True
 
 
@@ -403,15 +521,21 @@ def verify_onlyoffice_callback_token(raw_body, auth_header=None):
     """
     Verify ONLYOFFICE callback JWT token and return signed payload.
 
-    Compatibility behavior:
-    - If ONLYOFFICE_SECRET_KEY is empty, callbacks are accepted (token optional mode).
-    - If ONLYOFFICE_SECRET_KEY is set, a valid JWT is required either in:
-      - Authorization: Bearer <token>
-      - JSON body field: token
+    Behavior:
+    - If ONLYOFFICE_SECRET_KEY is set: valid JWT required (Authorization Bearer or body.token).
+    - If secret is empty and unsigned callbacks are allowed (dev/test auto, or explicit
+      ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS=true): accept body as-is for JWT_ENABLED=false DS.
+    - If secret is empty and unsigned is not allowed (production default): reject.
     """
-    secret_key = (current_app.config.get('ONLYOFFICE_SECRET_KEY') or '').strip()
+    secret_key = get_onlyoffice_secret_key()
     if not secret_key:
-        return True, raw_body, "secret_not_configured"
+        if onlyoffice_allows_unsigned_callbacks():
+            current_app.logger.warning(
+                "ONLYOFFICE callback accepted without JWT (no ONLYOFFICE_SECRET_KEY). "
+                "For production set ONLYOFFICE_SECRET_KEY to match Document Server JWT_SECRET."
+            )
+            return True, raw_body, "secret_not_configured_allowed"
+        return False, None, "secret_required"
 
     if not JWT_AVAILABLE:
         return False, None, "jwt_library_missing"
@@ -442,8 +566,10 @@ def verify_onlyoffice_callback_token(raw_body, auth_header=None):
 
 def is_onlyoffice_callback_download_url_allowed(saved_file_url):
     """
-    Restrict ONLYOFFICE callback download URL to trusted ONLYOFFICE host(s).
-    Prevents arbitrary SSRF targets while keeping ONLYOFFICE-compatible flows.
+    Restrict Document Server callback download URL to trusted host(s).
+
+    Prevents arbitrary SSRF while allowing Euro-Office behind a same-host
+    proxy (``/eurooffice`` or legacy ``/onlyoffice``, plus ``/cache``).
     """
     if not saved_file_url:
         return False, "empty_url"
@@ -461,33 +587,49 @@ def is_onlyoffice_callback_download_url_allowed(saved_file_url):
     allowed_hosts = set()
     allowed_host_ports = set()
 
-    configured_ds_url = (current_app.config.get('ONLYOFFICE_DOCUMENT_SERVER_URL') or '').strip()
-    if configured_ds_url.startswith('http://') or configured_ds_url.startswith('https://'):
+    def add_url_host(url):
+        if not url or not (url.startswith('http://') or url.startswith('https://')):
+            return
         try:
-            parsed_ds = urlparse(configured_ds_url)
-            ds_host = parsed_ds.hostname
-            if ds_host:
-                allowed_hosts.add(ds_host.lower())
-                if parsed_ds.port:
-                    allowed_host_ports.add((ds_host.lower(), parsed_ds.port))
+            parsed_url = urlparse(url)
+            host = parsed_url.hostname
+            if not host:
+                return
+            host = host.lower()
+            allowed_hosts.add(host)
+            if parsed_url.port:
+                allowed_host_ports.add((host, parsed_url.port))
         except Exception:
             pass
 
-    configured_public_url = (current_app.config.get('ONLYOFFICE_PUBLIC_URL') or '').strip()
-    if configured_public_url.startswith('http://') or configured_public_url.startswith('https://'):
-        try:
-            parsed_public = urlparse(configured_public_url)
-            public_host = parsed_public.hostname
-            if public_host:
-                allowed_hosts.add(public_host.lower())
-                if parsed_public.port:
-                    allowed_host_ports.add((public_host.lower(), parsed_public.port))
-        except Exception:
-            pass
+    def add_host_port(host, port=None):
+        if not host:
+            return
+        host = str(host).lower().strip('[]')
+        if not host:
+            return
+        allowed_hosts.add(host)
+        if port:
+            try:
+                allowed_host_ports.add((host, int(port)))
+            except (TypeError, ValueError):
+                pass
 
-    # Same-host/proxy deployments often use relative ONLYOFFICE URL.
+    configured_ds_url = get_onlyoffice_document_server_url()
+    add_url_host(configured_ds_url)
+    add_url_host((current_app.config.get('ONLYOFFICE_PUBLIC_URL') or '').strip())
+    add_url_host((current_app.config.get('PUBLIC_BASE_URL') or '').strip())
+
+    # Same-host/proxy deployments: relative /eurooffice or /onlyoffice.
+    # Document Server often returns https://portal-host/cache/... after save.
     if configured_ds_url.startswith('/'):
         allowed_hosts.update({'localhost', '127.0.0.1', '::1'})
+        if has_request_context():
+            try:
+                parsed_req = urlparse(f'//{request.host}')
+                add_host_port(parsed_req.hostname, parsed_req.port)
+            except Exception:
+                pass
 
     if not allowed_hosts:
         return False, "no_allowed_hosts_configured"

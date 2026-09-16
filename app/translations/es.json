@@ -27,7 +27,9 @@
       "booking": "Reservas",
       "media_downloader": "Descargador de medios",
       "surveys": "Encuestas",
-      "file_converter": "File Converter"
+      "file_converter": "File Converter",
+      "protocols": "Actas",
+      "meetings": "Reuniones"
     },
     "cookie_consent": {
       "title": "Cookies y privacidad",
@@ -79,7 +81,12 @@
     "optional": "Opcional",
     "required": "Requerido",
     "language": "Idioma",
-    "select_language": "Seleccionar idioma"
+    "select_language": "Seleccionar idioma",
+    "pagination": {
+      "load_more": "Cargar más",
+      "load_more_loading": "Cargando…",
+      "load_error": "No se pudieron cargar más elementos"
+    }
   },
   "auth": {
     "login": {
@@ -422,6 +429,16 @@
     },
     "request_detail": {
       "actions_heading": "Acciones"
+    },
+    "admin": {
+      "cards": {
+        "booking_forms": {
+          "short": "Forms"
+        },
+        "music_module": {
+          "short": "Providers"
+        }
+      }
     }
   },
   "music": {
@@ -460,6 +477,50 @@
       }
     }
   },
+  "markdown": {
+    "editor": {
+      "link": {
+        "insert_title": "Insertar enlace",
+        "edit_title": "Editar enlace",
+        "text": "Texto del enlace",
+        "url": "URL",
+        "insert": "Insertar",
+        "save": "Aplicar",
+        "cancel": "Cancelar",
+        "open": "Abrir",
+        "edit": "Editar"
+      },
+      "table": {
+        "column": "Columna",
+        "row": "Fila",
+        "add_row": "Añadir fila",
+        "add_col": "Añadir columna",
+        "insert_row_before": "Insertar fila antes",
+        "insert_row_after": "Insertar fila después",
+        "insert_col_before": "Insertar columna antes",
+        "insert_col_after": "Insertar columna después",
+        "delete_row": "Eliminar fila",
+        "delete_col": "Eliminar columna",
+        "delete_table": "Eliminar tabla",
+        "column_menu": "Columna",
+        "row_menu": "Fila",
+        "align_left": "Alinear a la izquierda",
+        "align_center": "Centrar",
+        "align_right": "Alinear a la derecha"
+      },
+      "preview": {
+        "open": "Abrir",
+        "loading": "Cargando vista previa…",
+        "invalid": "URL no válida",
+        "unavailable_title": "Sin vista previa",
+        "unavailable_body": "No se pudo cargar la página.",
+        "forbidden_title": "Sin acceso al archivo",
+        "forbidden_body": "No tiene permiso para ver este archivo.",
+        "not_found_title": "Archivo no encontrado",
+        "not_found_body": "El archivo enlazado ya no existe."
+      }
+    }
+  },
   "wiki": {
     "index": {
       "new_button": "Nuevo",
@@ -485,6 +546,12 @@
       "favorites": {
         "title": "Favoritos",
         "empty": "Sin favoritos"
+      },
+      "pagination": {
+        "prev": "Anterior",
+        "next": "Siguiente",
+        "info": "Página {page} de {pages} ({total})",
+        "aria": "Páginas wiki"
       }
     }
   },
@@ -542,6 +609,17 @@
       "search": {
         "placeholder": "Buscar personas...",
         "empty": "No se encontraron personas."
+      }
+    },
+    "view": {
+      "load_older": "Cargar mensajes anteriores",
+      "js": {
+        "load_older": "Cargar mensajes anteriores",
+        "load_older_loading": "Cargando…",
+        "load_older_error": "No se pudieron cargar mensajes anteriores",
+        "meeting_label": "Reunión",
+        "meeting_join": "Unirse",
+        "meeting_start_error": "No se pudo iniciar la reunión"
       }
     }
   },
@@ -609,9 +687,20 @@
       "main_mailbox": "Main mailbox",
       "html_design": "HTML design",
       "html_design_help": "On: portal layout with logo. Off: formatted text without layout frame.",
-      "mailbox_label": "Mailbox",
+      "mailbox_label": "Send as",
       "use_team_logo": "Use team logo",
       "use_team_logo_help": "If off: portal logo instead of team logo in HTML design."
+    },
+    "index": {
+      "pagination": {
+        "prev": "Anterior",
+        "next": "Siguiente",
+        "info": "Página {page} de {pages} ({total})",
+        "aria": "Páginas de correo"
+      }
+    },
+    "flash": {
+      "sync_started": "Sincronización iniciada. La página se actualizará al finalizar."
     }
   },
   "files": {
@@ -629,7 +718,9 @@
     "index": {
       "search_placeholder": "Buscar en archivos",
       "search_empty": "Sin resultados en esta carpeta."
-    }
+    },
+    "trash_retention_banner": "Los elementos de la papelera se eliminan definitivamente tras {days} días.",
+    "trash_retention_disabled": "No hay eliminación automática definitiva configurada para la papelera."
   },
   "settings": {
     "admin": {
@@ -688,12 +779,56 @@
         "flash_members_added": "{count} member(s) added.",
         "flash_member_removed": "Member removed.",
         "flash_cannot_remove_leader": "The team lead cannot be removed. Assign a different lead first.",
-        "flash_user_teams_updated": "Teams for {name} were updated."
+        "flash_user_teams_updated": "Teams for {name} were updated.",
+        "lead_short": "Crear equipos y asignar miembros.",
+        "view_list": "Lista",
+        "view_grid": "Cuadrícula",
+        "col_name": "Equipo",
+        "col_members": "Miembros",
+        "col_leader": "Responsable",
+        "preview_title": "Vista previa"
       },
       "cards": {
         "teams": {
           "title": "Teams",
-          "description": "Create teams and assign users"
+          "description": "Create teams and assign users",
+          "short": "Manage teams"
+        },
+        "user_management": {
+          "short": "Roles & guests"
+        },
+        "whitelist": {
+          "short": "Email allowlist"
+        },
+        "system_settings": {
+          "short": "Portal & branding"
+        },
+        "legal": {
+          "short": "Legal pages"
+        },
+        "modules": {
+          "short": "On / off"
+        },
+        "backup": {
+          "short": "Import / export"
+        },
+        "registration_options": {
+          "short": "Captcha"
+        },
+        "push": {
+          "short": "Device subscriptions"
+        },
+        "email": {
+          "short": "SMTP & mailboxes"
+        },
+        "inventory": {
+          "short": "Ownership text"
+        },
+        "calendar_settings": {
+          "short": "iCal"
+        },
+        "file_settings": {
+          "short": "Storage & sharing"
         }
       },
       "email_module": {
@@ -711,7 +846,53 @@
       },
       "admin_modules": {
         "module_file_converter": "File Converter",
-        "module_surveys": "Surveys"
+        "module_surveys": "Surveys",
+        "lead_short": "Activar y desactivar módulos.",
+        "module_meetings": "Reuniones (videollamadas)"
+      },
+      "kanban": {
+        "lead_short": "Visibility and import.",
+        "short": "Visibility & import",
+        "module_disabled": "Kanban module is disabled",
+        "import_hint": "Multiple boards via ZIP supported."
+      },
+      "users": {
+        "lead_short": "Usuarios, invitados y códigos.",
+        "view_list": "Lista",
+        "view_grid": "Cuadrícula",
+        "col_name": "Nombre",
+        "col_email": "Correo",
+        "col_login": "Último acceso",
+        "col_status": "Estado",
+        "queue_title": "Cola"
+      },
+      "whitelist": {
+        "lead_short": "Correos y dominios para activación automática.",
+        "view_list": "Lista",
+        "view_grid": "Cuadrícula",
+        "col_entry": "Entrada",
+        "col_status": "Estado"
+      },
+      "legal": {
+        "lead_short": "Textos para login y páginas públicas.",
+        "tip_body": "Los cambios se guardan automáticamente. Usa la vista previa.",
+        "markdown_hint": "**negrita**, *cursiva*, [enlace](url), listas con -.",
+        "tool_link": "Enlace"
+      },
+      "system": {
+        "lead_short": "Nombre, logo, zona horaria y marca."
+      },
+      "backup": {
+        "lead_short": "Exportar e importar copias de seguridad del portal."
+      },
+      "registration": {
+        "lead_short": "Captcha y honeypot para inicio de sesión y formularios."
+      },
+      "file_settings": {
+        "trash_retention_label": "Retención de la papelera",
+        "trash_retention_help": "Los archivos y carpetas eliminados se borran definitivamente tras este periodo. 0 desactiva la limpieza automática.",
+        "trash_retention_unit": "días",
+        "trash_retention_note": "Valor predeterminado: 30 días. Sustituye FILES_TRASH_DAYS del entorno al guardar."
       }
     },
     "notifications": {
@@ -725,6 +906,17 @@
         "changes_help": "Título, descripción, fecha, movimiento o completado",
         "checklist": "Listas de verificación",
         "checklist_help": "Elementos nuevos, actualizados o completados"
+      },
+      "lead_short": "Push, módulos y recordatorios.",
+      "calendar": {
+        "filter_status_label": "Participación",
+        "reminder_30min_short": "30 min",
+        "reminder_1h_short": "1 h",
+        "reminder_2h_short": "2 h",
+        "reminder_6h_short": "6 h",
+        "reminder_8h_short": "8 h",
+        "reminder_1d_short": "1 día",
+        "reminder_2d_short": "2 días"
       }
     },
     "profile": {
@@ -732,6 +924,37 @@
         "heading": "My teams",
         "empty": "You are not in any team yet.",
         "leader_badge": "Lead"
+      },
+      "delete": {
+        "heading": "Eliminar cuenta",
+        "intro": "Elimina su cuenta de forma permanente tras confirmación por correo. Exporte antes sus datos en Privacidad.",
+        "password_label": "Contraseña para confirmar",
+        "second_factor_hint": "También se requiere un segundo factor (autenticador o passkey).",
+        "totp_label": "Código del autenticador (2FA)",
+        "passkey_button": "Confirmar con passkey",
+        "passkey_ok": "Passkey confirmado",
+        "passkey_pending": "Aún no confirmado",
+        "confirm_label": "Escriba DELETE para confirmar",
+        "confirm_placeholder": "DELETE",
+        "submit_button": "Enviar correo de confirmación",
+        "submit_confirm": "¿Enviar realmente un correo de eliminación a su dirección?",
+        "email_hint": "La cuenta solo se elimina tras hacer clic en el enlace del correo. El enlace es válido 1 hora.",
+        "blocked_super_admin": "La cuenta de administrador principal no puede eliminarse a sí misma.",
+        "flash_confirm_text": "Escriba DELETE (o LÖSCHEN) para confirmar.",
+        "flash_wrong_password": "La contraseña es incorrecta.",
+        "flash_2fa_required": "Falta la confirmación del segundo factor o no es válida.",
+        "flash_no_passkey": "No se encontró passkey para esta cuenta.",
+        "flash_email_failed": "No se pudo enviar el correo de confirmación.",
+        "flash_email_sent": "Correo de confirmación enviado. Revise su bandeja de entrada.",
+        "flash_token_invalid": "El enlace de eliminación no es válido o ha caducado.",
+        "flash_wrong_user": "Inicie sesión con la cuenta que desea eliminar.",
+        "flash_failed": "La eliminación de la cuenta ha fallado.",
+        "flash_deleted": "Su cuenta ha sido eliminada.",
+        "confirm_page_title": "Confirmar eliminación de cuenta",
+        "confirm_heading": "¿Eliminar la cuenta definitivamente?",
+        "confirm_body": "¿Eliminar definitivamente la cuenta de {name} ({email})?",
+        "confirm_final": "¿Eliminar realmente esta cuenta de forma permanente?",
+        "confirm_button": "Eliminar ahora"
       }
     },
     "mailboxes": {
@@ -834,7 +1057,13 @@
       "oauth_error": "OAuth falló: {error}"
     },
     "sidebar": {
-      "team_lead_heading": "Team lead"
+      "team_lead_heading": "Team lead",
+      "sections": {
+        "tools": "Mis herramientas"
+      },
+      "push": "Suscripciones push",
+      "kanban": "Kanban",
+      "admin_heading": "Administración"
     },
     "integrations": {
       "page_title": "Integraciones",
@@ -851,6 +1080,7 @@
       "tenant": "Tenant",
       "tenant_help": "Normalmente \"common\". O organizations / ID del tenant.",
       "redirect_hint": "URI de redirección (login, buzón y YouTube): {url}",
+      "redirect_uri_label": "URI de redirección:",
       "flash_saved": "Integraciones guardadas.",
       "google_api_help_open": "Guia: API key de Google",
       "google_api_help_title": "Configurar una API key de Google",
@@ -875,12 +1105,177 @@
       "google_help_oauth_step4": "Crear credenciales → ID de cliente OAuth → Tipo “Aplicación web”. Añade la URI de redirección mostrada abajo.",
       "google_help_oauth_step5": "Pega Client ID y Client Secret aquí y guarda – después OAuth funciona en el asistente.",
       "google_help_api_heading": "API key (para YouTube)",
-      "redirect_hint_login": "URI de redirección (login / seguridad): {url}"
+      "redirect_hint_login": "URI de redirección (login / seguridad): {url}",
+      "short": "OAuth & APIs",
+      "lead_short": "Google, Microsoft y Spotify."
     },
     "about": {
       "file_converter_label": "File converter / LibreOffice",
       "libreoffice_available": "LibreOffice available",
-      "libreoffice_missing": "LibreOffice not found"
+      "libreoffice_missing": "LibreOffice not found",
+      "lead_short": "Producto, sistema y código abierto.",
+      "section_repository_help_button": "Ayuda",
+      "excalidraw_label_short": "Excalidraw",
+      "file_converter_label_short": "Conversor",
+      "mirotalk_label": "MiroTalk",
+      "mirotalk_active": "Activo",
+      "mirotalk_inactive": "Inactivo"
+    },
+    "cloud_import": {
+      "page_title": "Cloud import",
+      "title": "Cloud import",
+      "heading": "Cloud import",
+      "subtitle": "Transfer folders and files once from Nextcloud or Google Drive into PrismaTeams.",
+      "target_space": "Destination",
+      "target_space_hint": "Admin: public · Team leader: team · You: personal.",
+      "space": {
+        "public": "Public",
+        "team": "Team",
+        "personal": "Personal"
+      },
+      "no_spaces": "No destination available.",
+      "dest_folder": "Destination folder",
+      "dest_root": "Root folder",
+      "connections": "Connections",
+      "connect_nextcloud": "Connect Nextcloud",
+      "connect_google": "Connect Google Drive",
+      "connect": "Connect",
+      "nextcloud": {
+        "server": "Server URL",
+        "username": "Username",
+        "app_password": "App password",
+        "hint": "Use an app password from Nextcloud security settings."
+      },
+      "no_connections": "No connection yet.",
+      "browse": "Select source",
+      "col": {
+        "name": "Name",
+        "size": "Size"
+      },
+      "start": "Start import",
+      "jobs": "Import jobs",
+      "no_jobs": "No jobs yet.",
+      "flash": {
+        "module_disabled": "The files module is disabled.",
+        "credentials_incomplete": "Please provide server, username and app password.",
+        "nextcloud_connect_failed": "Could not connect to Nextcloud. Check credentials.",
+        "google_not_configured": "Google is not configured under Integrations.",
+        "google_oauth_error": "Google sign-in failed: %(error)s",
+        "google_connected": "Google Drive connected.",
+        "connection_in_use": "Connection is used by a running import.",
+        "browse_failed": "Could not load folder.",
+        "no_selection": "Select at least one file or folder.",
+        "space_forbidden": "You may not import into this destination."
+      },
+      "lead_short": "Transferencia única desde Nextcloud o Google Drive."
+    },
+    "index": {
+      "cards": {
+        "cloud_import": {
+          "title": "Cloud import",
+          "description": "Transfer from Nextcloud and Google Drive.",
+          "short": "Nextcloud & Drive"
+        },
+        "profile": {
+          "short": "Name & avatar"
+        },
+        "appearance": {
+          "short": "Theme & color"
+        },
+        "notifications": {
+          "short": "Push & channels"
+        },
+        "security": {
+          "short": "Password & 2FA"
+        },
+        "about": {
+          "short": "Version"
+        },
+        "my_mailboxes": {
+          "short": "Private mailboxes"
+        },
+        "privacy": {
+          "title": "Privacidad",
+          "description": "Exportar datos personales y ver sus derechos",
+          "button": "Abrir",
+          "short": "Exportar y derechos"
+        }
+      },
+      "lead_short": "Todo en un solo lugar."
+    },
+    "autosave": {
+      "saving": "Guardando…",
+      "saved": "Guardado",
+      "error": "No se pudo guardar"
+    },
+    "appearance": {
+      "lead_short": "Idioma, tema y acento.",
+      "preview_panel_title": "Vista previa",
+      "preview_panel_lead": "How your accent looks in the UI.",
+      "preview_nav": "Navigation",
+      "preview_button": "Action",
+      "preview_card": "Sample card"
+    },
+    "kanban_import": {
+      "nav": "Importar tableros",
+      "page_title": "Board import",
+      "heading": "Import boards",
+      "lead": "JSON, CSV or ZIP with multiple files.",
+      "short": "JSON / CSV / ZIP",
+      "upload_title": "Upload",
+      "drop_title": "Drop file here",
+      "drop_meta": ".json, .csv or .zip",
+      "submit": "Import",
+      "open": "Open",
+      "need_file": "Please choose a file",
+      "done_one": "Board imported",
+      "done_many": "{count} boards imported",
+      "failed": "Import failed",
+      "unavailable": "Kanban unavailable",
+      "no_targets": "No import target allowed",
+      "visibility_info": "Visibility for new boards",
+      "tip_body": "Un ZIP con varios JSON/CSV crea varios tableros a la vez.",
+      "formats_title": "Formatos",
+      "formats_body": "JSON y CSV para tableros sueltos, ZIP para varios archivos.",
+      "visibility_label": "Visibilidad"
+    },
+    "team_settings": {
+      "teams_tile_short": "Members",
+      "tile_short": "Team modules"
+    },
+    "hub": {
+      "quick_title": "Quick access",
+      "quick_lead": "Frequently used areas",
+      "tip_title": "Consejo",
+      "tip_body": "Use the search above to jump to any setting."
+    },
+    "security": {
+      "lead_short": "Contraseña, 2FA y dispositivos."
+    },
+    "privacy": {
+      "page_title": "Privacidad y datos",
+      "heading": "Privacidad y datos",
+      "lead": "Exporte sus datos personales y consulte información sobre sus derechos.",
+      "export": {
+        "heading": "Exportación de datos",
+        "intro": "Descargue un archivo ZIP con sus datos personales en formato JSON (portabilidad).",
+        "includes_profile": "Perfil, equipos, sesiones, passkeys y ajustes de notificaciones",
+        "includes_activity": "Contactos creados, eventos, metadatos de archivos, mensajes de chat y otros datos de módulos",
+        "excludes_secrets": "Sin contraseñas, secretos 2FA, tokens de sesión ni contenidos de archivos",
+        "button": "Descargar mis datos",
+        "hint": "Las descargas están limitadas a pocas solicitudes por hora."
+      },
+      "export_error": "La exportación de datos ha fallado. Inténtelo de nuevo más tarde.",
+      "rights": {
+        "heading": "Sus derechos",
+        "intro": "Según el RGPD tiene en particular los siguientes derechos:",
+        "access": "Acceso a los datos personales almacenados",
+        "rectification": "Rectificación de datos incorrectos (p. ej. en el perfil)",
+        "portability": "Portabilidad de datos mediante la exportación en esta página",
+        "erasure": "Supresión – autoservicio en Perfil (contraseña, 2FA si aplica, correo de confirmación)",
+        "policy_link": "Política de privacidad",
+        "delete_link": "Eliminar cuenta"
+      }
     }
   },
   "surveys": {
@@ -1011,6 +1406,330 @@
       "output_not_found": "Output file was not created.",
       "timeout": "Conversion timed out.",
       "upload_failed": "Upload failed."
+    }
+  },
+  "inventory": {
+    "flash": {
+      "document_attach_error": "El producto se guardó, pero no se pudieron adjuntar los documentos.",
+      "document_invalid_type": "Tipo de archivo no válido. Permitidos: PDF, PNG, JPEG, DOC, DOCX, XLS, XLSX.",
+      "manual_not_accessible": "El manual seleccionado no está disponible.",
+      "manual_link_required": "Seleccione un manual.",
+      "manual_already_linked": "El manual \"{title}\" ya está vinculado.",
+      "manual_linked": "El manual \"{title}\" se vinculó.",
+      "external_barcode_taken": "El N.º de inventario \"{code}\" ya está en uso.",
+      "external_barcode_qty": "El N.º de inventario solo se puede fijar con cantidad 1.",
+      "barcode_label_error": "No se pudo generar la etiqueta de código de barras."
+    },
+    "documents": {
+      "page_title": "Documentos - {name}",
+      "heading": "Documentos de \"{name}\"",
+      "list_title": "Documentos",
+      "upload_btn": "Subir documento",
+      "link_manual_btn": "Vincular manual",
+      "edit_product": "Editar producto",
+      "col_name": "Nombre",
+      "col_type": "Tipo",
+      "col_size": "Tamaño",
+      "col_date": "Subido",
+      "col_actions": "Acciones",
+      "linked_manual": "Vinculado al manual",
+      "manual_link_only": "Solo vínculo al manual",
+      "download": "Descargar",
+      "open_manual": "Abrir manual",
+      "delete_confirm": "¿Eliminar este documento?",
+      "empty": "Aún no hay documentos.",
+      "upload_title": "Subir documento",
+      "file_label": "Archivo",
+      "file_help": "PDF, PNG, JPEG y DOC/DOCX/XLS/XLSX.",
+      "type_label": "Tipo de documento",
+      "link_manual_optional": "Vincular con manual (opcional)",
+      "no_manual_link": "Sin vínculo",
+      "link_manual_title": "Vincular manual",
+      "manual_label": "Manual",
+      "select_manual": "Seleccionar manual…",
+      "link_manual_help": "Vincula un manual existente sin duplicar el archivo.",
+      "types": {
+        "handbook": "Manual",
+        "datasheet": "Ficha técnica",
+        "invoice": "Factura",
+        "warranty": "Garantía",
+        "dguv": "Informe DGUV",
+        "other": "Otro"
+      }
+    },
+    "product": {
+      "form": {
+        "sections": {
+          "documents": "Documentos y manuales"
+        },
+        "documents_upload": "Subir documentos",
+        "documents_help": "Varios archivos (PDF, PNG, JPEG, Office). Se adjuntan al guardar.",
+        "document_type": "Tipo de documento para subidas",
+        "link_manuals": "Vincular manuales",
+        "link_manuals_help": "Selección múltiple: vincular manuales existentes sin subir archivo.",
+        "manage_documents": "Gestionar todos los documentos",
+        "external_barcode": "N.º de inventario",
+        "external_barcode_placeholder": "p. ej. 001",
+        "external_barcode_help": "Escriba el código de la etiqueta o escanéelo aquí. Para QuickScan y préstamos.",
+        "external_barcode_qty_hint": "N.º de inventario solo con cantidad 1 (cada número es único).",
+        "print_barcode": "Imprimir código de barras",
+        "print_barcode_hint": "Etiqueta ~56 mm, escala de impresión 100 % (Actual size)."
+      }
+    },
+    "stock": {
+      "pagination": {
+        "load_more": "Cargar más productos",
+        "load_more_loading": "Cargando…"
+      }
+    }
+  },
+  "kanban": {
+    "board": {
+      "background": "Fondo",
+      "background_image": "Imagen de fondo",
+      "background_upload": "Subir imagen",
+      "background_clear": "Quitar imagen",
+      "background_image_set": "Imagen de fondo configurada",
+      "background_image_optional": "Opcional: sube tu propia imagen (se muestra sobre el color)"
+    },
+    "export": {
+      "title": "Exportar",
+      "json": "Como JSON (Trello)",
+      "csv": "Como CSV (Trello)"
+    },
+    "import": {
+      "title": "Importar tablero",
+      "hint": "Sube un export de Trello (JSON o CSV). Se creará un tablero nuevo.",
+      "file": "Archivo de exportación",
+      "title_optional": "Título (opcional)",
+      "title_ph": "Vacío = nombre del archivo",
+      "submit": "Importar",
+      "error_no_file": "Elige un archivo.",
+      "error_empty": "El archivo está vacío.",
+      "error_invalid": "Formato de export Trello no válido.",
+      "error_forbidden": "Sin permiso para importar.",
+      "error_admin": "Solo admins pueden importar tableros públicos.",
+      "error_team": "Selecciona un equipo.",
+      "error_team_leader": "Solo líderes de equipo pueden importar tableros de equipo.",
+      "error_visibility": "Esta visibilidad no está permitida.",
+      "error_failed": "Error al importar.",
+      "error_invalid_zip": "Invalid ZIP file",
+      "error_empty_zip": "ZIP has no JSON/CSV files",
+      "visibility": "Visibilidad"
+    }
+  },
+  "protocols": {
+    "nav": {
+      "title": "Actas",
+      "all": "Todas",
+      "create": "Nueva acta",
+      "new": "Nueva acta"
+    },
+    "status": {
+      "draft": "Borrador",
+      "finalized": "Finalizada"
+    },
+    "steps": {
+      "meta": "Datos",
+      "agenda": "Orden del día",
+      "content": "Contenido"
+    },
+    "index": {
+      "search_placeholder": "Buscar por título, nombre o fecha (p. ej. 05.09.2026)…",
+      "empty": "Aún no hay actas.",
+      "open": "Abrir",
+      "edit": "Editar",
+      "pdf": "Descargar PDF",
+      "delete_confirm": "¿Eliminar esta acta?",
+      "nav": {
+        "menu": "Menú de actas"
+      },
+      "list": {
+        "title": "Título",
+        "date": "Fecha",
+        "status": "Estado",
+        "visibility": "Ámbito"
+      },
+      "sort": {
+        "heading": "Orden",
+        "field": "Campo",
+        "dir": "Dirección",
+        "date": "Fecha",
+        "title": "Título",
+        "updated": "Actualizado",
+        "created": "Creado",
+        "asc": "Ascendente",
+        "desc": "Descendente",
+        "apply": "Aplicar"
+      },
+      "filter": {
+        "heading": "Filtro",
+        "status": "Estado",
+        "all": "Todos",
+        "apply": "Aplicar",
+        "reset": "Reset"
+      }
+    },
+    "create": {
+      "subtitle": "Defina fecha, participantes y visibilidad.",
+      "title_label": "Nombre de la reunión",
+      "title_placeholder": "p. ej. Reunión de equipo",
+      "title_required": "Introduzca un nombre para el acta.",
+      "date_label": "Fecha",
+      "start_time_label": "Hora de inicio",
+      "participants_label": "Participantes",
+      "participants_placeholder": "Nombres, separados por comas o por línea",
+      "excused_label": "Justificados",
+      "excused_placeholder": "Ausencias justificadas",
+      "absent_label": "Injustificados",
+      "absent_placeholder": "Ausencias injustificadas",
+      "submit": "Continuar al orden del día",
+      "continue": "Continuar",
+      "chip_placeholder": "Escriba un nombre y pulse Enter…",
+      "chip_hint": "Enter para añadir como pastilla, × para quitar."
+    },
+    "meta": {
+      "edit_title": "Editar acta"
+    },
+    "agenda": {
+      "title": "Puntos del orden del día",
+      "hint": "Defina los puntos. Puede reordenar arrastrando.",
+      "item_placeholder": "p. ej. Actualización del proyecto",
+      "add": "Añadir punto",
+      "continue": "Continuar al contenido",
+      "reorder": "Mover",
+      "min_one": "Añada al menos un punto del orden del día."
+    },
+    "item": {
+      "title_label": "Punto",
+      "content_label": "Contenido",
+      "nav_label": "Puntos",
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "autosaved": "Guardado",
+      "saving": "Guardando…"
+    },
+    "actions": {
+      "save_draft": "Guardar borrador",
+      "finalize": "Marcar como finalizada",
+      "finalize_confirm": "¿Finalizar el acta? Después ya no se podrá editar."
+    },
+    "view": {
+      "agenda": "Orden del día",
+      "content": "Contenido",
+      "no_content": "Sin contenido.",
+      "time_label": "Hora",
+      "attendance": "Asistencia",
+      "finalized_at": "Finalizado el"
+    },
+    "flash": {
+      "module_disabled": "El módulo de actas está desactivado.",
+      "created": "Acta creada.",
+      "saved": "Guardado.",
+      "finalized": "Acta finalizada.",
+      "deleted": "Acta eliminada.",
+      "finalized_readonly": "Las actas finalizadas no se pueden editar.",
+      "pdf_only_finalized": "El PDF solo está disponible tras finalizar."
+    },
+    "editor": {
+      "table": "Tabla",
+      "color": "Color de texto",
+      "highlight": "Resaltador",
+      "size": "Tamaño de fuente",
+      "size_small": "Pequeño",
+      "size_normal": "Normal",
+      "size_large": "Grande",
+      "size_huge": "Muy grande"
+    }
+  },
+  "contacts": {
+    "index": {
+      "pagination": {
+        "load_more": "Cargar más contactos",
+        "load_more_loading": "Cargando…",
+        "load_error": "No se pudieron cargar más contactos"
+      }
+    }
+  },
+  "calendar": {
+    "flash": {
+      "sync_started": "Sincronización iniciada en segundo plano. Actualice la página en unos segundos."
+    }
+  },
+  "meetings": {
+    "page_title": "Reuniones",
+    "heading": "Reuniones",
+    "default_title": "Reunión",
+    "chat_title": "Reunión: {name}",
+    "nav": {
+      "label": "Navegación de reuniones",
+      "active": "Activas",
+      "ended": "Finalizadas",
+      "start": "Iniciar reunión",
+      "menu": "Menú de reuniones"
+    },
+    "list": {
+      "title": "Título",
+      "access": "Acceso",
+      "host": "Iniciada por",
+      "started": "Inicio",
+      "empty": "No hay reuniones en esta lista."
+    },
+    "access": {
+      "public": "Pública",
+      "invite": "Solo por invitación"
+    },
+    "actions": {
+      "join": "Unirse",
+      "end": "Terminar",
+      "copy_guest": "Copiar enlace de invitado",
+      "more": "Más acciones"
+    },
+    "create": {
+      "page_title": "Iniciar reunión",
+      "heading": "Iniciar reunión",
+      "title_label": "Título",
+      "title_placeholder": "p. ej. Sincronización semanal",
+      "access_label": "Acceso",
+      "public_help": "Visible para todos con el módulo Reuniones.",
+      "invite_help": "Solo los usuarios invitados del portal ven la reunión.",
+      "invitees_label": "Invitar personas",
+      "invitees_search": "Buscar nombre o correo…",
+      "invitees_host": "Usted participa automáticamente. Otras personas son opcionales.",
+      "invitees_you": "Usted",
+      "invitees_empty": "No hay más usuarios del portal para invitar.",
+      "submit": "Iniciar reunión"
+    },
+    "guest": {
+      "lead": "Introduzca su nombre para unirse.",
+      "name_label": "Su nombre",
+      "name_required": "Introduzca un nombre.",
+      "submit": "Unirse",
+      "ended": "Esta reunión ha terminado."
+    },
+    "call": {
+      "loading": "Cargando reunión…",
+      "insecure_title": "Contexto no seguro (HTTPS)",
+      "insecure_body": "Cámara y micrófono no funcionan en http://IP. Use HTTPS (dominio + certificado); si no, la llamada permanece en negro."
+    },
+    "chat": {
+      "start": "Iniciar reunión"
+    },
+    "notify": {
+      "title": "Invitación a reunión",
+      "body": "Le invitaron a \"{title}\"."
+    },
+    "flash": {
+      "invitees_required": "Invite al menos a una persona.",
+      "no_access": "No tiene acceso a esta reunión.",
+      "ended": "Esta reunión ha terminado.",
+      "ended_ok": "Reunión finalizada.",
+      "not_configured": "MiroTalk no está configurado. Defina MIROTALK_URL en .env.",
+      "join_failed": "No se pudo unir. Compruebe MIROTALK_API_KEY / MIROTALK_HOST_USER / MIROTALK_HOST_PASSWORD — deben coincidir con el .env de MiroTalk.",
+      "no_module": "El módulo de reuniones no está disponible.",
+      "chat_missing": "Chat no encontrado.",
+      "not_chat_member": "No es miembro de este chat.",
+      "chat_start_error": "No se pudo iniciar la reunión."
     }
   }
 }

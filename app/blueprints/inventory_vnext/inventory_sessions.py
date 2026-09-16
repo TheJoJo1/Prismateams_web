@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from flask import Blueprint, request
+from flask import Blueprint, current_app, request
 from flask_login import current_user, login_required
 from sqlalchemy.orm import joinedload, selectinload
 
@@ -257,6 +257,18 @@ def update_inventory_item(inventory_id, product_id):
             },
         )
 
+    foreign = InventoryLockService.foreign_lock(inventory_id, product_id, current_user.id)
+    if foreign:
+        return api_error(
+            "lock_conflict",
+            "Produkt wird aktuell von einem anderen Nutzer bearbeitet.",
+            409,
+            details={
+                "locked_by": foreign.locked_by,
+                "expires_at": foreign.expires_at.isoformat() if foreign.expires_at else None,
+            },
+        )
+
     if "checked" in data:
         item.checked = bool(data["checked"])
         if item.checked:
@@ -290,9 +302,20 @@ def update_inventory_item(inventory_id, product_id):
     product = item.product
     if product:
         if "product_status" in data:
+            from app.services.inventory import LifecycleService
             status = (data.get("product_status") or "").strip()
             if status in _PRODUCT_STATUSES:
-                product.status = status
+                try:
+                    LifecycleService.change_status(
+                        product,
+                        status,
+                        current_user.id,
+                        reason="inventory_session",
+                        force=True,
+                    )
+                except ValueError as exc:
+                    db.session.rollback()
+                    return api_error("invalid_transition", str(exc), 409)
         if "dguv_last_check" in data:
             last = _parse_optional_date(data.get("dguv_last_check"))
             interval = product.dguv_interval_months or _DEFAULT_DGUV_INTERVAL_MONTHS
@@ -304,6 +327,25 @@ def update_inventory_item(inventory_id, product_id):
 
     item.version = int(item.version) + 1
     db.session.commit()
+
+    try:
+        from app.blueprints.sse import emit_inventory_update
+        emit_inventory_update(
+            inventory_id,
+            'item_updated',
+            {
+                'product_id': item.product_id,
+                'checked': item.checked,
+                'version': item.version,
+                'actor_id': current_user.id,
+            },
+        )
+    except Exception as exc:
+        current_app.logger.warning(
+            'Inventur-SSE Publish fehlgeschlagen (item_updated product=%s): %s',
+            item.product_id,
+            exc,
+        )
 
     return api_ok(
         {

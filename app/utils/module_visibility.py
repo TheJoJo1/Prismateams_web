@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from flask import request
 
-from app.models.settings import SystemSettings
 from app.models.team import Team, TeamMember
 from app.utils.access_control import has_module_access
 from app.utils.common import is_module_enabled
+from app.utils.system_settings_cache import setting_bool as _setting_bool
 
 VISIBILITY_PRIVATE = 'private'
 VISIBILITY_TEAM = 'team'
@@ -23,6 +23,7 @@ MODULE_KEYS = {
     'shortlinks': 'module_shortlinks',
     'excalidraw': 'module_excalidraw',
     'surveys': 'module_surveys',
+    'protocols': 'module_protocols',
 }
 
 OWNER_ATTRS = {
@@ -33,28 +34,35 @@ OWNER_ATTRS = {
     'shortlinks': 'created_by',
     'excalidraw': 'created_by',
     'surveys': 'created_by',
+    'protocols': 'created_by',
 }
 
 DEFAULT_VISIBILITY = {
-    'credentials': VISIBILITY_PUBLIC,
+    'credentials': VISIBILITY_PRIVATE,
     'manuals': VISIBILITY_PUBLIC,
     'contacts': VISIBILITY_PUBLIC,
     'wiki': VISIBILITY_PUBLIC,
     'shortlinks': VISIBILITY_PRIVATE,
     'excalidraw': VISIBILITY_PUBLIC,
     'surveys': VISIBILITY_PRIVATE,
+    'protocols': VISIBILITY_PUBLIC,
 }
+
+# Modules that never support private items (team/public only).
+NO_PRIVATE_MODULES = frozenset({'protocols'})
 
 
 def setting_key(module: str, kind: str) -> str:
     return f'{module}_allow_{kind}'
 
 
-def _setting_bool(key: str, default: bool = True) -> bool:
-    row = SystemSettings.query.filter_by(key=key).first()
-    if row is None:
-        return default
-    return str(row.value).lower() in ('true', '1', 'yes', 'on')
+def _fallback_visibility(module: str) -> str:
+    allowed = get_allowed_visibilities(module)
+    if allowed:
+        return allowed[0]
+    if module in NO_PRIVATE_MODULES:
+        return VISIBILITY_PUBLIC
+    return VISIBILITY_PRIVATE
 
 
 def get_allowed_visibilities(module: str) -> list[str]:
@@ -65,13 +73,22 @@ def get_allowed_visibilities(module: str) -> list[str]:
     )
 
     allowed = []
-    if is_global_private_enabled() and _setting_bool(setting_key(module, 'private'), True):
+    allow_private = module not in NO_PRIVATE_MODULES
+    if (
+        allow_private
+        and is_global_private_enabled()
+        and _setting_bool(setting_key(module, 'private'), True)
+    ):
         allowed.append(VISIBILITY_PRIVATE)
     if is_global_team_enabled() and _setting_bool(setting_key(module, 'team'), True):
         allowed.append(VISIBILITY_TEAM)
     if is_global_public_enabled() and _setting_bool(setting_key(module, 'public'), True):
         allowed.append(VISIBILITY_PUBLIC)
-    return allowed or [VISIBILITY_PRIVATE]
+    if allowed:
+        return allowed
+    if module in NO_PRIVATE_MODULES:
+        return [VISIBILITY_PUBLIC]
+    return [VISIBILITY_PRIVATE]
 
 
 def visibility_allowed(module: str, visibility: str) -> bool:
@@ -153,6 +170,9 @@ def can_edit_item(user, item, module: str) -> bool:
         return True
     if owner_id(item, module) == getattr(user, 'id', None):
         return True
+    # Credentials: nur Owner/Admin dürfen ändern (kein Public-/Team-Edit)
+    if module == 'credentials':
+        return False
     vis = _item_visibility(item)
     if vis == VISIBILITY_TEAM and getattr(item, 'team_id', None) and item.team_id in user_team_ids(user):
         return VISIBILITY_TEAM in set(get_allowed_visibilities(module))
@@ -201,16 +221,15 @@ def parse_visibility_value(raw, module: str, user=None):
         visibility = value
 
     if not visibility_allowed(module, visibility):
-        allowed = get_allowed_visibilities(module)
-        visibility = allowed[0] if allowed else VISIBILITY_PRIVATE
+        visibility = _fallback_visibility(module)
         team_id = None
 
     if visibility == VISIBILITY_TEAM:
         if user is not None and not user_may_use_team(user, module, team_id):
-            visibility = VISIBILITY_PRIVATE
+            visibility = _fallback_visibility(module)
             team_id = None
         elif not team_id:
-            visibility = VISIBILITY_PRIVATE
+            visibility = _fallback_visibility(module)
             team_id = None
     else:
         team_id = None
@@ -307,7 +326,7 @@ def visibility_form_context(module: str, user, item=None, preselect_section=None
             selected = f'team:{teams[0].id}'
         else:
             selected = allowed[0] if allowed else VISIBILITY_PRIVATE
-        if module == 'shortlinks' and VISIBILITY_PRIVATE in allowed:
+        if module in ('shortlinks', 'credentials') and VISIBILITY_PRIVATE in allowed:
             selected = VISIBILITY_PRIVATE
     return {
         'allowed_visibilities': allowed,

@@ -3,12 +3,17 @@
 {% block navbar_search %}{{ super() }}{% endblock %}
 
 {% set ep = request.endpoint or '' %}
+{% set inv_features = inventory_features|default({
+  'borrow': true, 'quick_scan': true, 'dguv': true,
+  'owners': true, 'accounting': true, 'stocktake': true
+}) %}
 {% set inv_nav = {
   'overview': ep == 'inventory.dashboard',
   'stock': ep.startswith('inventory.stock') or ep in (
     'inventory.product_new', 'inventory.product_edit', 'inventory.product_documents',
     'inventory.folders', 'inventory.product_borrow', 'inventory.borrow_multiple'
   ),
+  'product_scan': ep == 'inventory.product_scan',
   'quick_scan': ep == 'inventory.borrow_scanner',
   'checkout': ep in ('inventory.inventory_checkout', 'inventory.inventory_checkout_confirm'),
   'borrows': ep == 'inventory.borrows',
@@ -59,11 +64,19 @@
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-box-seam me-2"></i>{{ _('inventory.shell.nav.stock') }}
     </a>
+    <a class="nav-link mod-nav-link {% if inv_nav.product_scan %}active{% endif %}"
+       href="{{ url_for('inventory.product_scan') }}"
+       {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
+        <i class="bi bi-clipboard2-pulse me-2"></i>{{ _('inventory.shell.nav.product_scan') }}
+    </a>
+    {% if inv_features.quick_scan %}
     <a class="nav-link mod-nav-link {% if inv_nav.quick_scan %}active{% endif %}"
        href="{{ url_for('inventory.borrow_scanner') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-qr-code-scan me-2"></i>{{ _('inventory.shell.nav.quick_scan') }}
     </a>
+    {% endif %}
+    {% if inv_features.borrow %}
     <a class="nav-link mod-nav-link {% if inv_nav.checkout %}active{% endif %}"
        href="{{ url_for('inventory.inventory_checkout') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
@@ -74,16 +87,19 @@
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-clock-history me-2"></i>{{ _('inventory.shell.nav.borrows') }}
     </a>
+    {% endif %}
     <a class="nav-link mod-nav-link {% if inv_nav.sets %}active{% endif %}"
        href="{{ url_for('inventory.sets') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-collection me-2"></i>{{ _('inventory.shell.nav.sets') }}
     </a>
+    {% if inv_features.stocktake %}
     <a class="nav-link mod-nav-link {% if inv_nav.inventory_tool %}active{% endif %}"
        href="{{ url_for('inventory.inventory_tool') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-clipboard2-check me-2"></i>{{ _('inventory.shell.nav.inventory_tool') }}
     </a>
+    {% endif %}
     <a class="nav-link mod-nav-link {% if inv_nav.print_qr %}active{% endif %}"
        href="{{ url_for('inventory.print_qr') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
@@ -97,12 +113,13 @@
 </nav>
 {% endmacro %}
 
-{% macro inventory_view_toggle(suffix='', extra_class='') %}
-<div class="inventory-view-toggle {{ extra_class }}" role="group" aria-label="{{ _('inventory.shell.view_toggle.label') }}">
-    <button type="button" class="inventory-view-toggle__btn active" id="listViewBtn{{ suffix }}" title="{{ _('inventory.shell.view_toggle.list') }}">
+{% macro inventory_view_toggle(suffix='', extra_class='', default_view='list') %}
+<div class="mod-view-toggle {{ extra_class }}" data-view="{{ default_view }}" role="group" aria-label="{{ _('inventory.shell.view_toggle.label') }}">
+    <span class="mod-view-toggle__indicator" aria-hidden="true"></span>
+    <button type="button" class="mod-view-toggle__btn{% if default_view == 'list' %} active is-active{% endif %}" id="listViewBtn{{ suffix }}" title="{{ _('inventory.shell.view_toggle.list') }}">
         <i class="bi bi-list"></i>
     </button>
-    <button type="button" class="inventory-view-toggle__btn" id="gridViewBtn{{ suffix }}" title="{{ _('inventory.shell.view_toggle.grid') }}">
+    <button type="button" class="mod-view-toggle__btn{% if default_view == 'grid' %} active is-active{% endif %}" id="gridViewBtn{{ suffix }}" title="{{ _('inventory.shell.view_toggle.grid') }}">
         <i class="bi bi-grid-3x3-gap"></i>
     </button>
 </div>
@@ -164,13 +181,13 @@
                 </div>
             </div>
             {% if show_view_toggle %}
-            <div class="inventory-mobile-view-toggle mt-2">
+            <div class="mod-mobile-view-toggle mt-2">
                 {{ inventory_view_toggle('Mobile') }}
             </div>
             {% endif %}
         </div>
 
-        <div class="page-toolbar-row d-none d-lg-flex align-items-center justify-content-between gap-2 mb-3">
+        <div class="mod-toolbar d-none d-lg-flex mb-3">
             <div class="min-width-0 flex-shrink-1">
                 <h1 class="mb-0 text-break mod-view-heading">
                     <i class="bi {{ self.inventory_heading_icon() }}" aria-hidden="true"></i>
@@ -183,7 +200,7 @@
                 {% block inventory_toolbar_center %}{% endblock %}
             </div>
             {% endif %}
-            <div class="flex-shrink-0">
+            <div class="mod-toolbar-actions flex-shrink-0">
                 {% if show_view_toggle %}
                 {{ inventory_view_toggle('') }}
                 {% endif %}

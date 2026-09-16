@@ -30,6 +30,8 @@ fi
 # shellcheck source=/dev/null
 . "${LIB_DIR}/steps.sh"
 # shellcheck source=/dev/null
+. "${LIB_DIR}/step_swap.sh"
+# shellcheck source=/dev/null
 . "${LIB_DIR}/step_system.sh"
 # shellcheck source=/dev/null
 . "${LIB_DIR}/step_mysql.sh"
@@ -41,6 +43,8 @@ fi
 . "${LIB_DIR}/step_onlyoffice.sh"
 # shellcheck source=/dev/null
 . "${LIB_DIR}/step_excalidraw.sh"
+# shellcheck source=/dev/null
+. "${LIB_DIR}/step_mirotalk.sh"
 # shellcheck source=/dev/null
 . "${LIB_DIR}/step_ffmpeg.sh"
 # shellcheck source=/dev/null
@@ -87,6 +91,9 @@ main() {
 
     check_root
     check_ubuntu
+    prepare_apt_environment
+    # Swap vor jeder RAM-lastigen Arbeit (apt auf 26.04-VMs sonst OOM-Killed)
+    run_step "swap" "Swap" step_swap critical
     gather_information
 
     run_step "system" "System-Pakete" step_system critical
@@ -95,6 +102,7 @@ main() {
     run_step "docker" "Docker" step_docker optional
     run_step "onlyoffice" "OnlyOffice" step_onlyoffice optional
     run_step "excalidraw" "Excalidraw Room" step_excalidraw optional
+    run_step "mirotalk" "MiroTalk SFU" step_mirotalk optional
     run_step "ffmpeg" "FFmpeg" step_ffmpeg optional
     run_step "repo" "Repository" step_repo critical
     run_step "venv" "Python-venv" step_venv critical

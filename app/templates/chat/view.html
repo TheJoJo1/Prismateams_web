@@ -110,6 +110,11 @@
     </div>
     
     <div class="desktop-chat-actions">
+        {% if can_start_meeting %}
+        <button type="button" class="btn btn-sm chat-header-menu-btn" data-start-meeting title="{{ _('meetings.chat.start') }}" aria-label="{{ _('meetings.chat.start') }}">
+            <i class="bi bi-camera-video"></i>
+        </button>
+        {% endif %}
         <div class="dropdown">
             <button type="button" class="btn btn-sm chat-header-menu-btn" data-bs-toggle="dropdown" aria-expanded="false" title="{{ _('chat.view.dropdown.menu') }}" aria-label="{{ _('chat.view.dropdown.menu') }}">
                 <i class="bi bi-three-dots-vertical"></i>
@@ -192,6 +197,11 @@
     </div>
     
     <!-- Actions -->
+    {% if can_start_meeting %}
+    <button type="button" class="btn chat-header-menu-btn p-1 me-1" data-start-meeting title="{{ _('meetings.chat.start') }}" aria-label="{{ _('meetings.chat.start') }}">
+        <i class="bi bi-camera-video fs-5"></i>
+    </button>
+    {% endif %}
     <div class="dropdown">
         <button type="button" class="btn chat-header-menu-btn p-1" data-bs-toggle="dropdown" aria-expanded="false" title="{{ _('chat.view.dropdown.menu') }}" aria-label="{{ _('chat.view.dropdown.menu') }}">
             <i class="bi bi-three-dots-vertical fs-5"></i>
@@ -283,6 +293,11 @@
     
     <div class="chat-messages-column">
     <div class="messages-area" id="messages-container" style="display: flex; flex-direction: column; min-height: 200px;">
+        <div id="chat-load-older-wrap" class="chat-load-older-wrap"{% if not has_older_messages %} hidden{% endif %}>
+            <button type="button" id="chat-load-older" class="btn btn-sm btn-outline-secondary rounded-pill">
+                {{ _('chat.view.load_older') }}
+            </button>
+        </div>
         {% if messages %}
             {% for message in messages %}
             <div class="chat-message {% if message.sender_id == current_user.id %}own{% else %}other{% endif %}"
@@ -434,6 +449,24 @@
                             {{ message.created_at | smart_datetime }}
                         </small>
                     </div>
+                {% elif message.message_type == 'meeting' %}
+                    <div class="message-header">
+                        <strong>{% if message.sender_id == current_user.id %}{{ _('chat.view.message.you') }}{% else %}{{ message.sender.full_name if message.sender else _('chat.view.message.unknown_user') }}{% endif %}</strong>
+                    </div>
+                    <div class="message-card message-card-meeting">
+                        <div class="message-card-icon"><i class="bi bi-camera-video"></i></div>
+                        <div class="message-card-body">
+                            <strong>{{ message.get_metadata().get('title') or _('meetings.default_title') }}</strong>
+                            {% if meetings_enabled and message.get_metadata().get('join_url') %}
+                            <a href="{{ message.get_metadata().get('join_url') }}" class="btn btn-sm btn-accent mod-pill-btn mt-2">{{ _('meetings.actions.join') }}</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="message-time">
+                        <small class="text-muted" style="font-size: 0.7rem; opacity: 0.7;">
+                            {{ message.created_at | smart_datetime }}
+                        </small>
+                    </div>
                 {% elif message.message_type == 'poll' %}
                     <div class="message-header">
                         <strong>{% if message.sender_id == current_user.id %}{{ _('chat.view.message.you') }}{% else %}{{ message.sender.full_name if message.sender else _('chat.view.message.unknown_user') }}{% endif %}</strong>
@@ -483,7 +516,7 @@
             </div>
             {% endfor %}
         {% else %}
-            <div style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6c757d; padding: 2rem;">
+            <div class="chat-empty-state" style="flex: 1; display: flex; align-items: center; justify-content: center; color: #6c757d; padding: 2rem;">
                 <div style="text-align: center;">
                     <i class="bi bi-chat-dots" style="font-size: 3rem; opacity: 0.5; margin-bottom: 1rem;"></i>
                     <p style="margin: 0;">{{ _('chat.view.no_messages.title') }}</p>
@@ -505,7 +538,7 @@
             </button>
             <input type="file" id="file-upload-desktop" name="file" class="d-none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.7z,.rar,.txt,.csv,.json">
             <input type="text" id="message-input-desktop" class="form-control" name="content" placeholder="{{ _('chat.view.input.placeholder') }}" autocomplete="off">
-            <button class="btn btn-accent chat-composer-send" type="submit" id="send-button-desktop" title="{{ _('chat.view.input.send') }}">
+            <button class="btn btn-accent mod-pill-btn chat-composer-send" type="submit" id="send-button-desktop" title="{{ _('chat.view.input.send') }}">
                 <i class="bi bi-send"></i>
             </button>
         </div>
@@ -516,6 +549,9 @@
         <button type="button" class="btn attachment-action" data-attachment-action="folder"><i class="bi bi-folder2-open me-2"></i>Ordner auswählen</button>
         <button type="button" class="btn attachment-action" data-attachment-action="calendar"><i class="bi bi-calendar-event me-2"></i>Kalendertermin</button>
         <button type="button" class="btn attachment-action" data-attachment-action="poll"><i class="bi bi-bar-chart me-2"></i>Abstimmung</button>
+        {% if can_start_meeting %}
+        <button type="button" class="btn attachment-action" data-attachment-action="meeting"><i class="bi bi-camera-video me-2"></i>{{ _('meetings.chat.start') }}</button>
+        {% endif %}
     </div>
 </div>
     </div><!-- /chat-messages-column -->
@@ -534,7 +570,7 @@
             <input type="file" id="file-upload" name="file" class="d-none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.7z,.rar,.txt,.csv,.json">
             <input type="text" id="message-input" class="form-control" name="content" 
                    placeholder="{{ _('chat.view.input.placeholder') }}" autocomplete="off">
-            <button class="btn chat-composer-send" type="submit" id="send-button" title="{{ _('chat.view.input.send') }}">
+            <button class="btn mod-pill-btn mod-pill-btn--accent chat-composer-send" type="submit" id="send-button" title="{{ _('chat.view.input.send') }}">
                 <i class="bi bi-send-fill"></i>
             </button>
         </div>
@@ -547,6 +583,9 @@
         <button type="button" class="btn attachment-action" data-attachment-action="folder"><i class="bi bi-folder2-open me-2"></i>Ordner auswählen</button>
         <button type="button" class="btn attachment-action" data-attachment-action="calendar"><i class="bi bi-calendar-event me-2"></i>Kalendertermin</button>
         <button type="button" class="btn attachment-action" data-attachment-action="poll"><i class="bi bi-bar-chart me-2"></i>Abstimmung</button>
+        {% if can_start_meeting %}
+        <button type="button" class="btn attachment-action" data-attachment-action="meeting"><i class="bi bi-camera-video me-2"></i>{{ _('meetings.chat.start') }}</button>
+        {% endif %}
     </div>
 </div>
 </div><!-- /chat-main -->
@@ -554,15 +593,21 @@
 {% endblock %}
 
 {% block extra_js %}
-{% set chat_view_js = current_translations.get('chat', {}).get('view', {}).get('js', {}) %}
+{% set chat_view_js = i18n_ns('chat', 'view', 'js') %}
 <script>
     window.ChatPageConfig = {
         chatId: {{ 1 if chat.is_main_chat else chat.id }},
         currentUserId: {{ current_user.id }},
         lastMessageId: {{ messages[-1].id if messages else 0 }},
+        oldestMessageId: {{ messages[0].id if messages else 0 }},
+        hasOlderMessages: {{ 'true' if has_older_messages else 'false' }},
         initialMemberCount: {{ members|length }},
         language: "{{ current_language }}",
         isGuest: {{ 'true' if current_user.is_guest else 'false' }},
+        canStartMeeting: {{ 'true' if can_start_meeting else 'false' }},
+        meetingsEnabled: {{ 'true' if meetings_enabled else 'false' }},
+        startMeetingUrl: {{ (url_for('meetings.from_chat', chat_id=1 if chat.is_main_chat else chat.id) if can_start_meeting else '')|tojson }},
+        sseUrl: {{ (chat_sse_url|default(''))|tojson }},
         i18n: {{ chat_view_js|tojson }},
         profilePictureRoute: "{{ url_for('settings.profile_picture', filename='__FILENAME__') }}",
         text: {

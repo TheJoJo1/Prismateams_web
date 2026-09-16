@@ -3,7 +3,6 @@
 {% block title %}{{ _('wiki.edit.page_title', title=page.title) }}{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/files.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/files-markdown.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/wiki.css') }}">
 {% endblock %}
@@ -27,10 +26,10 @@
 
         <div class="markdown-editor-toolbar-divider" aria-hidden="true"></div>
 
-        <button type="button" class="btn btn-outline-secondary files-pill-btn" onclick="goBack()">
+        <button type="button" class="btn btn-outline-secondary mod-pill-btn" onclick="goBack()">
             <i class="bi bi-arrow-left"></i> {{ _('wiki.edit.toolbar.back') }}
         </button>
-        <button type="button" class="btn btn-accent files-pill-btn" id="saveBtn" onclick="savePage()">
+        <button type="button" class="btn btn-accent mod-pill-btn" id="saveBtn" onclick="savePage()">
             <i class="bi bi-check-lg"></i> {{ _('wiki.edit.toolbar.submit') }}
         </button>
 
@@ -39,7 +38,7 @@
         {% endwith %}
 
         <div class="markdown-editor-toolbar-end">
-            <button type="button" class="btn btn-outline-secondary files-pill-btn" onclick="openPreview()">
+            <button type="button" class="btn btn-outline-secondary mod-pill-btn" onclick="openPreview()">
                 <i class="bi bi-eye"></i> {{ _('wiki.create.toolbar.preview') }}
             </button>
         </div>
@@ -108,11 +107,11 @@
 
 <script src="{{ url_for('static', filename='js/wiki_meta_select.js') }}"></script>
 <script>
-const WIKI_EDIT_I18N = {{ current_translations.get('wiki', {}).get('edit', {})|tojson }};
+const WIKI_EDIT_I18N = {{ i18n_ns('wiki', 'edit')|tojson }};
 const WIKI_EDIT_TOOLBAR = WIKI_EDIT_I18N.toolbar || {};
 const WIKI_EDIT_ALERTS = WIKI_EDIT_I18N.alerts || {};
 const WIKI_EDIT_FORMAT = WIKI_EDIT_I18N.format_defaults || {};
-const WIKI_CREATE_I18N = {{ current_translations.get('wiki', {}).get('create', {})|tojson }};
+const WIKI_CREATE_I18N = {{ i18n_ns('wiki', 'create')|tojson }};
 const WIKI_CREATE_FORMAT = WIKI_CREATE_I18N.format_defaults || {};
 
 function wikiEditFormatDefault(key, fallback) {
@@ -128,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const editor = document.getElementById('wikiEditor');
     const titleInput = document.getElementById('title');
     const brandTitle = document.getElementById('wikiBrandTitle');
-    const createEditor = {{ current_translations.get('wiki', {}).get('create', {}).get('editor', {})|tojson }};
+    const createEditor = {{ i18n_ns('wiki', 'create', 'editor')|tojson }};
 
     if (editor) {
         editor.placeholder = createEditor.placeholder || editor.placeholder;
@@ -211,6 +210,9 @@ async function goBack() {
 }
 
 function savePage(silent = false) {
+    if (window.MarkdownTableEditor) {
+        window.MarkdownTableEditor.sync('wikiEditor');
+    }
     const form = document.getElementById('editForm');
     const categorySelect = document.getElementById('category_id');
     const newCategoryName = document.getElementById('new_category_name').value.trim();
@@ -279,15 +281,17 @@ function openPreview() {
 
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        if (window.MarkdownToolbar && document.getElementById('markdownToolsSheet')?.classList.contains('is-open')) {
+        if (window.MarkdownToolbar && window.MarkdownToolbar.handleEscape()) {
             return;
         }
         goBack();
     }
 });
 </script>
+<script src="{{ url_for('static', filename='js/markdown-table-editor.js') }}"></script>
 <script src="{{ url_for('static', filename='js/markdown-toolbar.js') }}"></script>
 <script>
+window.MARKDOWN_EDITOR_I18N = {{ i18n_ns('markdown', 'editor')|tojson }};
 document.addEventListener('DOMContentLoaded', function () {
     const formatDefaults = Object.assign({}, WIKI_CREATE_FORMAT, WIKI_EDIT_FORMAT);
     if (window.MarkdownToolbar) {
@@ -295,6 +299,7 @@ document.addEventListener('DOMContentLoaded', function () {
             editorId: 'wikiEditor',
             locked: false,
             extras: { wikilink: true },
+            i18n: window.MARKDOWN_EDITOR_I18N || {},
             labels: {
                 text: formatDefaults.text || 'Text',
                 heading: formatDefaults.heading || 'Überschrift',

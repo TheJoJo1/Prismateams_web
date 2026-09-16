@@ -3,8 +3,8 @@ from datetime import timedelta
 from dotenv import load_dotenv
 
 # About-Seite (Release / Build)
-ABOUT_RELEASE_VERSION = 'v3.3.2'
-ABOUT_BUILD_NUMBER = 'B332.20260902.01'
+ABOUT_RELEASE_VERSION = 'v3.4.12'
+ABOUT_BUILD_NUMBER = 'B3412.20260916.06'
 
 load_dotenv()
 
@@ -32,9 +32,64 @@ class Config:
     }
     
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
-    SESSION_COOKIE_SECURE = False
+    # Default False für lokales HTTP; Staging/Prod überschreiben (siehe ProductionConfig).
+    # Überall per .env überschreibbar: SESSION_COOKIE_SECURE=True
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    # Remember-Me (Flask-Login) — gleiche Härtung wie Session-Cookies
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Lax'
+    _remember_secure = os.environ.get('REMEMBER_COOKIE_SECURE')
+    if _remember_secure is None or str(_remember_secure).strip() == '':
+        REMEMBER_COOKIE_SECURE = SESSION_COOKIE_SECURE
+    else:
+        REMEMBER_COOKIE_SECURE = str(_remember_secure).strip().lower() == 'true'
+
+    # Absichtliche /test/* Error-Seiten — nur Dev (oder explizit per Env)
+    ENABLE_ERROR_TEST_ROUTES = False
+
+    # App-Gzip (Flask-Compress). Production/Staging: Nginx/Apache übernehmen;
+    # per ENABLE_APP_GZIP überschreibbar (z. B. Gunicorn ohne Reverse-Proxy).
+    ENABLE_APP_GZIP = os.environ.get('ENABLE_APP_GZIP', 'False').lower() in (
+        '1', 'true', 'yes', 'on',
+    )
+
+    # CSRF (Flask-WTF)
+    WTF_CSRF_ENABLED = True
+    # Gestohlene CSRF-Tokens nicht bis Session-Ende gültig lassen (Default 4h, per .env überschreibbar)
+    WTF_CSRF_TIME_LIMIT = int(os.environ.get('WTF_CSRF_TIME_LIMIT', str(4 * 3600)))
+    WTF_CSRF_HEADERS = ['X-CSRFToken', 'X-CSRF-Token']
+
+    # Passwort-Policy (einheitlich für Register/Change/Reset/Setup/Assessment)
+    PASSWORD_MIN_LENGTH = int(os.environ.get('PASSWORD_MIN_LENGTH', '12'))
+    PASSWORD_REQUIRE_COMPLEXITY = os.environ.get(
+        'PASSWORD_REQUIRE_COMPLEXITY', 'True'
+    ).lower() in ('1', 'true', 'yes', 'on')
+
+    # 2FA-E-Mail-Recovery (schwächt TOTP bei Postfach-Kompromittierung ab)
+    TWO_FACTOR_EMAIL_RECOVERY_ENABLED = os.environ.get(
+        'TWO_FACTOR_EMAIL_RECOVERY_ENABLED', 'True'
+    ).lower() in ('1', 'true', 'yes', 'on')
+
+    # WebDAV HTML-Directory-Browser (Info-Leak); Default aus, Opt-in per Env
+    WEBDAV_DIR_BROWSER = os.environ.get('WEBDAV_DIR_BROWSER', 'False').lower() in (
+        '1', 'true', 'yes', 'on',
+    )
+
+    # Portal-Nutzer mit module_assessment (ohne is_admin): Assessment-Rollen (kommagetrennt)
+    ASSESSMENT_PORTAL_DEFAULT_ROLES = os.environ.get(
+        'ASSESSMENT_PORTAL_DEFAULT_ROLES', 'Bewerter'
+    )
+    # Assessment-Sessions (kein Portal-user_sessions): Absolute- und Idle-Timeout
+    ASSESSMENT_SESSION_MAX_HOURS = float(os.environ.get('ASSESSMENT_SESSION_MAX_HOURS', '12'))
+    ASSESSMENT_SESSION_INACTIVITY_HOURS = float(
+        os.environ.get('ASSESSMENT_SESSION_INACTIVITY_HOURS', '8')
+    )
+
+    # Socket.IO CORS: leer = same-origin (Host); '*' = offen; sonst Komma-Liste
+    SOCKETIO_CORS_ORIGINS = (os.environ.get('SOCKETIO_CORS_ORIGINS') or '').strip()
+    PUBLIC_BASE_URL = (os.environ.get('PUBLIC_BASE_URL') or '').strip().rstrip('/')
     
     MAIL_SERVER = os.environ.get('MAIL_SERVER')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))
@@ -54,7 +109,13 @@ class Config:
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads')
     # Request-Deckel: Start-Default; wird nach DB-Sync aus Datei-Einstellungen gesetzt
     MAX_CONTENT_LENGTH = 100 * 1024 * 1024
-    ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'ogg', 'mp3', 'wav', 'md', 'doc', 'docx', 'xls', 'xlsx', 'zip', 'rar'}
+    ALLOWED_EXTENSIONS = {
+        'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif', 'webp',
+        'mp4', 'webm', 'ogg', 'mp3', 'wav', 'mov',
+        'md', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx',
+        'odt', 'ods', 'odp', 'csv', 'rtf',
+        'zip', 'rar', '7z',
+    }
     
     APP_NAME = os.environ.get('APP_NAME', 'Prismateams')
     APP_LOGO = os.environ.get('APP_LOGO', 'static/img/logo.png')
@@ -71,10 +132,24 @@ class Config:
     EMAIL_TEXT_MAX_LENGTH = int(os.environ.get('EMAIL_TEXT_MAX_LENGTH', 10000))
     EMAIL_HTML_STORAGE_TYPE = os.environ.get('EMAIL_HTML_STORAGE_TYPE', 'TEXT')
     
+    # Euro-Office Document Server (API-kompatibel zu ONLYOFFICE Docs; ENV-Keys historisch)
     ONLYOFFICE_ENABLED = os.environ.get('ONLYOFFICE_ENABLED', 'False').lower() == 'true'
-    ONLYOFFICE_DOCUMENT_SERVER_URL = os.environ.get('ONLYOFFICE_DOCUMENT_SERVER_URL', '/onlyoffice')
+    _oo_ds_url = (os.environ.get('ONLYOFFICE_DOCUMENT_SERVER_URL') or '/eurooffice').strip()
+    ONLYOFFICE_DOCUMENT_SERVER_URL = _oo_ds_url or '/eurooffice'
     ONLYOFFICE_SECRET_KEY = os.environ.get('ONLYOFFICE_SECRET_KEY', '')
-    ONLYOFFICE_PUBLIC_URL = os.environ.get('ONLYOFFICE_PUBLIC_URL', '')
+    ONLYOFFICE_PUBLIC_URL = (os.environ.get('ONLYOFFICE_PUBLIC_URL') or '').strip()
+    # Unsigned callbacks (JWT_ENABLED=false am Document Server):
+    # None = auto (nur Dev/Test), True/False = explizit aus .env
+    _oo_unsigned = os.environ.get('ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS')
+    if _oo_unsigned is None or str(_oo_unsigned).strip() == '':
+        ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS = None
+    else:
+        ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS = (
+            str(_oo_unsigned).strip().lower() in ('1', 'true', 'yes', 'on')
+        )
+
+    CREDENTIAL_ENCRYPTION_KEY = (os.environ.get('CREDENTIAL_ENCRYPTION_KEY') or '').strip()
+    MAILBOX_ENCRYPTION_KEY = (os.environ.get('MAILBOX_ENCRYPTION_KEY') or '').strip()
     
     EXCALIDRAW_ENABLED = os.environ.get('EXCALIDRAW_ENABLED', 'False').lower() == 'true'
     EXCALIDRAW_URL = os.environ.get('EXCALIDRAW_URL', '/excalidraw')
@@ -85,21 +160,56 @@ class Config:
     MEDIA_DOWNLOADER_MAX_CONCURRENT = int(os.environ.get('MEDIA_DOWNLOADER_MAX_CONCURRENT', '2'))
     FFMPEG_PATH = os.environ.get('FFMPEG_PATH', '')
 
+    MIROTALK_URL = (os.environ.get('MIROTALK_URL') or '').strip().rstrip('/')
+    MIROTALK_API_URL = (os.environ.get('MIROTALK_API_URL') or MIROTALK_URL or '').strip().rstrip('/')
+    MIROTALK_API_KEY = (os.environ.get('MIROTALK_API_KEY') or '').strip()
+    MIROTALK_HOST_USER = (os.environ.get('MIROTALK_HOST_USER') or '').strip()
+    MIROTALK_HOST_PASSWORD = (os.environ.get('MIROTALK_HOST_PASSWORD') or '').strip()
+    _mirotalk_enabled = os.environ.get('MIROTALK_ENABLED')
+    if _mirotalk_enabled is None or str(_mirotalk_enabled).strip() == '':
+        MIROTALK_ENABLED = bool(MIROTALK_URL)
+    else:
+        MIROTALK_ENABLED = str(_mirotalk_enabled).strip().lower() in ('1', 'true', 'yes', 'on')
+
     FILE_CONVERTER_RETENTION_HOURS = int(os.environ.get('FILE_CONVERTER_RETENTION_HOURS', '24'))
     FILE_CONVERTER_MAX_CONCURRENT = int(os.environ.get('FILE_CONVERTER_MAX_CONCURRENT', '2'))
     LIBREOFFICE_PATH = os.environ.get('LIBREOFFICE_PATH', '')
+
+    # Soft-deleted files/folders: hard-purge after N days (0 = disabled). Overridable in Admin → Datei-Einstellungen.
+    FILES_TRASH_DAYS = int(os.environ.get('FILES_TRASH_DAYS', '30'))
+
+    # IP/UA-bearing DB rows: purge after N days (0 = disabled). Overridable in Admin → System.
+    SESSION_RECORD_RETENTION_DAYS = int(os.environ.get('SESSION_RECORD_RETENTION_DAYS', '30'))
+    SHARE_ACCESS_LOG_RETENTION_DAYS = int(os.environ.get('SHARE_ACCESS_LOG_RETENTION_DAYS', '90'))
+
+    # Static-Dateien: langes Browser-Caching (Templates hängen ?v=ABOUT_BUILD_NUMBER an).
+    # Nginx sollte zusätzlich Cache-Control: public, immutable setzen (siehe docs/WARTUNG.md).
+    SEND_FILE_MAX_AGE_DEFAULT = int(os.environ.get('SEND_FILE_MAX_AGE_DEFAULT', '31536000'))
+
+    # YouTube-Proxy: parallele Streams begrenzen + Timeouts (siehe media_downloader)
+    YOUTUBE_PROXY_MAX_CONCURRENT = int(os.environ.get('YOUTUBE_PROXY_MAX_CONCURRENT', '4'))
 
     # Redis für SocketIO Message Queue (optional, für Multi-Worker-Setups)
     REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
     REDIS_ENABLED = os.environ.get('REDIS_ENABLED', 'False').lower() == 'true'
     # Optional: explizites Limiter-Backend (sonst Redis wenn REDIS_ENABLED, sonst Memory)
     RATELIMIT_STORAGE_URI = os.environ.get('RATELIMIT_STORAGE_URI', '').strip() or None
+    # Production/Staging: Memory-Limiter nur mit explizitem Opt-in
+    RATELIMIT_ALLOW_MEMORY = os.environ.get('RATELIMIT_ALLOW_MEMORY', 'False').lower() in (
+        '1', 'true', 'yes', 'on',
+    )
 
 
 class DevelopmentConfig(Config):
     """Development configuration."""
     DEBUG = True
     TESTING = False
+    # Error-Testrouten (/test/404 …) standardmäßig an; abschalten: ENABLE_ERROR_TEST_ROUTES=False
+    ENABLE_ERROR_TEST_ROUTES = os.environ.get('ENABLE_ERROR_TEST_ROUTES', 'True').lower() == 'true'
+    # python app.py ohne Nginx: Antworten komprimieren (P05)
+    ENABLE_APP_GZIP = os.environ.get('ENABLE_APP_GZIP', 'True').lower() in (
+        '1', 'true', 'yes', 'on',
+    )
 
 
 class ProductionConfig(Config):
@@ -110,17 +220,38 @@ class ProductionConfig(Config):
     # Default True (HTTPS). Ohne SSL muss .env SESSION_COOKIE_SECURE=False setzen,
     # sonst speichert der Browser Session-Cookies nicht und Login/Setup brechen.
     SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'True').lower() == 'true'
+    # Remember-Me: Default wie Session; separat überschreibbar
+    REMEMBER_COOKIE_SECURE = os.environ.get(
+        'REMEMBER_COOKIE_SECURE',
+        os.environ.get('SESSION_COOKIE_SECURE', 'True'),
+    ).lower() == 'true'
+    ENABLE_ERROR_TEST_ROUTES = os.environ.get('ENABLE_ERROR_TEST_ROUTES', 'False').lower() == 'true'
+    ENABLE_APP_GZIP = os.environ.get('ENABLE_APP_GZIP', 'False').lower() in (
+        '1', 'true', 'yes', 'on',
+    )
+
+
+class StagingConfig(ProductionConfig):
+    """
+    Staging: Production-Härte für Cookies/Secrets; kein Error-Test-Blueprint by default.
+
+    Nutzung: FLASK_ENV=staging (nicht development auf öffentlichem Staging).
+    """
+    DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
 
 
 class TestingConfig(Config):
     """Testing configuration."""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///test.db'
+    ENABLE_ERROR_TEST_ROUTES = False
+    ENABLE_APP_GZIP = False
 
 
 config = {
     'development': DevelopmentConfig,
     'production': ProductionConfig,
+    'staging': StagingConfig,
     'testing': TestingConfig,
     'default': DevelopmentConfig
 }

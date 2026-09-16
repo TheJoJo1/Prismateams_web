@@ -10,14 +10,28 @@
     }
 
     let lastMessageId = cfg.lastMessageId || 0;
+    let oldestMessageId = cfg.oldestMessageId || 0;
+    let hasOlderMessages = Boolean(cfg.hasOlderMessages);
     let isPolling = true;
     let isSendingMessage = false;
+    let isLoadingOlder = false;
     let currentMemberCount = cfg.initialMemberCount || 0;
     let notificationsMuted = false;
     let cachedFolderOptions = null;
     let cachedCalendarOptions = null;
     let mediaRecorder;
     let audioChunks = [];
+    let pollTimer = null;
+    let structuredTimer = null;
+    let markReadTimer = null;
+    const sseUrl = cfg.sseUrl || "";
+    let sseLive = false;
+    let chatEventSource = null;
+
+    const MESSAGE_POLL_MS = 5000;
+    const STRUCTURED_POLL_MS = 10000;
+    const MARK_READ_MS = 30000;
+    const OLDER_PAGE_SIZE = 50;
 
     function byId(id) {
         return document.getElementById(id);
@@ -210,6 +224,22 @@
         `;
     }
 
+    function meetingCard(message) {
+        const metadata = message.metadata || {};
+        const joinUrl = cfg.meetingsEnabled !== false ? (metadata.join_url || "") : "";
+        const title = metadata.title || i18n.meeting_label || "Meeting";
+        const joinLabel = i18n.meeting_join || "Beitreten";
+        return `
+            <div class="message-card message-card-meeting">
+                <div class="message-card-icon"><i class="bi bi-camera-video"></i></div>
+                <div class="message-card-body">
+                    <strong>${escapeHtml(title)}</strong>
+                    ${joinUrl ? `<a href="${escapeHtml(joinUrl)}" class="btn btn-sm btn-accent rounded-pill mt-2">${escapeHtml(joinLabel)}</a>` : ""}
+                </div>
+            </div>
+        `;
+    }
+
     function messageContentHtml(message) {
         if (message.message_type === "image") {
             return `<img src="${getMediaUrl(message.media_url)}" class="img-fluid rounded" style="max-width:320px;" alt="Bild">`;
@@ -232,6 +262,9 @@
         if (message.message_type === "poll") {
             return pollCard(message);
         }
+        if (message.message_type === "meeting") {
+            return meetingCard(message);
+        }
         return `<div class="message-content">${escapeHtml(message.content || "")}</div>`;
     }
 
@@ -252,7 +285,7 @@
         wrapper.innerHTML = `
             <div class="message-header"><strong>${sender}</strong></div>
             ${messageContentHtml(message)}
-            ${message.content && message.message_type !== "text" && message.message_type !== "folder_link" && message.message_type !== "calendar_event" ? `<p class="mt-2 mb-0">${escapeHtml(message.content)}</p>` : ""}
+            ${message.content && message.message_type !== "text" && message.message_type !== "folder_link" && message.message_type !== "calendar_event" && message.message_type !== "meeting" ? `<p class="mt-2 mb-0">${escapeHtml(message.content)}</p>` : ""}
             <div class="message-time"><small class="text-muted">${formatTime(message.created_at)}</small></div>
         `;
         return wrapper;
@@ -261,7 +294,101 @@
     function addMessageToChat(message) {
         const container = byId("messages-container");
         if (!container) return;
+        const emptyState = container.querySelector(".chat-empty-state");
+        if (emptyState) emptyState.remove();
         container.appendChild(renderMessage(message));
+        if (message.id && (!oldestMessageId || message.id < oldestMessageId)) {
+            oldestMessageId = message.id;
+        }
+    }
+
+    function prependMessagesToChat(messages) {
+        const container = byId("messages-container");
+        const anchor = byId("chat-load-older-wrap");
+        if (!container || !messages.length) return;
+        const emptyState = container.querySelector(".chat-empty-state");
+        if (emptyState) emptyState.remove();
+
+        const previousHeight = container.scrollHeight;
+        const previousTop = container.scrollTop;
+        const fragment = document.createDocumentFragment();
+        messages.forEach((message) => {
+            if (container.querySelector(`.chat-message[data-message-id="${message.id}"]`)) return;
+            fragment.appendChild(renderMessage(message));
+        });
+        if (anchor && anchor.nextSibling) {
+            container.insertBefore(fragment, anchor.nextSibling);
+        } else if (anchor) {
+            container.appendChild(fragment);
+        } else {
+            container.insertBefore(fragment, container.firstChild);
+        }
+        container.scrollTop = previousTop + (container.scrollHeight - previousHeight);
+
+        const first = messages[0];
+        if (first && first.id) {
+            oldestMessageId = first.id;
+        }
+    }
+
+    function updateLoadOlderVisibility(visible) {
+        hasOlderMessages = Boolean(visible);
+        const wrap = byId("chat-load-older-wrap");
+        if (!wrap) return;
+        wrap.hidden = !hasOlderMessages;
+    }
+
+    async function loadOlderMessages() {
+        if (!hasOlderMessages || isLoadingOlder || !oldestMessageId) return;
+        const button = byId("chat-load-older");
+        isLoadingOlder = true;
+        if (button) {
+            button.disabled = true;
+            button.textContent = i18n.load_older_loading || "Laden…";
+        }
+        try {
+            const response = await fetch(
+                `/api/chats/${chatId}/messages?before=${oldestMessageId}&limit=${OLDER_PAGE_SIZE}`,
+                { headers: { "X-Requested-With": "XMLHttpRequest" } }
+            );
+            if (!response.ok) throw new Error("load older failed");
+            const payload = await response.json();
+            const messages = Array.isArray(payload.messages) ? payload.messages : [];
+            if (messages.length) {
+                prependMessagesToChat(messages);
+            }
+            updateLoadOlderVisibility(Boolean(payload.has_more));
+        } catch (e) {
+            console.error(e);
+            notify(i18n.load_older_error || "Ältere Nachrichten konnten nicht geladen werden");
+        } finally {
+            isLoadingOlder = false;
+            if (button) {
+                button.disabled = false;
+                button.textContent = i18n.load_older || "Ältere Nachrichten laden";
+            }
+        }
+    }
+
+    function clearPollTimers() {
+        if (pollTimer) clearTimeout(pollTimer);
+        if (structuredTimer) clearTimeout(structuredTimer);
+        if (markReadTimer) clearTimeout(markReadTimer);
+        pollTimer = null;
+        structuredTimer = null;
+        markReadTimer = null;
+    }
+
+    function scheduleMessagePoll() {
+        if (isPolling && !document.hidden && !sseLive) {
+            pollTimer = setTimeout(pollMessages, MESSAGE_POLL_MS);
+        }
+    }
+
+    function scheduleStructuredPoll() {
+        if (isPolling && !document.hidden && !sseLive) {
+            structuredTimer = setTimeout(syncStructuredMessageUpdates, STRUCTURED_POLL_MS);
+        }
     }
 
     function replacePollCardInMessage(messageElement, message) {
@@ -415,10 +542,11 @@
         }
     };
 
-    async function pollMessages() {
-        if (!isPolling) return;
+    async function fetchNewMessages() {
         try {
-            const response = await fetch(`/api/chats/${chatId}/messages?since=${lastMessageId}`, { headers: { "X-Requested-With": "XMLHttpRequest" } });
+            const response = await fetch(`/api/chats/${chatId}/messages?since=${lastMessageId}&limit=100`, {
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            });
             if (response.ok) {
                 const payload = await response.json();
                 const messages = Array.isArray(payload) ? payload : (payload.messages || []);
@@ -433,13 +561,21 @@
         } catch (e) {
             console.error(e);
         }
-        setTimeout(pollMessages, 2000);
     }
 
-    async function syncStructuredMessageUpdates() {
-        if (!isPolling) return;
+    async function pollMessages() {
+        if (!isPolling || document.hidden) return;
+        await fetchNewMessages();
+        scheduleMessagePoll();
+    }
+
+    async function applyStructuredUpdates() {
+        const structuredEls = document.querySelectorAll(
+            ".chat-message[data-poll-updated-at], .chat-message[data-calendar-updated-at]"
+        );
+        if (!structuredEls.length) return;
         try {
-            const response = await fetch(`/api/chats/${chatId}/messages?limit=200`, {
+            const response = await fetch(`/api/chats/${chatId}/messages?limit=50`, {
                 headers: { "X-Requested-With": "XMLHttpRequest" },
             });
             if (response.ok) {
@@ -469,7 +605,57 @@
         } catch (e) {
             console.error(e);
         }
-        setTimeout(syncStructuredMessageUpdates, 3000);
+    }
+
+    async function syncStructuredMessageUpdates() {
+        if (!isPolling || document.hidden) return;
+        await applyStructuredUpdates();
+        scheduleStructuredPoll();
+    }
+
+    function onChatLiveEvent() {
+        if (!isPolling || document.hidden) return;
+        fetchNewMessages();
+        applyStructuredUpdates();
+    }
+
+    function connectChatSSE() {
+        if (!sseUrl || !window.EventSource) {
+            pollMessages();
+            syncStructuredMessageUpdates();
+            return;
+        }
+        try {
+            chatEventSource = new EventSource(sseUrl);
+            chatEventSource.addEventListener("connected", () => {
+                sseLive = true;
+                if (pollTimer) {
+                    clearTimeout(pollTimer);
+                    pollTimer = null;
+                }
+                if (structuredTimer) {
+                    clearTimeout(structuredTimer);
+                    structuredTimer = null;
+                }
+                fetchNewMessages();
+                applyStructuredUpdates();
+            });
+            chatEventSource.onerror = () => {
+                if (chatEventSource && chatEventSource.readyState === EventSource.CLOSED) {
+                    sseLive = false;
+                    if (isPolling && !document.hidden) {
+                        pollMessages();
+                        syncStructuredMessageUpdates();
+                    }
+                }
+            };
+            chatEventSource.addEventListener("chat:message", onChatLiveEvent);
+            chatEventSource.addEventListener("chat:updated", onChatLiveEvent);
+            fetchNewMessages();
+        } catch (e) {
+            pollMessages();
+            syncStructuredMessageUpdates();
+        }
     }
 
     function syncMobileComposerSpacing() {
@@ -589,7 +775,7 @@
     }
 
     async function markRead() {
-        if (!isPolling) return;
+        if (!isPolling || document.hidden) return;
         try {
             await fetch(`/api/chats/${chatId}/mark-read`, {
                 method: "POST",
@@ -598,7 +784,9 @@
         } catch (e) {
             console.error(e);
         }
-        setTimeout(markRead, 15000);
+        if (isPolling && !document.hidden) {
+            markReadTimer = setTimeout(markRead, MARK_READ_MS);
+        }
     }
 
     async function updateMuteState(enabled) {
@@ -657,7 +845,35 @@
         if (calendarBtn) {
             respondToCalendarEvent(calendarBtn.getAttribute("data-message-id"), calendarBtn.getAttribute("data-status"));
         }
+        const startBtn = event.target.closest("[data-start-meeting]");
+        if (startBtn) {
+            event.preventDefault();
+            startMeetingFromChat();
+        }
     });
+
+    async function startMeetingFromChat() {
+        if (!cfg.canStartMeeting || !cfg.startMeetingUrl || isSendingMessage) return;
+        isSendingMessage = true;
+        try {
+            const response = await fetch(cfg.startMeetingUrl, {
+                method: "POST",
+                headers: { "X-Requested-With": "XMLHttpRequest" },
+            });
+            const payload = await response.json();
+            if (!response.ok || !payload.success) {
+                throw new Error(payload.error || i18n.meeting_start_error || "Meeting konnte nicht gestartet werden");
+            }
+            if (payload.join_url) {
+                window.location.href = payload.join_url;
+                return;
+            }
+        } catch (err) {
+            notify(err.message || i18n.meeting_start_error || "Meeting konnte nicht gestartet werden");
+        } finally {
+            isSendingMessage = false;
+        }
+    }
 
     function bindComposer() {
         fileChanged("file-upload", "file-name");
@@ -729,6 +945,14 @@
                 closeAllAttachmentPopups();
                 const modalEl = byId("pollCreateModal");
                 if (modalEl) new bootstrap.Modal(modalEl).show();
+            });
+        });
+
+        document.querySelectorAll("[data-attachment-action='meeting']").forEach((button) => {
+            button.addEventListener("click", (event) => {
+                event.preventDefault();
+                closeAllAttachmentPopups();
+                startMeetingFromChat();
             });
         });
 
@@ -912,9 +1136,28 @@
         if (window.visualViewport) {
             window.visualViewport.addEventListener("resize", syncMobileComposerSpacing);
         }
+        const loadOlderBtn = byId("chat-load-older");
+        if (loadOlderBtn) {
+            loadOlderBtn.addEventListener("click", loadOlderMessages);
+        }
+        updateLoadOlderVisibility(hasOlderMessages);
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) {
+                clearPollTimers();
+                return;
+            }
+            if (!isPolling) return;
+            clearPollTimers();
+            fetchNewMessages();
+            applyStructuredUpdates();
+            if (!sseLive) {
+                scheduleMessagePoll();
+                scheduleStructuredPoll();
+            }
+            markRead();
+        });
         setTimeout(scrollToBottom, 120);
-        pollMessages();
-        syncStructuredMessageUpdates();
+        connectChatSSE();
         markRead();
     });
 })();

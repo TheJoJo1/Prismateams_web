@@ -1,0 +1,171 @@
+/* Shared module search — .mod-search (flex field) + .mod-search--icon (absolute icon) */
+
+/* ——— Flex field variant ——— */
+.mod-search {
+    position: relative;
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: none;
+    margin: 0;
+    width: auto;
+}
+
+@media (min-width: 992px) {
+    .mod-search {
+        max-width: 28rem;
+        margin: 0 auto;
+    }
+}
+
+.mod-search-field {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    width: 100%;
+    margin: 0;
+    padding: 0.4rem 2.5rem 0.4rem 0.95rem;
+    border: 1px solid var(--bs-border-color, #ced4da);
+    border-radius: var(--mod-radius-pill);
+    background: var(--bs-body-bg, #fff);
+    cursor: text;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mod-search-field:hover {
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, var(--bs-border-color, #ced4da));
+}
+
+.mod-search-field:focus-within {
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 65%, var(--bs-border-color, #ced4da));
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
+}
+
+.mod-search-field > .bi-search {
+    flex-shrink: 0;
+    font-size: 0.95rem;
+    line-height: 1;
+    color: var(--accent-color, var(--bs-primary));
+    opacity: 1;
+    transform: none;
+}
+
+.mod-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0 !important;
+    outline: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0.2rem 0 !important;
+    height: auto !important;
+    line-height: 1.4;
+    color: var(--bs-body-color);
+    font-size: 0.95rem;
+}
+
+.mod-search-input::placeholder {
+    color: var(--bs-secondary-color, #6c757d);
+    opacity: 0.9;
+}
+
+.mod-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    top: 0;
+    bottom: 0;
+    margin: auto 0;
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border: none;
+    border-radius: var(--mod-radius-pill);
+    background: transparent;
+    color: var(--bs-secondary-color, #6c757d);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    transform: none;
+    text-decoration: none;
+}
+
+.mod-search-clear:hover {
+    background: rgba(127, 127, 127, 0.12);
+    color: var(--bs-body-color);
+}
+
+.mod-search-empty {
+    min-height: 1.1rem;
+}
+
+/* ——— Absolute icon variant ——— */
+.mod-search--icon {
+    position: relative;
+    max-width: 28rem;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.mod-search--icon .mod-search-icon,
+.mod-search-icon {
+    position: absolute;
+    left: 0.95rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent-color, var(--bs-primary));
+    pointer-events: none;
+    font-size: 0.95rem;
+}
+
+.mod-search--icon .mod-search-input,
+.mod-search--icon .form-control.mod-search-input {
+    flex: initial;
+    border-radius: var(--mod-radius-pill) !important;
+    padding-left: 2.35rem !important;
+    padding-right: 2.35rem !important;
+    height: 2.55rem;
+    background: var(--bs-body-bg) !important;
+    border: 1px solid var(--bs-border-color) !important;
+    box-shadow: none !important;
+    outline: 0;
+    color: var(--bs-body-color);
+    font-size: 0.95rem;
+    line-height: 1.4;
+}
+
+.mod-search--icon .mod-search-input:focus {
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 55%, var(--bs-border-color)) !important;
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent) !important;
+}
+
+.mod-search--icon .mod-search-clear {
+    position: absolute;
+    right: 0.35rem;
+    top: 50%;
+    bottom: auto;
+    margin: 0;
+    transform: translateY(-50%);
+    width: 1.85rem;
+    height: 1.85rem;
+    padding: 0;
+    border: none;
+    border-radius: var(--mod-radius-pill);
+    background: transparent;
+    color: var(--bs-secondary-color, #6c757d);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    z-index: 2;
+}
+
+.mod-search--icon .mod-search-clear:hover {
+    background: rgba(127, 127, 127, 0.12);
+    color: var(--bs-body-color);
+}
+
+/* Chat create dialog search icon */
+.chat-create-search .bi-search {
+    color: var(--accent-color, var(--bs-primary));
+    opacity: 1;
+}

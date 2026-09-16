@@ -1,0 +1,373 @@
+/* Shared list / grid / bulk chrome — used by files, contacts, kanban, wiki, …
+ * Keeps domain modules from loading files.css for these patterns.
+ * Canonical classes: mod-bulk-*, mod-select-*, mod-grid-preview, mod-item-name*, mod-details-card.
+ */
+
+/* ——— Multi-select / bulk bar ——— */
+
+.mod-bulk-bar {
+    border: 1px solid var(--bs-border-color, #e9ecef);
+    border-left: 4px solid var(--accent-color, var(--bs-primary));
+    border-radius: var(--mod-radius-pill, 1.5rem);
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    animation: modBulkSlideDown 0.25s ease-out;
+}
+
+@keyframes modBulkSlideDown {
+    from { opacity: 0; transform: translateY(-0.35rem); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.mod-bulk-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    padding: 0.75rem 1rem;
+}
+
+.mod-bulk-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.mod-bulk-btn {
+    border-radius: var(--mod-radius-pill, 1.5rem) !important;
+    font-weight: 600;
+    font-size: 0.8rem;
+    background-color: var(--bs-body-bg, #fff);
+}
+
+.mod-bulk-btn--outline {
+    border: 1px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, var(--bs-border-color, #dee2e6));
+    color: var(--bs-body-color, #212529);
+}
+
+.mod-bulk-btn--outline:hover {
+    border-color: var(--accent-color, var(--bs-primary));
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.mod-bulk-btn--muted {
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    color: var(--bs-secondary-color, #6c757d);
+    background: transparent;
+}
+
+.mod-bulk-btn--danger {
+    border: 1px solid color-mix(in srgb, #dc3545 40%, var(--bs-border-color, #dee2e6));
+    color: #dc3545;
+}
+
+.mod-bulk-btn--danger:hover {
+    background: color-mix(in srgb, #dc3545 10%, transparent);
+}
+
+.mod-bulk-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.mod-select-check {
+    position: absolute;
+    top: 0.55rem;
+    left: 0.55rem;
+    z-index: 3;
+    margin: 0;
+    padding: 0.2rem;
+    border-radius: 0.4rem;
+    background: color-mix(in srgb, var(--bs-body-bg, #fff) 88%, transparent);
+    opacity: 0;
+    transition: opacity 0.15s ease;
+    cursor: pointer;
+}
+
+.card.file-item:hover .mod-select-check,
+.card.folder-item:hover .mod-select-check,
+.card.file-item.is-selected .mod-select-check,
+.card.folder-item.is-selected .mod-select-check,
+body.mod-has-selection .mod-select-check {
+    opacity: 1;
+}
+
+.mod-select-col {
+    width: 2.25rem !important;
+    min-width: 2.25rem !important;
+    max-width: 2.25rem !important;
+    vertical-align: middle;
+    overflow: visible !important;
+    padding-left: 0.35rem !important;
+    padding-right: 0.15rem !important;
+}
+
+/* table-cell behalten — display:flex auf <td> zerstört Zeilenhöhe/Namen */
+
+.mod-list-name-cell {
+    position: relative;
+    max-width: 0;
+    overflow: hidden;
+    display: table-cell;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.mod-list-name-cell .mod-list-name.mod-item-name {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: calc(100% - 2rem);
+    vertical-align: middle;
+    color: var(--bs-body-color, #212529);
+    padding-left: 0;
+    transition: padding-left 0.12s ease;
+}
+
+.mod-list-name-cell .mod-presence-anchor {
+    display: inline-flex;
+    vertical-align: middle;
+    margin-left: 0.35rem;
+}
+
+.mod-select-check--list {
+    position: absolute;
+    left: 0.15rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    opacity: 0;
+    margin: 0;
+    padding: 0.15rem;
+    background: color-mix(in srgb, var(--bs-body-bg, #fff) 92%, transparent);
+}
+
+.mod-list-row:hover .mod-select-check--list,
+.mod-list-row.is-selected .mod-select-check--list,
+body.mod-has-selection .mod-select-check--list {
+    opacity: 1;
+}
+
+.mod-list-row:hover .mod-list-name-cell .mod-list-name.mod-item-name,
+.mod-list-row.is-selected .mod-list-name-cell .mod-list-name.mod-item-name,
+body.mod-has-selection .mod-list-name-cell .mod-list-name.mod-item-name {
+    padding-left: 1.55rem;
+}
+
+.mod-list-select-all-wrap {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+}
+
+.card.file-item.is-selected,
+.card.folder-item.is-selected,
+tr.mod-list-row.is-selected {
+    outline: 2px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 55%, transparent);
+    outline-offset: 1px;
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 6%, transparent);
+}
+
+/* ——— Grid preview / hover shortcuts / item names ——— */
+
+.mod-grid-preview {
+    min-height: 7.5rem;
+    height: 7.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.mod-grid-preview .bi {
+    font-size: 3.4rem;
+    line-height: 1;
+}
+
+.mod-grid-preview .image-mini-preview,
+.mod-grid-preview > img {
+    max-height: 100%;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: cover;
+}
+
+.mod-grid-hover-actions {
+    display: none !important;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+@media (min-width: 992px) {
+    .card.folder-item:hover .mod-grid-hover-actions,
+    .card.file-item:hover .mod-grid-hover-actions,
+    .card.folder-item:focus-within .mod-grid-hover-actions,
+    .card.file-item:focus-within .mod-grid-hover-actions {
+        display: inline-flex !important;
+    }
+}
+
+.mod-grid-hover-actions .btn-link {
+    color: var(--bs-secondary-color);
+    text-decoration: none;
+    padding: 0.2rem 0.35rem;
+    border-radius: var(--mod-radius-pill, 1.5rem);
+}
+
+.mod-grid-hover-actions .btn-link:hover {
+    color: var(--accent-color, var(--bs-primary));
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 10%, transparent);
+}
+
+.card.folder-item .mod-item-name,
+.card.file-item .mod-item-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+    white-space: normal;
+}
+
+.mod-list-name.mod-item-name {
+    display: inline-flex;
+    align-items: center;
+    column-gap: 0.15rem;
+    row-gap: 0;
+    gap: 0.15rem;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.mod-list-name.mod-item-name > *,
+.mod-list-name.mod-item-name .file-type-icon-wrap,
+.mod-list-name.mod-item-name .file-type-bi,
+.mod-list-name.mod-item-name .bi {
+    flex-shrink: 0;
+    margin: 0 !important;
+    padding-right: 0 !important;
+}
+
+.mod-list-name.mod-item-name .mod-item-name-text {
+    margin: 0 !important;
+    padding-left: 0 !important;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.card.folder-item .mod-item-name-text,
+.card.file-item .mod-item-name-text {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    min-width: 0;
+}
+
+.mod-list-name .mod-item-name-text {
+    display: block;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: normal;
+    overflow-wrap: normal;
+}
+
+/* ——— Details card (files viewer + wiki side panels) ——— */
+
+.mod-details-card {
+    border-radius: 1rem;
+    border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.25));
+    background: var(--bs-tertiary-bg);
+    padding: 1rem;
+}
+
+.mod-details-card p {
+    margin-bottom: 0.45rem;
+}
+
+.mod-details-card p:last-child {
+    margin-bottom: 0;
+}
+
+/* ——— Side menu panel (files viewer + wiki history) ——— */
+
+.side-menu {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: var(--bs-body-bg);
+    border-left: 1px solid var(--bs-border-color);
+    border-radius: 1.25rem 0 0 1.25rem;
+    z-index: 1055;
+    transition: right 0.3s ease;
+    overflow-y: auto;
+    box-shadow: -0.35rem 0 1.5rem rgba(0, 0, 0, 0.12);
+}
+
+.side-menu.show {
+    right: 0;
+}
+
+.side-menu-header {
+    padding: 1rem;
+    border-bottom: 1px solid var(--bs-border-color);
+    background: var(--bs-body-bg);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.side-menu-content {
+    padding: 1rem;
+}
+
+.side-menu-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.28);
+    z-index: 1054;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.side-menu-backdrop.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (max-width: 767.98px) {
+    .side-menu {
+        width: 100%;
+        max-width: 100%;
+        right: -100%;
+    }
+
+    .side-menu.show {
+        right: 0;
+    }
+}
+
+.side-menu .btn {
+    border-radius: var(--mod-radius-pill, 1.5rem) !important;
+}

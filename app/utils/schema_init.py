@@ -46,6 +46,7 @@ CRITICAL_TABLES = (
     "manuals",
     "manual_folders",
     "system_settings",
+    "cookie_consent_logs",
     "whitelist_entries",
     "products",
     "checkouts",
@@ -70,6 +71,10 @@ CRITICAL_TABLES = (
     "survey_answers",
     "survey_email_verifications",
     "survey_response_locks",
+    "protocols",
+    "protocol_agenda_items",
+    "meetings",
+    "meeting_invites",
     "conversion_jobs",
     "schema_migrations",
 )
@@ -118,6 +123,8 @@ def import_all_models() -> None:
         SurveyEmailVerification,
         SurveyResponseLock,
     )
+    from app.models.protocol import Protocol, ProtocolAgendaItem  # noqa: F401
+    from app.models.meetings import Meeting, MeetingInvite  # noqa: F401
 
 
 def should_run_startup_schema(*, debug: bool = False) -> bool:

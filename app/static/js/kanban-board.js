@@ -20,7 +20,11 @@
   let commentSystem = null;
   let ignoreSSE = false;
   let cardModal = null;
-  const sortableInstances = [];
+  const cardSortables = new Map();
+  let listsSortable = null;
+  let lastBoardSig = '';
+  let pollTimer = null;
+  let sseLive = false;
 
   board.custom_field_categories = board.custom_field_categories || [];
 
@@ -207,15 +211,15 @@
             </label>
             <div class="kanban-custom-field__row">
               ${customFieldInputHtml(f, v, !canEdit)}
-              ${canEdit ? `<button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-remove-cf="${f.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-x-lg"></i></button>` : ''}
+              ${canEdit ? `<button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-remove-cf="${f.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-x-lg"></i></button>` : ''}
             </div>
           </div>`;
         }).join('')
       : `<p class="text-muted small mb-2">${esc(i18n.customFieldCardEmpty || 'Noch keine Felder auf dieser Karte.')}</p>`;
     const actions = canEdit
       ? `<div class="d-flex flex-wrap gap-2 mb-2">
-          <button type="button" class="btn btn-sm kanban-pill-btn" id="cardInsertFieldsBtn"><i class="bi bi-plus-lg me-1"></i>${esc(i18n.customFieldInsert || 'Felder einfügen')}</button>
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" id="cardLocalFieldBtn"><i class="bi bi-input-cursor-text me-1"></i>${esc(i18n.customFieldCreateLocal || 'Feld für diese Karte')}</button>
+          <button type="button" class="btn btn-sm mod-pill-btn" id="cardInsertFieldsBtn"><i class="bi bi-plus-lg me-1"></i>${esc(i18n.customFieldInsert || 'Felder einfügen')}</button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" id="cardLocalFieldBtn"><i class="bi bi-input-cursor-text me-1"></i>${esc(i18n.customFieldCreateLocal || 'Feld für diese Karte')}</button>
         </div>`
       : '';
     grid.innerHTML = actions + fieldsHtml;
@@ -303,7 +307,7 @@
       <span>${esc(f.label)}</span>
       ${already
         ? `<span class="small text-muted">${esc(i18n.customFieldAlready || 'Bereits eingefügt')}</span>`
-        : `<button type="button" class="btn btn-sm kanban-pill-btn" data-enable-cf="${f.id}">${esc(i18n.customFieldInsert || 'Einfügen')}</button>`}
+        : `<button type="button" class="btn btn-sm mod-pill-btn" data-enable-cf="${f.id}">${esc(i18n.customFieldInsert || 'Einfügen')}</button>`}
     </div>`;
   }
 
@@ -353,8 +357,8 @@
         <input class="form-control form-control-sm kanban-pill-input" name="title" maxlength="200"
                placeholder="${esc(i18n.checklistName || 'Checklistenname')}" autocomplete="off" required>
         <div class="d-flex gap-2 mt-2">
-          <button type="submit" class="btn btn-sm btn-accent kanban-pill-btn">${esc(i18n.add || 'Hinzufügen')}</button>
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-cancel-new-cl>${esc(i18n.cancel || 'Abbrechen')}</button>
+          <button type="submit" class="btn btn-sm btn-accent mod-pill-btn">${esc(i18n.add || 'Hinzufügen')}</button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-cancel-new-cl>${esc(i18n.cancel || 'Abbrechen')}</button>
         </div>`;
       clRoot.prepend(form);
       form.addEventListener('submit', async (ev) => {
@@ -395,7 +399,7 @@
       catRoot.innerHTML = cats.map((c) => `
         <div class="kanban-cf-cat-row" data-cat-id="${c.id}">
           <span class="fw-semibold">${esc(c.name)}</span>
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-del-cat="${c.id}"><i class="bi bi-trash"></i></button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-del-cat="${c.id}"><i class="bi bi-trash"></i></button>
         </div>`).join('') || `<p class="text-muted small mb-0">${esc(i18n.customFieldNoCategories || 'Noch keine Kategorien.')}</p>`;
       catRoot.querySelectorAll('[data-del-cat]').forEach((btn) => {
         btn.addEventListener('click', async () => {
@@ -431,8 +435,8 @@
           <div class="kanban-cf-manage-row__type">${esc(fieldTypeLabel(f.field_type))} · ${esc(catName(f.category_id))}</div>
         </div>
         <div class="kanban-cf-manage-row__actions">
-          <button type="button" class="btn btn-sm kanban-pill-btn" data-edit-cf="${f.id}">${esc(i18n.rename || 'Bearbeiten')}</button>
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-del-cf="${f.id}">${esc(i18n.delete || 'Löschen')}</button>
+          <button type="button" class="btn btn-sm mod-pill-btn" data-edit-cf="${f.id}">${esc(i18n.rename || 'Bearbeiten')}</button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-del-cf="${f.id}">${esc(i18n.delete || 'Löschen')}</button>
         </div>
       </div>`).join('');
     root.querySelectorAll('[data-edit-cf]').forEach((btn) => {
@@ -505,9 +509,55 @@
   }
 
   function destroySortables() {
-    while (sortableInstances.length) {
-      try { sortableInstances.pop().destroy(); } catch (_) { /* ignore */ }
+    cardSortables.forEach((inst) => {
+      try { inst.destroy(); } catch (_) { /* ignore */ }
+    });
+    cardSortables.clear();
+    if (listsSortable) {
+      try { listsSortable.destroy(); } catch (_) { /* ignore */ }
+      listsSortable = null;
     }
+  }
+
+  function htmlToElement(html) {
+    const tpl = document.createElement('template');
+    tpl.innerHTML = String(html || '').trim();
+    return tpl.content.firstElementChild;
+  }
+
+  function cardSignature(card) {
+    const cl = card.checklist || {};
+    const cover = card.cover || {};
+    const labels = (card.labels || []).map((lb) => `${lb.id}:${lb.color}:${lb.name || ''}`).join(',');
+    const assignees = (card.assignees || []).map((a) => `${a.id}:${a.name || ''}:${a.avatar_url || a.profile_picture || ''}`).join(',');
+    return [
+      card.id,
+      card.title || '',
+      card.completed ? 1 : 0,
+      card.due_date || '',
+      cl.done || 0,
+      cl.total || 0,
+      card.comment_count || 0,
+      card.attachment_count || 0,
+      card.vote_count || 0,
+      card.poll_text || '',
+      cover.preview_url || cover.url || '',
+      labels,
+      assignees,
+    ].join('\x1f');
+  }
+
+  function boardRenderSignature(lists) {
+    return (lists || []).map((list) => {
+      const cards = (list.cards || []).map(cardSignature).join('\x1e');
+      return `${list.id}\x1f${list.title || ''}\x1f${cards}`;
+    }).join('\x1d');
+  }
+
+  function isBoardBusy() {
+    return ignoreSSE
+      || document.hidden
+      || !!(listsEl && listsEl.querySelector('.sortable-chosen, .sortable-ghost'));
   }
 
   function cardHtml(card) {
@@ -539,7 +589,7 @@
     const cards = (list.cards || []).map(cardHtml).join('');
     const menu = canEdit
       ? `<div class="dropdown kanban-list-menu">
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Listenaktionen">
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-bs-toggle="dropdown" data-bs-popper-config='{"strategy":"fixed"}' aria-label="Listenaktionen">
             <i class="bi bi-three-dots"></i>
           </button>
           <ul class="dropdown-menu dropdown-menu-end">
@@ -550,14 +600,14 @@
       : '';
     const footer = canEdit
       ? `<div class="kanban-list-col__footer">
-          <button type="button" class="btn kanban-pill-btn w-100 text-start kanban-add-card-btn" data-list-id="${list.id}">
+          <button type="button" class="btn mod-pill-btn w-100 text-start kanban-add-card-btn" data-list-id="${list.id}">
             <i class="bi bi-plus-lg me-1"></i>${esc(i18n.addCard || 'Karte hinzufügen')}
           </button>
           <form class="kanban-add-card-form mt-2" data-list-id="${list.id}" hidden>
             <input class="form-control form-control-sm kanban-pill-input mb-2" name="title" placeholder="${esc(i18n.cardTitle || 'Kartentitel')}" autocomplete="off">
             <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-sm btn-accent kanban-pill-btn">${esc(i18n.addCard || 'Hinzufügen')}</button>
-              <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost kanban-cancel-add-card"><i class="bi bi-x-lg"></i></button>
+              <button type="submit" class="btn btn-sm btn-accent mod-pill-btn">${esc(i18n.addCard || 'Hinzufügen')}</button>
+              <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost kanban-cancel-add-card"><i class="bi bi-x-lg"></i></button>
             </div>
           </form>
         </div>`
@@ -582,50 +632,50 @@
       <form class="kanban-add-list-form" id="kanbanAddListForm" hidden>
         <input class="form-control kanban-pill-input" id="kanbanListName" name="title" placeholder="${esc(i18n.listName || 'Listenname')}" autocomplete="off">
         <div class="d-flex gap-2 mt-2">
-          <button type="submit" class="btn btn-accent kanban-pill-btn">${esc(i18n.addList || 'Liste hinzufügen')}</button>
-          <button type="button" class="btn kanban-pill-btn kanban-pill-btn--ghost" id="kanbanCancelAddList"><i class="bi bi-x-lg"></i></button>
+          <button type="submit" class="btn btn-accent mod-pill-btn">${esc(i18n.addList || 'Liste hinzufügen')}</button>
+          <button type="button" class="btn mod-pill-btn mod-pill-btn--ghost" id="kanbanCancelAddList"><i class="bi bi-x-lg"></i></button>
         </div>
       </form>
     </div>`;
   }
 
-  function renderBoard() {
-    destroySortables();
-    listsEl.innerHTML = (board.lists || []).map(listHtml).join('') + addListColumnHtml();
-    bindListInteractions();
-    if (typeof applyFilters === 'function') {
-      applyFilters();
-    }
+  function cardSortableOptions() {
+    return {
+      group: 'kanban-cards',
+      animation: 200,
+      ghostClass: 'opacity-50',
+      onEnd: async (evt) => {
+        const cardId = Number(evt.item.dataset.cardId);
+        const listId = Number(evt.to.dataset.listCards);
+        const position = evt.newIndex;
+        ignoreSSE = true;
+        try {
+          const data = await api(`/kanban/api/boards/${boardId}/cards/move`, {
+            method: 'POST',
+            body: { card_id: cardId, list_id: listId, position },
+          });
+          if (data.card) upsertCardLocal(data.card);
+          lastBoardSig = boardRenderSignature(board.lists);
+        } catch (err) {
+          notify(err.message || 'Verschieben fehlgeschlagen');
+          refreshBoard();
+        }
+        ignoreSSE = false;
+      },
+    };
   }
 
-  function bindListInteractions() {
-    if (!canEdit || !window.Sortable) return;
-    listsEl.querySelectorAll('[data-list-cards]').forEach((container) => {
-      sortableInstances.push(Sortable.create(container, {
-        group: 'kanban-cards',
-        animation: 150,
-        ghostClass: 'opacity-50',
-        onEnd: async (evt) => {
-          const cardId = Number(evt.item.dataset.cardId);
-          const listId = Number(evt.to.dataset.listCards);
-          const position = evt.newIndex;
-          ignoreSSE = true;
-          try {
-            const data = await api(`/kanban/api/boards/${boardId}/cards/move`, {
-              method: 'POST',
-              body: { card_id: cardId, list_id: listId, position },
-            });
-            if (data.card) upsertCardLocal(data.card);
-          } catch (err) {
-            notify(err.message || 'Verschieben fehlgeschlagen');
-            refreshBoard();
-          }
-          ignoreSSE = false;
-        },
-      }));
-    });
-    sortableInstances.push(Sortable.create(listsEl, {
-      animation: 150,
+  function ensureCardSortable(container) {
+    if (!canEdit || !window.Sortable || !container) return;
+    const listId = Number(container.dataset.listCards);
+    if (!listId || cardSortables.has(listId)) return;
+    cardSortables.set(listId, Sortable.create(container, cardSortableOptions()));
+  }
+
+  function ensureListsSortable() {
+    if (!canEdit || !window.Sortable || listsSortable) return;
+    listsSortable = Sortable.create(listsEl, {
+      animation: 200,
       handle: '.kanban-list-col__head',
       draggable: '.kanban-list-col',
       filter: '.kanban-add-list-wrap',
@@ -635,13 +685,147 @@
         try {
           await api(`/kanban/api/boards/${boardId}/lists/reorder`, { method: 'POST', body: { order } });
           board.lists.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+          lastBoardSig = boardRenderSignature(board.lists);
         } catch (err) {
           notify(err.message || 'Sortieren fehlgeschlagen');
           refreshBoard();
         }
         ignoreSSE = false;
       },
-    }));
+    });
+  }
+
+  function pruneCardSortables() {
+    cardSortables.forEach((inst, listId) => {
+      if (listsEl.querySelector(`[data-list-cards="${listId}"]`)) return;
+      try { inst.destroy(); } catch (_) { /* ignore */ }
+      cardSortables.delete(listId);
+    });
+  }
+
+  function bindListInteractions() {
+    listsEl.querySelectorAll('[data-list-cards]').forEach((container) => ensureCardSortable(container));
+    pruneCardSortables();
+    ensureListsSortable();
+  }
+
+  function patchCardNode(el, card) {
+    const next = htmlToElement(cardHtml(card));
+    if (!next) return;
+    if (el.className !== next.className) el.className = next.className;
+    if (el.innerHTML !== next.innerHTML) el.innerHTML = next.innerHTML;
+  }
+
+  function patchCards(container, cards) {
+    const desired = cards || [];
+    const existing = new Map();
+    container.querySelectorAll('.kanban-card').forEach((el) => {
+      existing.set(String(el.dataset.cardId), el);
+    });
+    existing.forEach((el, id) => {
+      if (!desired.some((c) => String(c.id) === id)) el.remove();
+    });
+    desired.forEach((card, index) => {
+      let el = container.querySelector(`.kanban-card[data-card-id="${card.id}"]`);
+      if (!el) {
+        el = htmlToElement(cardHtml(card));
+        const ref = container.querySelectorAll('.kanban-card')[index];
+        if (ref) container.insertBefore(el, ref);
+        else container.appendChild(el);
+      } else {
+        patchCardNode(el, card);
+        const nodes = container.querySelectorAll('.kanban-card');
+        if (nodes[index] !== el) {
+          const ref = nodes[index] || null;
+          container.insertBefore(el, ref);
+        }
+      }
+    });
+  }
+
+  function patchListCol(col, list) {
+    const titleEl = col.querySelector(`[data-list-title="${list.id}"]`);
+    if (titleEl && titleEl.textContent !== (list.title || '')) {
+      titleEl.textContent = list.title || '';
+    }
+    const countEl = col.querySelector('.kanban-list-col__count');
+    if (countEl) countEl.textContent = String((list.cards || []).length);
+    const cardsEl = col.querySelector(`[data-list-cards="${list.id}"]`);
+    if (cardsEl) patchCards(cardsEl, list.cards || []);
+  }
+
+  function patchBoard() {
+    const lists = board.lists || [];
+    const sig = boardRenderSignature(lists);
+    if (sig === lastBoardSig && listsEl.querySelector('.kanban-list-col')) {
+      return false;
+    }
+
+    const scrollLeft = listsEl.scrollLeft;
+    const listScrolls = {};
+    listsEl.querySelectorAll('[data-list-cards]').forEach((el) => {
+      listScrolls[el.dataset.listCards] = el.scrollTop;
+    });
+
+    const desiredIds = lists.map((l) => String(l.id));
+    listsEl.querySelectorAll('.kanban-list-col').forEach((el) => {
+      if (!desiredIds.includes(el.dataset.listId)) el.remove();
+    });
+
+    let addWrap = document.getElementById('kanbanAddListWrap');
+    lists.forEach((list, index) => {
+      let col = listsEl.querySelector(`.kanban-list-col[data-list-id="${list.id}"]`);
+      if (!col) {
+        col = htmlToElement(listHtml(list));
+        const cols = listsEl.querySelectorAll('.kanban-list-col');
+        const ref = cols[index] || addWrap;
+        if (ref) listsEl.insertBefore(col, ref);
+        else listsEl.appendChild(col);
+      } else {
+        patchListCol(col, list);
+        const cols = listsEl.querySelectorAll('.kanban-list-col');
+        if (cols[index] !== col) {
+          listsEl.insertBefore(col, cols[index] || addWrap);
+        }
+      }
+    });
+
+    addWrap = document.getElementById('kanbanAddListWrap');
+    if (canEdit && !addWrap) {
+      listsEl.insertAdjacentHTML('beforeend', addListColumnHtml());
+    } else if (addWrap && addWrap.nextSibling) {
+      listsEl.appendChild(addWrap);
+    }
+
+    bindListInteractions();
+    lastBoardSig = sig;
+    listsEl.scrollLeft = scrollLeft;
+    Object.keys(listScrolls).forEach((id) => {
+      const el = listsEl.querySelector(`[data-list-cards="${id}"]`);
+      if (el) el.scrollTop = listScrolls[id];
+    });
+    return true;
+  }
+
+  function renderBoardFull() {
+    destroySortables();
+    listsEl.innerHTML = (board.lists || []).map(listHtml).join('') + addListColumnHtml();
+    lastBoardSig = boardRenderSignature(board.lists);
+    bindListInteractions();
+  }
+
+  function renderBoard() {
+    let changed = true;
+    try {
+      changed = patchBoard() !== false;
+    } catch (err) {
+      console.warn('Kanban incremental render failed', err);
+      renderBoardFull();
+      changed = true;
+    }
+    if (changed && typeof applyFilters === 'function') {
+      applyFilters();
+    }
   }
 
   function upsertCardLocal(card) {
@@ -705,6 +889,8 @@
       if (data.list) {
         board.lists.push(data.list);
         renderBoard();
+        const col = listsEl.querySelector(`.kanban-list-col[data-list-id="${data.list.id}"]`);
+        markAppear(col);
       } else {
         notify('Liste konnte nicht erstellt werden');
       }
@@ -728,6 +914,8 @@
           list.cards.push(data.card);
         }
         renderBoard();
+        const cardEl = listsEl.querySelector(`.kanban-card[data-card-id="${data.card.id}"]`);
+        markAppear(cardEl);
       } else {
         notify('Karte konnte nicht erstellt werden');
       }
@@ -917,7 +1105,7 @@
       <div class="kanban-checklist" data-checklist-id="${cl.id}">
         <div class="kanban-checklist-head">
           <input class="form-control form-control-sm kanban-pill-input kanban-checklist-title" data-checklist-id="${cl.id}" value="${esc(cl.title)}" maxlength="200" ${canEdit ? '' : 'readonly'}>
-          ${canEdit ? `<button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-del-checklist="${cl.id}">${esc(i18n.delete || 'Löschen')}</button>` : ''}
+          ${canEdit ? `<button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-del-checklist="${cl.id}">${esc(i18n.delete || 'Löschen')}</button>` : ''}
         </div>
         <div class="kanban-checklist-progress">
           <span>${pct}%</span>
@@ -937,9 +1125,9 @@
             </div>
             ${canEdit ? `
             <div class="kanban-checklist-item__actions">
-              <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon" data-item-due="${it.id}" title="${esc(i18n.due || 'Zeit')}"><i class="bi bi-clock"></i></button>
-              <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon" data-item-assignee="${it.id}" title="${esc(i18n.members || 'Person')}"><i class="bi bi-person-plus"></i></button>
-              <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon kanban-pill-btn--ghost" data-item-del="${it.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-trash"></i></button>
+              <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon" data-item-due="${it.id}" title="${esc(i18n.due || 'Zeit')}"><i class="bi bi-clock"></i></button>
+              <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon" data-item-assignee="${it.id}" title="${esc(i18n.members || 'Person')}"><i class="bi bi-person-plus"></i></button>
+              <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon mod-pill-btn--ghost" data-item-del="${it.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-trash"></i></button>
             </div>` : ''}
           </div>`;
         }).join('')}
@@ -1065,10 +1253,10 @@
           </div>
         </div>
         <div class="kanban-attach-row__actions">
-          <a class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon" href="${esc(viewUrl)}" target="_blank" rel="noopener" title="${esc(i18n.view || 'Ansehen')}"><i class="bi bi-box-arrow-up-right"></i></a>
-          ${canEdit && a.is_image && !isCover ? `<button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon" data-set-cover="${a.id}" title="${esc(i18n.setCover || 'Titelbild')}"><i class="bi bi-image"></i></button>` : ''}
-          ${canEdit && isCover ? `<button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon" data-clear-cover="1" title="${esc(i18n.removeCover || 'Titelbild entfernen')}"><i class="bi bi-image-fill text-warning"></i></button>` : ''}
-          ${canEdit ? `<button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--icon kanban-pill-btn--ghost" data-del-att="${a.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-trash"></i></button>` : ''}
+          <a class="btn btn-sm mod-pill-btn mod-pill-btn--icon" href="${esc(viewUrl)}" target="_blank" rel="noopener" title="${esc(i18n.view || 'Ansehen')}"><i class="bi bi-box-arrow-up-right"></i></a>
+          ${canEdit && a.is_image && !isCover ? `<button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon" data-set-cover="${a.id}" title="${esc(i18n.setCover || 'Titelbild')}"><i class="bi bi-image"></i></button>` : ''}
+          ${canEdit && isCover ? `<button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon" data-clear-cover="1" title="${esc(i18n.removeCover || 'Titelbild entfernen')}"><i class="bi bi-image-fill text-warning"></i></button>` : ''}
+          ${canEdit ? `<button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--icon mod-pill-btn--ghost" data-del-att="${a.id}" title="${esc(i18n.delete || 'Löschen')}"><i class="bi bi-trash"></i></button>` : ''}
         </div>
       </div>`;
     }
@@ -1661,7 +1849,7 @@
       const pwDisplay = s.has_password
         ? `<div class="input-group input-group-sm kanban-share-pw-group">
              <input type="text" class="form-control form-control-sm kanban-pill-input" readonly value="${esc(pw || '••••••••')}" data-share-pw="${s.id}">
-             ${pw ? `<button type="button" class="btn kanban-pill-btn btn-sm" data-copy-pw="${esc(pw)}" title="Passwort kopieren"><i class="bi bi-clipboard"></i></button>` : ''}
+             ${pw ? `<button type="button" class="btn mod-pill-btn btn-sm" data-copy-pw="${esc(pw)}" title="Passwort kopieren"><i class="bi bi-clipboard"></i></button>` : ''}
            </div>`
         : '<span class="text-muted">—</span>';
       return `<tr data-share-id="${s.id}">
@@ -1676,7 +1864,7 @@
         </td>
         <td>
           <div class="d-flex align-items-center gap-1 flex-wrap">
-            <button type="button" class="btn btn-sm kanban-pill-btn" data-copy-share="${esc(s.share_url)}">
+            <button type="button" class="btn btn-sm mod-pill-btn" data-copy-share="${esc(s.share_url)}">
               <i class="bi bi-clipboard me-1"></i>Kopieren
             </button>
             <code class="kanban-share-url-mini" title="${esc(s.share_url)}">${esc((s.share_url || '').replace(/^https?:\/\//, '').slice(0, 28))}…</code>
@@ -1685,8 +1873,8 @@
         <td>${pwDisplay}</td>
         <td><span class="badge rounded-pill text-bg-secondary">${esc(s.mode_label || s.mode)}</span></td>
         <td class="text-end text-nowrap">
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost" data-edit-share="${s.id}" title="Bearbeiten"><i class="bi bi-pencil"></i></button>
-          <button type="button" class="btn btn-sm kanban-pill-btn kanban-pill-btn--ghost text-danger" data-del-share="${s.id}" title="Löschen"><i class="bi bi-trash"></i></button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost" data-edit-share="${s.id}" title="Bearbeiten"><i class="bi bi-pencil"></i></button>
+          <button type="button" class="btn btn-sm mod-pill-btn mod-pill-btn--ghost text-danger" data-del-share="${s.id}" title="Löschen"><i class="bi bi-trash"></i></button>
         </td>
       </tr>`;
     }).join('');
@@ -1795,6 +1983,115 @@
   document.getElementById('kanbanShareBtn')?.addEventListener('click', (e) => {
     e.preventDefault();
     openShareModal();
+  });
+
+  function applyBoardPageBackground(boardPayload) {
+    const css = (boardPayload && boardPayload.background_css) || app.style.getPropertyValue('--kanban-bg');
+    const img = boardPayload && boardPayload.cover_path;
+    if (css) app.style.setProperty('--kanban-bg', css);
+    if (img) {
+      app.style.setProperty('--kanban-bg-image', `url('${img}')`);
+      app.classList.add('has-bg-image');
+      app.dataset.bgImageUrl = img;
+    } else {
+      app.style.removeProperty('--kanban-bg-image');
+      app.classList.remove('has-bg-image');
+      app.dataset.bgImageUrl = '';
+    }
+    document.querySelectorAll('#kanbanBoardBgPicker .kanban-bg-swatch').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.bg === ((boardPayload && boardPayload.background) || board.background));
+    });
+  }
+
+  function markAppear(el) {
+    if (!el || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    el.classList.remove('is-appear');
+    // Force reflow so re-adding the class restarts the animation
+    void el.offsetWidth;
+    el.classList.add('is-appear');
+    const clear = () => el.classList.remove('is-appear');
+    el.addEventListener('animationend', clear, { once: true });
+  }
+
+  let selectedBoardBg = board.background || 'teal';
+  document.getElementById('kanbanBgBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    selectedBoardBg = board.background || 'teal';
+    document.querySelectorAll('#kanbanBoardBgPicker .kanban-bg-swatch').forEach((btn) => {
+      btn.classList.toggle('is-active', btn.dataset.bg === selectedBoardBg);
+    });
+    const input = document.getElementById('kanbanBoardBgImageInput');
+    if (input) input.value = '';
+    getModal('kanbanBoardBgModal')?.show();
+  });
+
+  document.querySelectorAll('#kanbanBoardBgPicker .kanban-bg-swatch').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#kanbanBoardBgPicker .kanban-bg-swatch').forEach((b) => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      selectedBoardBg = btn.dataset.bg;
+    });
+  });
+
+  document.getElementById('kanbanBoardBgSave')?.addEventListener('click', async () => {
+    try {
+      const data = await api(`/kanban/api/boards/${boardId}`, {
+        method: 'PATCH',
+        body: { background: selectedBoardBg },
+      });
+      if (data.board) {
+        Object.assign(board, data.board);
+        applyBoardPageBackground(data.board);
+      }
+      getModal('kanbanBoardBgModal')?.hide();
+    } catch (err) {
+      notify(err.message || 'Fehler');
+    }
+  });
+
+  document.getElementById('kanbanBoardBgImageUpload')?.addEventListener('click', async () => {
+    const input = document.getElementById('kanbanBoardBgImageInput');
+    if (!input || !input.files || !input.files[0]) return;
+    const fd = new FormData();
+    fd.append('file', input.files[0]);
+    try {
+      const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+      if (shareToken) headers['X-Share-Token'] = shareToken;
+      const res = await fetch(`/kanban/api/boards/${boardId}/background`, {
+        method: 'POST',
+        body: fd,
+        headers,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) throw new Error(data.error || 'Upload fehlgeschlagen');
+      if (data.board) {
+        Object.assign(board, data.board);
+        applyBoardPageBackground(data.board);
+      }
+      input.value = '';
+      notify(i18n.backgroundUpload || 'Hintergrund gespeichert', 'success');
+    } catch (err) {
+      notify(err.message || 'Fehler');
+    }
+  });
+
+  document.getElementById('kanbanBoardBgImageClear')?.addEventListener('click', async () => {
+    try {
+      const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+      if (shareToken) headers['X-Share-Token'] = shareToken;
+      const res = await fetch(`/kanban/api/boards/${boardId}/background`, {
+        method: 'DELETE',
+        headers,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) throw new Error(data.error || 'Fehler');
+      if (data.board) {
+        Object.assign(board, data.board);
+        applyBoardPageBackground(data.board);
+      }
+    } catch (err) {
+      notify(err.message || 'Fehler');
+    }
   });
 
   document.getElementById('kanbanShareForm')?.addEventListener('submit', async (e) => {
@@ -2052,26 +2349,39 @@
     scheduleFilter();
   });
 
+  function stopPolling() {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer || sseLive) return;
+    pollTimer = setInterval(() => {
+      if (isBoardBusy() || sseLive) return;
+      refreshBoard();
+    }, 8000);
+  }
+
   function connectSSE() {
     const url = app.dataset.sseUrl;
     if (!url || !window.EventSource) {
-      setInterval(async () => {
-        if (document.hidden || ignoreSSE) return;
-        try {
-          const data = await api(`/kanban/api/boards/${boardId}`);
-          if (data.lists) {
-            board.lists = data.lists;
-            board.labels = data.labels;
-            board.members = data.members || board.members;
-            renderBoardMembers();
-            renderBoard();
-          }
-        } catch (_) { /* ignore */ }
-      }, 8000);
+      startPolling();
       return;
     }
     try {
       const es = new EventSource(url);
+      es.addEventListener('connected', () => {
+        sseLive = true;
+        stopPolling();
+      });
+      es.onerror = () => {
+        if (es.readyState === EventSource.CLOSED) {
+          sseLive = false;
+          startPolling();
+        }
+      };
       es.onmessage = (ev) => {
         if (ignoreSSE) return;
         try {
@@ -2087,7 +2397,9 @@
           try { handleLiveEvent({ event: name, data: JSON.parse(ev.data) }); } catch (_) {}
         });
       });
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      startPolling();
+    }
   }
 
   function handleLiveEvent(msg) {
@@ -2136,6 +2448,12 @@
       }
     } catch (_) { /* ignore */ }
   }
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && !sseLive && !ignoreSSE) {
+      refreshBoard();
+    }
+  });
 
   if (new URLSearchParams(window.location.search).get('share') === '1' && canManage) {
     setTimeout(openShareModal, 400);

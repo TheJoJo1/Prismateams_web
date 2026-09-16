@@ -17,12 +17,12 @@ gather_information() {
 
     prompt_yes_no SETUP_GUNICORN "Gunicorn systemd-Service einrichten?" "j"
     if is_yes "$SETUP_GUNICORN"; then
-        prompt_or_default GUNICORN_WORKERS "Anzahl Gunicorn-Worker" "1"
+        prompt_or_default GUNICORN_WORKERS "Anzahl Gunicorn-Worker (2–4 mit Redis empfohlen)" "2"
         if ! [[ "$GUNICORN_WORKERS" =~ ^[0-9]+$ ]] || [ "$GUNICORN_WORKERS" -lt 1 ]; then
             error_exit "Ungültige Worker-Anzahl: $GUNICORN_WORKERS"
         fi
     else
-        GUNICORN_WORKERS="${GUNICORN_WORKERS:-1}"
+        GUNICORN_WORKERS="${GUNICORN_WORKERS:-2}"
         print_manual_gunicorn_hint
     fi
 
@@ -104,8 +104,8 @@ gather_information() {
     prompt_yes_no SETUP_REDIS "Redis automatisch einrichten?" "j"
     if ! is_yes "$SETUP_REDIS"; then
         print_manual_redis_hint
-        if is_yes "$SETUP_GUNICORN" && [ "${GUNICORN_WORKERS:-1}" -gt 1 ]; then
-            log_warning "Mehrere Worker ohne Redis: SocketIO/Rate-Limit eingeschränkt"
+        if is_yes "$SETUP_GUNICORN" && [ "${GUNICORN_WORKERS:-2}" -gt 1 ]; then
+            log_warning "Mehrere Worker ohne Redis: SocketIO/Kanban-SSE/Rate-Limit eingeschränkt"
         fi
     fi
 
@@ -113,7 +113,7 @@ gather_information() {
     log_info ""
     log_info "=== Optionale Docker-Services ==="
     if [ -z "$INSTALL_DOCKER" ] && [ -z "$INSTALL_ONLYOFFICE" ]; then
-        prompt_yes_no INSTALL_DOCKER "Docker für OnlyOffice installieren?" "j"
+        prompt_yes_no INSTALL_DOCKER "Docker für Euro-Office / Excalidraw / MiroTalk installieren?" "j"
     fi
     if [ -z "$INSTALL_DOCKER" ]; then
         if is_yes "$INSTALL_ONLYOFFICE"; then
@@ -124,7 +124,7 @@ gather_information() {
     fi
 
     if is_yes "$INSTALL_DOCKER"; then
-        prompt_yes_no INSTALL_ONLYOFFICE "OnlyOffice Document Server (Docs) installieren?" "j"
+        prompt_yes_no INSTALL_ONLYOFFICE "Euro-Office Document Server (Docs) installieren?" "j"
         if ! is_yes "$INSTALL_ONLYOFFICE"; then
             print_manual_onlyoffice_hint
         fi
@@ -134,7 +134,7 @@ gather_information() {
             print_manual_onlyoffice_hint
         fi
     fi
-    # OnlyOffice Docs braucht immer Docker
+    # Euro-Office Document Server braucht immer Docker
     if is_yes "$INSTALL_ONLYOFFICE"; then
         INSTALL_DOCKER="j"
     fi
@@ -152,6 +152,38 @@ gather_information() {
     fi
     if is_yes "$INSTALL_EXCALIDRAW"; then
         INSTALL_DOCKER="j"
+    fi
+
+    if is_yes "$INSTALL_DOCKER"; then
+        prompt_yes_no INSTALL_MIROTALK "MiroTalk SFU (Meetings / Videoanrufe) installieren?" "j"
+        if ! is_yes "$INSTALL_MIROTALK"; then
+            print_manual_mirotalk_hint
+        fi
+    else
+        INSTALL_MIROTALK="${INSTALL_MIROTALK:-n}"
+        if ! is_yes "$INSTALL_MIROTALK"; then
+            print_manual_mirotalk_hint
+        fi
+    fi
+    if is_yes "$INSTALL_MIROTALK"; then
+        INSTALL_DOCKER="j"
+        # WebRTC braucht Secure Context (HTTPS). Ohne SSL: Blackscreen / keine Kamera.
+        if ! is_yes "${SETUP_SSL:-n}"; then
+            log_warning "Meetings (MiroTalk): Kamera/Mikrofon funktionieren nur in einem Secure Context (HTTPS)."
+            log_warning "  Unter http://IP oder http://Hostname bleibt der Call im Browser schwarz."
+            if is_yes "${SETUP_WEBSERVER:-n}" && domain_is_hostname "${DOMAIN:-}"; then
+                if is_yes "$NON_INTERACTIVE"; then
+                    log_warning "  Non-Interactive: SSL bleibt aus — bitte später Let's Encrypt für ${DOMAIN} und meet.${DOMAIN} einrichten."
+                else
+                    prompt_yes_no SETUP_SSL "SSL mit Let's Encrypt jetzt einrichten (stark empfohlen für Meetings)?" "j"
+                    if is_yes "$SETUP_SSL"; then
+                        prompt_or_default LETSENCRYPT_EMAIL "E-Mail für Let's Encrypt" "webmaster@$DOMAIN"
+                    fi
+                fi
+            else
+                log_warning "  LAN/IP-Modus: später HTTPS (Domain + Zertifikat) oder mkcert — sonst kein WebRTC."
+            fi
+        fi
     fi
 
     log_info ""
@@ -283,8 +315,9 @@ confirm_plan() {
     echo "  SSL:            $(is_yes "$SETUP_SSL" && echo "ja" || echo "nein")"
     echo "  MySQL:          $(is_yes "$SETUP_MYSQL" && echo "ja ($DB_NAME / $DB_USER)" || echo "manuell")"
     echo "  Redis:          $(is_yes "$SETUP_REDIS" && echo "ja" || echo "manuell")"
-    echo "  OnlyOffice:     $(is_yes "$INSTALL_ONLYOFFICE" && echo "ja" || echo "nein")"
+    echo "  Euro-Office:    $(is_yes "$INSTALL_ONLYOFFICE" && echo "ja" || echo "nein")"
     echo "  Excalidraw:     $(is_yes "$INSTALL_EXCALIDRAW" && echo "ja" || echo "nein")"
+    echo "  MiroTalk:       $(is_yes "$INSTALL_MIROTALK" && echo "ja" || echo "nein")"
     echo "  FFmpeg:         $(is_yes "$INSTALL_MEDIA_DOWNLOADER" && echo "ja" || echo "nein")"
     echo "  .env-Modus:     $ENV_MODE"
     echo

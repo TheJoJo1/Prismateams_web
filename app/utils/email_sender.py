@@ -1,4 +1,6 @@
 import os
+import hmac
+import hashlib
 import secrets
 import string
 import logging
@@ -11,6 +13,7 @@ from flask import render_template, current_app, url_for
 from flask_mail import Message
 from app.models.user import User
 from app.utils.common import portal_now_naive
+from app.utils.log_privacy import mask_email
 
 # Flask-Mail ist nicht thread-sicher innerhalb eines Workers; Worker untereinander
 # dürfen parallel SMTP nutzen (kein Cross-Process-File-Lock mit 60s-Wartezeit).
@@ -70,6 +73,74 @@ def _smtp_close(smtp):
             pass
 
 
+def _build_outbound_mime(msg):
+    """
+    Baut die ausgehende MIME-Message aus einer Flask-Mail Message.
+
+    Flask-Mail 0.10 baut MIME ausschließlich aus html/body/attachments (kein msg.msg).
+    Bei CID-Inline-Bildern + Dateianhängen nesten wir:
+      multipart/mixed
+        multipart/related  (alternative + inline CIDs)
+        Dateianhänge
+    damit Clients PDFs als echte Anhänge zeigen (nicht als „related“ verstecken).
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    if hasattr(msg, '_message'):
+        mime = msg._message()
+    elif hasattr(msg, 'as_bytes'):
+        from email import message_from_bytes
+        mime = message_from_bytes(msg.as_bytes())
+    else:
+        raise RuntimeError('E-Mail-Nachricht konnte nicht aufgebaut werden')
+
+    if mime.get_content_type() != 'multipart/mixed':
+        return mime
+
+    parts = mime.get_payload()
+    if not isinstance(parts, list) or len(parts) < 2:
+        return mime
+
+    body_part = None
+    inline_parts = []
+    file_parts = []
+    for part in parts:
+        ctype = part.get_content_type() if hasattr(part, 'get_content_type') else ''
+        disp = (part.get_content_disposition() or '').lower() if hasattr(part, 'get_content_disposition') else ''
+        cid = part.get('Content-ID') if hasattr(part, 'get') else None
+        if ctype.startswith('multipart/'):
+            body_part = part
+        elif disp == 'inline' or cid:
+            inline_parts.append(part)
+        else:
+            file_parts.append(part)
+
+    # Nur umbauen wenn Logo/CID und echte Dateianhänge zusammen vorkommen
+    if body_part is None or not inline_parts or not file_parts:
+        return mime
+
+    related = MIMEMultipart('related')
+    related.attach(body_part)
+    for part in inline_parts:
+        related.attach(part)
+
+    outer = MIMEMultipart('mixed')
+    for key, value in mime.items():
+        if key.lower() not in ('content-type', 'mime-version'):
+            outer[key] = value
+    outer.attach(related)
+    for part in file_parts:
+        outer.attach(part)
+
+    return outer
+
+
+def _message_as_bytes(msg):
+    """Serialisiert eine Flask-Mail Message für SMTP (inkl. CID+Anhang-Nesting)."""
+    from email.policy import SMTP as SMTP_POLICY
+    return _build_outbound_mime(msg).as_bytes(policy=SMTP_POLICY)
+
+
 def send_message_via_smtplib(msg, timeout=20):
     """
     Sendet eine Flask-Mail Message direkt per smtplib.
@@ -87,12 +158,20 @@ def send_message_via_smtplib(msg, timeout=20):
     if not recipients:
         raise RuntimeError('E-Mail hat keine Empfänger')
 
-    payload = msg.as_bytes() if hasattr(msg, 'as_bytes') else bytes(msg)
+    payload = _message_as_bytes(msg)
     from_addr = _envelope_addr(msg.sender)
     to_addrs = [_envelope_addr(r) for r in recipients]
     to_addrs = [a for a in to_addrs if a]
     if not from_addr or not to_addrs:
         raise RuntimeError('Ungültige Absender-/Empfänger-Adresse')
+
+    att_info = [
+        f"{getattr(a, 'filename', '?')} ({len(getattr(a, 'data', b'') or b'')}b)"
+        for a in (getattr(msg, 'attachments', None) or [])
+        if (getattr(a, 'disposition', None) or 'attachment') != 'inline'
+    ]
+    if att_info:
+        logging.info("SMTP-Versand mit Dateianhängen: %s", ", ".join(att_info))
 
     smtp = None
     try:
@@ -120,38 +199,37 @@ def _msg_has_nested_related(msg):
         return False
 
 
-def _mark_logo_inline(msg):
-    """Markiert vorhandene Logo-Bildteile als inline mit stabiler CID."""
+def _logo_attachment_filename(mime_type: str) -> str:
+    """Stabiler Dateiname für Logo-Anhänge anhand MIME-Type."""
+    subtype = (mime_type or '').split('/')[-1].lower() if mime_type else 'png'
+    if subtype in ('jpeg', 'jpg'):
+        return 'logo.jpg'
+    if subtype == 'gif':
+        return 'logo.gif'
+    if subtype in ('svg', 'svg+xml'):
+        return 'logo.svg'
+    if subtype == 'webp':
+        return 'logo.webp'
+    return 'logo.png'
+
+
+def _mark_logo_inline(msg, logo_cid: str = 'portal_logo'):
+    """Markiert Logo-Anhänge als inline mit stabiler CID (Flask-Mail 0.10 Attachments)."""
     try:
-        if not getattr(msg, 'msg', None):
-            return
-        if not hasattr(msg.msg, 'get_payload'):
-            return
-        parts = msg.msg.get_payload()
-        if not isinstance(parts, list):
-            return
-
-        logo_filenames = ('logo.png', 'logo.jpg', 'logo.jpeg', 'logo.gif')
-        for part in parts:
-            if not (hasattr(part, 'get_content_type') and part.get_content_type().startswith('image/')):
-                continue
-            disp = part.get('Content-Disposition', '') or ''
-            if not any(name in disp.lower() for name in logo_filenames):
+        attachments = getattr(msg, 'attachments', None) or []
+        logo_filenames = ('logo.png', 'logo.jpg', 'logo.jpeg', 'logo.gif', 'logo.svg', 'logo.webp')
+        for att in attachments:
+            filename = (getattr(att, 'filename', None) or '').lower()
+            if not any(name in filename for name in logo_filenames):
                 continue
 
-            if not part.get('Content-ID'):
-                part.add_header('Content-ID', '<portal_logo>')
-            if 'attachment' in disp and 'inline' not in disp:
-                import re
-                filename_match = re.search(r'filename="?([^"]+)"?', disp)
-                filename = filename_match.group(1) if filename_match else 'logo.png'
-                try:
-                    part.replace_header('Content-Disposition', f'inline; filename="{filename}"')
-                except Exception:
-                    del part['Content-Disposition']
-                    part.add_header('Content-Disposition', f'inline; filename="{filename}"')
-            elif not disp:
-                part.add_header('Content-Disposition', 'inline; filename="logo.png"')
+            att.disposition = 'inline'
+            headers = getattr(att, 'headers', None)
+            if headers is None:
+                att.headers = {}
+                headers = att.headers
+            if not any(k.lower() == 'content-id' for k in headers):
+                headers['Content-ID'] = f'<{logo_cid}>'
             break
     except Exception as e:
         logging.warning("Logo-CID-Markierung fehlgeschlagen: %s", e)
@@ -203,6 +281,143 @@ def send_email_with_lock(msg, timeout=60):
 def generate_confirmation_code():
     """Generiert einen 6-stelligen Bestätigungscode."""
     return ''.join(secrets.choice(string.digits) for _ in range(6))
+
+
+PASSWORD_RESET_TOKEN_TTL = timedelta(hours=1)
+PASSWORD_RESET_RESEND_COOLDOWN = timedelta(minutes=2)
+
+
+def generate_password_reset_token():
+    """Kryptographisch starker Reset-Token (URL-safe)."""
+    return secrets.token_urlsafe(32)
+
+
+def hash_password_reset_token(token: str) -> str:
+    """Einweg-Hash für die DB-Speicherung (kein Klartext-Token in der DB)."""
+    return hashlib.sha256((token or '').encode('utf-8')).hexdigest()
+
+
+def password_reset_resend_allowed(user) -> bool:
+    """True, wenn kein aktiver Code existiert oder die Cooldown-Zeit abgelaufen ist."""
+    if not user.password_reset_code or not user.password_reset_code_expires:
+        return True
+    now = portal_now_naive()
+    if now >= user.password_reset_code_expires:
+        return True
+    issued_at = user.password_reset_code_expires - PASSWORD_RESET_TOKEN_TTL
+    return now >= issued_at + PASSWORD_RESET_RESEND_COOLDOWN
+
+
+def send_password_reset_email(user):
+    """Sendet eine Passwort-Reset-E-Mail an den Benutzer."""
+    try:
+        if not password_reset_resend_allowed(user):
+            logging.info(
+                'Password reset email skipped (cooldown) for user_id=%s',
+                getattr(user, 'id', None),
+            )
+            return True
+
+        raw_token = generate_password_reset_token()
+        expires_at = portal_now_naive() + PASSWORD_RESET_TOKEN_TTL
+        user.password_reset_code = hash_password_reset_token(raw_token)
+        user.password_reset_code_expires = expires_at
+        clear_password_reset_failure_counter(user)
+        from app import db
+        db.session.commit()
+
+        if not _mail_configured():
+            logging.warning(
+                'E-Mail-Konfiguration unvollständig. Passwort-Reset-E-Mail an %s nicht gesendet '
+                '(Token-Hash nur in der Datenbank gespeichert).',
+                user.email,
+            )
+            return False
+
+        portal_name = _portal_name()
+        try:
+            reset_url = url_for(
+                'auth.reset_password',
+                email=user.email,
+                token=raw_token,
+                _external=True,
+            )
+        except Exception:
+            reset_url = None
+
+        plain_text = (
+            f'Passwort-Reset-Token: {raw_token}\n\n'
+            + (f'Reset-Link: {reset_url}\n\n' if reset_url else '')
+            + 'Bitte geben Sie diesen Token ein, um Ihr Passwort zurückzusetzen. '
+            'Er ist 1 Stunde gültig.'
+        )
+        try:
+            ok = render_and_send_portal_email(
+                subject=f'Passwort zurücksetzen - {portal_name}',
+                recipients=[user.email],
+                template_name='emails/password_reset.html',
+                body_text=plain_text,
+                user=user,
+                reset_code=raw_token,
+                reset_url=reset_url,
+            )
+            if not ok:
+                logging.error(f'Password reset email send returned False for {mask_email(user.email)}')
+                return False
+            logging.info('Password reset email sent to %s', mask_email(user.email))
+            return True
+        except Exception as send_error:
+            logging.error(f'Failed to send password reset email to {mask_email(user.email)}: {str(send_error)}')
+            return False
+    except Exception as e:
+        logging.error(f'Failed to send password reset email to {mask_email(user.email)}: {str(e)}')
+        return False
+
+
+def verify_password_reset_code(user, code):
+    """Überprüft den Passwort-Reset-Token (constant-time)."""
+    if not user or not user.password_reset_code or not user.password_reset_code_expires:
+        return False
+    if portal_now_naive() > user.password_reset_code_expires:
+        return False
+    provided = (code or '').strip()
+    if not provided:
+        return False
+    expected = user.password_reset_code
+    # Legacy: alter 6-stelliger Klartext-Code noch akzeptieren bis Ablauf
+    if len(expected) == 6 and expected.isdigit():
+        return hmac.compare_digest(expected, provided)
+    return hmac.compare_digest(expected, hash_password_reset_token(provided))
+
+
+def register_password_reset_failure(user) -> bool:
+    """
+    Zählt Fehlversuche in der Flask-Session.
+    Nach 5 Fehlversuchen wird der Reset-Token invalidiert.
+    Returns True wenn der Token verbrannt wurde.
+    """
+    from flask import session
+
+    if not user or not getattr(user, 'id', None):
+        return False
+    key = f'_pwd_reset_fails_{int(user.id)}'
+    fails = int(session.get(key) or 0) + 1
+    session[key] = fails
+    if fails < 5:
+        return False
+    user.password_reset_code = None
+    user.password_reset_code_expires = None
+    from app import db
+    db.session.commit()
+    session.pop(key, None)
+    return True
+
+
+def clear_password_reset_failure_counter(user):
+    from flask import session
+    if user and getattr(user, 'id', None):
+        session.pop(f'_pwd_reset_fails_{int(user.id)}', None)
+
 
 def get_logo_data():
     """Holt das Portal-Logo aus SystemSettings oder Konfiguration und gibt Logo-Daten, MIME-Type und Dateiname zurück."""
@@ -280,130 +495,56 @@ def get_logo_base64():
 def create_message_with_logo(subject, recipients, html_content, body_text=None, sender=None, cc=None, logo_cid='portal_logo'):
     """
     Erstellt eine Flask-Mail Message mit Logo als CID-Anhang.
-    
-    Args:
-        subject: E-Mail-Betreff
-        recipients: Liste von Empfängern oder String mit kommagetrennten Adressen
-        html_content: HTML-Inhalt der E-Mail
-        body_text: Plain-Text-Version (optional)
-        sender: Absender (optional, wird aus Config geholt wenn None)
-        cc: CC-Empfänger (optional)
-        logo_cid: Content-ID für das Logo (Standard: 'portal_logo')
-    
-    Returns:
-        Flask-Mail Message-Objekt mit Logo als CID-Anhang
+
+    Flask-Mail 0.10 baut MIME bei jedem Versand neu aus html/body/attachments —
+    daher Content-ID und disposition='inline' am Attachment setzen (nicht msg.msg).
     """
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
-    from email.mime.image import MIMEImage
-    from email.header import Header
     from config import get_formatted_sender
-    
-    # Hole Absender
+
     if not sender:
-        mail_username = current_app.config.get('MAIL_USERNAME')
-        sender = get_formatted_sender() or mail_username
-    
-    # Normalisiere Empfänger
+        sender = get_formatted_sender() or current_app.config.get('MAIL_USERNAME')
+
     if isinstance(recipients, str):
-        recipients_list = [r.strip() for r in recipients.split(',')]
+        recipients_list = [r.strip() for r in recipients.split(',') if r.strip()]
     else:
-        recipients_list = recipients
-    
-    # Erstelle multipart/related Message für HTML mit inline images
-    msg_multipart = MIMEMultipart('related')
-    
-    # Setze Header
-    msg_multipart['Subject'] = Header(subject, 'utf-8')
-    msg_multipart['From'] = sender
-    msg_multipart['To'] = ', '.join(recipients_list)
-    if cc:
-        if isinstance(cc, str):
-            cc_list = [c.strip() for c in cc.split(',')]
-        else:
-            cc_list = cc
-        msg_multipart['Cc'] = ', '.join(cc_list)
-    
-    # Erstelle multipart/alternative für plain text und HTML
-    msg_alternative = MIMEMultipart('alternative')
-    msg_multipart.attach(msg_alternative)
-    
-    # Füge plain text hinzu (falls vorhanden)
-    if body_text:
-        msg_alternative.attach(MIMEText(body_text, 'plain', 'utf-8'))
-    else:
-        # Fallback: HTML zu Text konvertieren (einfach)
+        recipients_list = list(recipients or [])
+
+    if not body_text:
         import re
         from html import unescape
-        text_content = re.sub(r'<[^>]+>', '', html_content)
-        text_content = unescape(text_content).strip()
-        msg_alternative.attach(MIMEText(text_content, 'plain', 'utf-8'))
-    
-    # Füge HTML hinzu
-    msg_alternative.attach(MIMEText(html_content, 'html', 'utf-8'))
-    
-    # Füge Logo als inline attachment mit CID hinzu
-    logo_data, logo_mime_type, logo_filename = get_logo_data()
-    if logo_data and logo_mime_type:
-        image_type = logo_mime_type.split('/')[1] if '/' in logo_mime_type else 'png'
-        
-        # Standardisiere Dateiname basierend auf MIME-Type
-        if image_type == 'jpeg' or image_type == 'jpg':
-            attachment_filename = 'logo.jpg'
-        elif image_type == 'png':
-            attachment_filename = 'logo.png'
-        elif image_type == 'gif':
-            attachment_filename = 'logo.gif'
-        else:
-            attachment_filename = 'logo.png'  # Default
-        
-        img_attachment = MIMEImage(logo_data, image_type)
-        img_attachment.add_header('Content-ID', f'<{logo_cid}>')
-        img_attachment.add_header('Content-Disposition', 'inline', filename=attachment_filename)
-        # Stelle sicher, dass Content-Type korrekt gesetzt ist
-        img_attachment.add_header('Content-Type', logo_mime_type)
-        msg_multipart.attach(img_attachment)
-        logging.info(f"Logo als Anhang hinzugefügt: {attachment_filename} ({logo_mime_type}), CID: {logo_cid}, Größe: {len(logo_data)} bytes")
-    else:
-        logging.warning("Logo konnte nicht geladen werden - kein Logo als Anhang hinzugefügt")
-    
-    # Erstelle Flask-Mail Message Objekt und kopiere die konstruierte Message
+        text_content = re.sub(r'<[^>]+>', '', html_content or '')
+        body_text = unescape(text_content).strip()
+
     msg = Message(
         subject=subject,
         recipients=recipients_list,
         body=body_text or '',
         html=html_content,
-        sender=sender
+        sender=sender,
     )
     if cc:
         if isinstance(cc, str):
-            msg.cc = cc.split(',')
+            msg.cc = [c.strip() for c in cc.split(',') if c.strip()]
         else:
-            msg.cc = cc
-    
-    # Ersetze die interne Message-Struktur mit unserer multipart/related Version
-    # WICHTIG: Flask-Mail verwendet msg.msg beim Senden, also müssen wir die komplette
-    # multipart-Struktur hier setzen
-    msg.msg = msg_multipart
-    
-    # Debug: Überprüfe, dass Logo-Anhang vorhanden ist
-    if hasattr(msg.msg, 'get_payload'):
-        parts = msg.msg.get_payload()
-        if isinstance(parts, list):
-            attachment_count = sum(1 for p in parts if hasattr(p, 'get_content_type') and p.get_content_type().startswith('image/'))
-            logging.info(f"Message-Struktur nach msg.msg Setzen: {len(parts)} Teile, davon {attachment_count} Bild-Anhänge")
-            logo_found = False
-            for i, part in enumerate(parts):
-                if hasattr(part, 'get_content_type') and part.get_content_type().startswith('image/'):
-                    cid = part.get('Content-ID', 'N/A')
-                    filename = part.get('Content-Disposition', 'N/A')
-                    logging.info(f"  Logo-Anhang {i}: Content-ID={cid}, Disposition={filename}")
-                    if cid != 'N/A' and logo_cid in cid:
-                        logo_found = True
-            
-            if not logo_found and logo_data and logo_mime_type:
-                logging.warning("Logo wurde nicht in Message-Struktur gefunden, obwohl es hinzugefügt wurde!")
-    
+            msg.cc = list(cc)
+
+    logo_data, logo_mime_type, _logo_filename = get_logo_data()
+    if logo_data and logo_mime_type:
+        attachment_filename = _logo_attachment_filename(logo_mime_type)
+        msg.attach(
+            attachment_filename,
+            logo_mime_type,
+            logo_data,
+            disposition='inline',
+            headers={'Content-ID': f'<{logo_cid}>'},
+        )
+        logging.info(
+            "Logo als CID-Anhang: %s (%s), CID: %s, Größe: %s bytes",
+            attachment_filename, logo_mime_type, logo_cid, len(logo_data),
+        )
+    else:
+        logging.warning("Logo konnte nicht geladen werden - kein Logo als Anhang hinzugefügt")
+
     return msg
 
 def _portal_name():
@@ -427,26 +568,29 @@ def _mail_configured():
     ])
 
 def _attach_files_to_message(msg, attachments):
-    """Hängt Dateien an (multipart/mixed um related mit CID-Logo)."""
+    """Hängt Dateianhänge an die Flask-Mail Attachment-Liste (Flask-Mail 0.10).
+
+    Wichtig: Nicht mehr über msg.msg basteln — as_bytes()/_message() ignoriert msg.msg
+    und würde PDFs sonst still verwerfen.
+    """
     if not attachments:
         return
-    from email.mime.application import MIMEApplication
-    from email.mime.multipart import MIMEMultipart
-
-    if getattr(msg, 'msg', None) is not None:
-        outer = MIMEMultipart('mixed')
-        for key, value in msg.msg.items():
-            if key.lower() not in ('content-type', 'mime-version'):
-                outer[key] = value
-        outer.attach(msg.msg)
-        for filename, mimetype, data in attachments:
-            part = MIMEApplication(data, Name=filename)
-            part.add_header('Content-Disposition', 'attachment', filename=filename)
-            outer.attach(part)
-        msg.msg = outer
-    else:
-        for filename, mimetype, data in attachments:
-            msg.attach(filename, mimetype, data)
+    for filename, mimetype, data in attachments:
+        if hasattr(data, 'read'):
+            data = data.read()
+        if not data:
+            logging.warning("Leerer Anhang übersprungen: %s", filename)
+            continue
+        msg.attach(
+            filename,
+            mimetype or 'application/octet-stream',
+            data,
+            disposition='attachment',
+        )
+        logging.info(
+            "Datei angehängt: %s (%s, %s bytes)",
+            filename, mimetype or 'application/octet-stream', len(data),
+        )
 
 def _footer_placeholder_values(user=None, app_name=None, **ctx):
     """Werte für <user>/<email>/<app_name>/<date>/<time> im Footer-Template."""
@@ -638,9 +782,9 @@ def send_confirmation_email(user):
                 confirmation_code=confirmation_code,
             )
             if ok:
-                logging.info('Confirmation email sent to %s', user.email)
+                logging.info('Confirmation email sent to %s', mask_email(user.email))
                 return True
-            logging.error('Confirmation email send returned False for %s — retrying once', user.email)
+            logging.error('Confirmation email send returned False for %s — retrying once', mask_email(user.email))
             ok = render_and_send_portal_email(
                 subject=f'E-Mail-Bestätigung - {portal_name}',
                 recipients=[user.email],
@@ -650,15 +794,15 @@ def send_confirmation_email(user):
                 confirmation_code=confirmation_code,
             )
             if ok:
-                logging.info(f'Alternative E-Mail erfolgreich gesendet an {user.email}')
+                logging.info(f'Alternative E-Mail erfolgreich gesendet an {mask_email(user.email)}')
                 return True
-            logging.error(f'Alternative E-Mail-Versand auch fehlgeschlagen für {user.email}')
+            logging.error(f'Alternative E-Mail-Versand auch fehlgeschlagen für {mask_email(user.email)}')
             return False
         except Exception as send_error:
-            logging.error(f'Failed to send confirmation email to {user.email}: {str(send_error)}')
+            logging.error(f'Failed to send confirmation email to {mask_email(user.email)}: {str(send_error)}')
             return False
     except Exception as e:
-        logging.error(f'Failed to send confirmation email to {user.email}: {str(e)}')
+        logging.error(f'Failed to send confirmation email to {mask_email(user.email)}: {str(e)}')
         return False
 
 def verify_confirmation_code(user, code):
@@ -680,67 +824,37 @@ def resend_confirmation_email(user):
     """Sendet eine neue Bestätigungs-E-Mail."""
     return send_confirmation_email(user)
 
-def send_password_reset_email(user):
-    """Sendet eine Passwort-Reset-E-Mail an den Benutzer."""
-    try:
-        reset_code = generate_confirmation_code()
-        expires_at = portal_now_naive() + timedelta(hours=1)
-        user.password_reset_code = reset_code
-        user.password_reset_code_expires = expires_at
-        from app import db
-        db.session.commit()
 
-        if not _mail_configured():
-            logging.warning(
-                'E-Mail-Konfiguration unvollständig. Passwort-Reset-E-Mail an %s nicht gesendet '
-                '(Code nur in der Datenbank gespeichert).',
-                user.email,
-            )
-            return False
+_2FA_RECOVERY_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  # ohne O/0/I/1
+TWO_FACTOR_RECOVERY_CODE_LENGTH = 10
+TWO_FACTOR_RECOVERY_TTL = timedelta(minutes=5)
 
-        portal_name = _portal_name()
-        plain_text = (
-            f'Passwort-Reset-Code: {reset_code}\n\n'
-            'Bitte geben Sie diesen Code ein, um Ihr Passwort zurückzusetzen. Der Code ist 1 Stunde gültig.'
-        )
-        try:
-            ok = render_and_send_portal_email(
-                subject=f'Passwort zurücksetzen - {portal_name}',
-                recipients=[user.email],
-                template_name='emails/password_reset.html',
-                body_text=plain_text,
-                user=user,
-                reset_code=reset_code,
-            )
-            if not ok:
-                logging.error(f'Password reset email send returned False for {user.email}')
-                return False
-            logging.info('Password reset email sent to %s', user.email)
-            return True
-        except Exception as send_error:
-            logging.error(f'Failed to send password reset email to {user.email}: {str(send_error)}')
-            return False
-    except Exception as e:
-        logging.error(f'Failed to send password reset email to {user.email}: {str(e)}')
-        return False
 
-def verify_password_reset_code(user, code):
-    """Überprüft den Passwort-Reset-Code."""
-    if not user.password_reset_code or not user.password_reset_code_expires:
-        return False
-    if portal_now_naive() > user.password_reset_code_expires:
-        return False
-    if user.password_reset_code != code:
-        return False
-    return True
+def is_2fa_email_recovery_enabled() -> bool:
+    return bool(current_app.config.get('TWO_FACTOR_EMAIL_RECOVERY_ENABLED', True))
+
+
+def generate_2fa_recovery_code() -> str:
+    """Längerer einmaliger Recovery-Code (nicht nur 6 Ziffern wie TOTP)."""
+    return ''.join(
+        secrets.choice(_2FA_RECOVERY_ALPHABET)
+        for _ in range(TWO_FACTOR_RECOVERY_CODE_LENGTH)
+    )
+
+
+def hash_2fa_recovery_code(code: str) -> str:
+    return hashlib.sha256((code or '').strip().upper().encode('utf-8')).hexdigest()
 
 
 def send_2fa_recovery_email(user):
     """Sendet einen einmaligen 2FA-Wiederherstellungscode (5 Minuten gültig)."""
+    if not is_2fa_email_recovery_enabled():
+        logging.warning('2FA email recovery disabled; skip send for user_id=%s', getattr(user, 'id', None))
+        return False
     try:
-        recovery_code = generate_confirmation_code()
-        expires_at = portal_now_naive() + timedelta(minutes=5)
-        user.totp_recovery_code = recovery_code
+        recovery_code = generate_2fa_recovery_code()
+        expires_at = portal_now_naive() + TWO_FACTOR_RECOVERY_TTL
+        user.totp_recovery_code = hash_2fa_recovery_code(recovery_code)
         user.totp_recovery_code_expires = expires_at
         from app import db
         db.session.commit()
@@ -755,7 +869,9 @@ def send_2fa_recovery_email(user):
         portal_name = _portal_name()
         plain_text = (
             f'2FA-Wiederherstellungscode: {recovery_code}\n\n'
-            'Geben Sie diesen Code auf der 2FA-Anmeldeseite ein. Der Code ist 5 Minuten gültig.'
+            'Geben Sie diesen Code auf der 2FA-Anmeldeseite ein (statt des Authenticator-Codes). '
+            'Der Code ist 5 Minuten gültig und nur einmal nutzbar. '
+            'Hinweis: Wer Ihr Postfach kontrolliert, kann damit 2FA umgehen.'
         )
         ok = render_and_send_portal_email(
             subject=f'2FA-Wiederherstellung - {portal_name}',
@@ -766,22 +882,35 @@ def send_2fa_recovery_email(user):
             recovery_code=recovery_code,
         )
         if not ok:
-            logging.error('2FA recovery email send returned False for %s', user.email)
+            logging.error('2FA recovery email send returned False for %s', mask_email(user.email))
             return False
-        logging.info('2FA recovery email sent to %s', user.email)
+        logging.info('2FA recovery email sent to %s', mask_email(user.email))
         return True
     except Exception as e:
-        logging.error('Failed to send 2FA recovery email to %s: %s', user.email, e)
+        logging.error('Failed to send 2FA recovery email to %s: %s', mask_email(user.email), e)
         return False
 
 
 def verify_and_consume_2fa_recovery_code(user, code):
     """Prüft den 2FA-Wiederherstellungscode und invalidiert ihn bei Erfolg."""
+    if not is_2fa_email_recovery_enabled():
+        return False
     if not code or not user.totp_recovery_code or not user.totp_recovery_code_expires:
         return False
     if portal_now_naive() > user.totp_recovery_code_expires:
         return False
-    if user.totp_recovery_code != code.strip():
+
+    submitted = (code or '').strip().upper()
+    stored = user.totp_recovery_code
+    # Neu: SHA-256-Hex; Alt (Migration): Klartext-6-Ziffern bis Ablauf
+    if len(stored) == 64 and all(c in '0123456789abcdef' for c in stored.lower()):
+        ok = hmac.compare_digest(stored.lower(), hash_2fa_recovery_code(submitted))
+    else:
+        ok = hmac.compare_digest(stored, submitted) or hmac.compare_digest(
+            stored, (code or '').strip()
+        )
+
+    if not ok:
         return False
 
     user.totp_recovery_code = None
@@ -842,7 +971,14 @@ def send_borrow_receipt_email(checkout):
         pdf_buffer = BytesIO()
         generate_borrow_receipt_pdf(checkout, pdf_buffer)
         pdf_buffer.seek(0)
+        pdf_bytes = pdf_buffer.read()
         filename = f'Ausleihschein_{checkout.checkout_number}.pdf'
+        if not pdf_bytes:
+            logging.error(
+                'Ausleihschein-PDF leer für %s — E-Mail nicht gesendet.',
+                checkout.checkout_number,
+            )
+            return False
 
         plain_text = (
             f'Ausleihschein {checkout.checkout_number}\n'
@@ -856,7 +992,7 @@ def send_borrow_receipt_email(checkout):
             recipients=[recipient],
             template_name='emails/borrow_receipt.html',
             body_text=plain_text,
-            attachments=[(filename, 'application/pdf', pdf_buffer.read())],
+            attachments=[(filename, 'application/pdf', pdf_bytes)],
             borrower_name=checkout.borrower_name,
             checkout_number=checkout.checkout_number,
             event_name=checkout.event_name,
@@ -868,7 +1004,7 @@ def send_borrow_receipt_email(checkout):
         if not ok:
             logging.error(f'Borrow receipt email send returned False for {checkout.checkout_number}')
             return False
-        logging.info(f'Borrow receipt email sent to {recipient} for {checkout.checkout_number}')
+        logging.info(f'Borrow receipt email sent to {mask_email(recipient)} for {checkout.checkout_number}')
         return True
     except Exception as e:
         logging.error(f'Failed to send borrow receipt email: {str(e)}')
@@ -909,7 +1045,14 @@ def send_return_confirmation_email(checkout, returned_items=None):
         pdf_buffer = BytesIO()
         generate_return_confirmation_pdf(checkout, pdf_buffer, returned_items=items_source)
         pdf_buffer.seek(0)
+        pdf_bytes = pdf_buffer.read()
         filename = f'Rueckgabe_{checkout.checkout_number}.pdf'
+        if not pdf_bytes:
+            logging.error(
+                'Rückgabe-PDF leer für %s — E-Mail nicht gesendet.',
+                checkout.checkout_number,
+            )
+            return False
 
         plain_text = (
             f'Rückgabe-Bestätigung {checkout.checkout_number}\n'
@@ -921,7 +1064,7 @@ def send_return_confirmation_email(checkout, returned_items=None):
             recipients=[recipient],
             template_name='emails/return_confirmation.html',
             body_text=plain_text,
-            attachments=[(filename, 'application/pdf', pdf_buffer.read())],
+            attachments=[(filename, 'application/pdf', pdf_bytes)],
             borrower_name=checkout.borrower_name,
             checkout_number=checkout.checkout_number,
             event_name=checkout.event_name,
@@ -931,7 +1074,7 @@ def send_return_confirmation_email(checkout, returned_items=None):
         if not ok:
             logging.error(f'Return confirmation email send returned False for {checkout.checkout_number}')
             return False
-        logging.info(f'Return confirmation email sent to {recipient} for {checkout.checkout_number}')
+        logging.info(f'Return confirmation email sent to {mask_email(recipient)} for {checkout.checkout_number}')
         return True
     except Exception as e:
         logging.error(f'Failed to send return confirmation email: {str(e)}')
@@ -991,12 +1134,12 @@ def send_booking_confirmation_email(booking_request):
             if not _persist_booking_outbound(booking_request, msg, subject, body_text, html_content):
                 return False
             logging.info(
-                f'Booking confirmation email sent to {booking_request.email} for booking {booking_request.id}'
+                f'Booking confirmation email sent to {mask_email(booking_request.email)} for booking {booking_request.id}'
             )
             return True
         except Exception as send_error:
             logging.error(
-                f'Failed to send booking confirmation email to {booking_request.email}: {str(send_error)}'
+                f'Failed to send booking confirmation email to {mask_email(booking_request.email)}: {str(send_error)}'
             )
             return False
     except Exception as e:
@@ -1036,12 +1179,12 @@ def send_booking_accepted_email(booking_request, calendar_event):
             if not _persist_booking_outbound(booking_request, msg, subject, body_text, html_content):
                 return False
             logging.info(
-                f'Booking accepted email sent to {booking_request.email} for booking {booking_request.id}'
+                f'Booking accepted email sent to {mask_email(booking_request.email)} for booking {booking_request.id}'
             )
             return True
         except Exception as send_error:
             logging.error(
-                f'Failed to send booking accepted email to {booking_request.email}: {str(send_error)}'
+                f'Failed to send booking accepted email to {mask_email(booking_request.email)}: {str(send_error)}'
             )
             return False
     except Exception as e:
@@ -1075,12 +1218,12 @@ def send_booking_rejected_email(booking_request):
             if not _persist_booking_outbound(booking_request, msg, subject, body_text, html_content):
                 return False
             logging.info(
-                f'Booking rejected email sent to {booking_request.email} for booking {booking_request.id}'
+                f'Booking rejected email sent to {mask_email(booking_request.email)} for booking {booking_request.id}'
             )
             return True
         except Exception as send_error:
             logging.error(
-                f'Failed to send booking rejected email to {booking_request.email}: {str(send_error)}'
+                f'Failed to send booking rejected email to {mask_email(booking_request.email)}: {str(send_error)}'
             )
             return False
     except Exception as e:
@@ -1118,12 +1261,12 @@ def send_booking_staff_message(booking_request, subject, body_text, created_by=N
             ):
                 return False
             logging.info(
-                f'Booking staff message sent to {booking_request.email} for booking {booking_request.id}'
+                f'Booking staff message sent to {mask_email(booking_request.email)} for booking {booking_request.id}'
             )
             return True
         except Exception as send_error:
             logging.error(
-                f'Failed to send booking staff message to {booking_request.email}: {str(send_error)}'
+                f'Failed to send booking staff message to {mask_email(booking_request.email)}: {str(send_error)}'
             )
             return False
     except Exception as e:
@@ -1145,9 +1288,9 @@ def send_smtp_test_email(recipient_email):
             recipient_email=recipient_email,
         )
         if not ok:
-            logging.error(f'SMTP test email send returned False for {recipient_email}')
+            logging.error(f'SMTP test email send returned False for {mask_email(recipient_email)}')
             raise RuntimeError('SMTP test email send failed')
-        logging.info(f'SMTP test email sent to {recipient_email}')
+        logging.info(f'SMTP test email sent to {mask_email(recipient_email)}')
         return True
     except Exception as e:
         logging.error(f'Failed to send SMTP test email: {str(e)}')
@@ -1190,15 +1333,15 @@ def send_account_creation_email(user, password):
                 login_url=login_url,
             )
             if not ok:
-                logging.error(f'Account creation email send returned False for {user.email}')
+                logging.error(f'Account creation email send returned False for {mask_email(user.email)}')
                 return False
-            logging.info(f'Account creation email sent to {user.email}')
+            logging.info(f'Account creation email sent to {mask_email(user.email)}')
             return True
         except Exception as send_error:
-            logging.error(f'Failed to send account creation email to {user.email}: {str(send_error)}')
+            logging.error(f'Failed to send account creation email to {mask_email(user.email)}: {str(send_error)}')
             return False
     except Exception as e:
-        logging.error(f'Failed to send account creation email to {user.email}: {str(e)}')
+        logging.error(f'Failed to send account creation email to {mask_email(user.email)}: {str(e)}')
         return False
 
 
@@ -1212,7 +1355,7 @@ def send_guest_credentials_email(recipient, full_name, username, password):
         if not _mail_configured():
             logging.warning(
                 'E-Mail-Konfiguration unvollständig. Gast-Zugangsdaten an %s nicht gesendet.',
-                recipient,
+                mask_email(recipient),
             )
             return False
 
@@ -1239,9 +1382,9 @@ def send_guest_credentials_email(recipient, full_name, username, password):
             login_url=login_url,
         )
         if not ok:
-            logging.error('Gast-Zugangsdaten-E-Mail an %s fehlgeschlagen.', recipient)
+            logging.error('Gast-Zugangsdaten-E-Mail an %s fehlgeschlagen.', mask_email(recipient))
             return False
-        logging.info('Gast-Zugangsdaten-E-Mail an %s gesendet.', recipient)
+        logging.info('Gast-Zugangsdaten-E-Mail an %s gesendet.', mask_email(recipient))
         return True
     except Exception as e:
         logging.error('Gast-Zugangsdaten-E-Mail fehlgeschlagen: %s', e)

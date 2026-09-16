@@ -5,6 +5,7 @@ from app import db
 from app.models.credential import Credential, CredentialFolder, CredentialFavorite
 from app.utils.access_control import check_module_access
 from app.utils.i18n import translate
+from app.utils.list_pagination import paginate_list
 from app.utils.module_visibility import (
     VISIBILITY_PRIVATE,
     VISIBILITY_PUBLIC,
@@ -18,9 +19,6 @@ from app.utils.module_visibility import (
     visibility_form_context,
     visibility_nav_context,
 )
-from cryptography.fernet import Fernet
-import os
-import requests
 from urllib.parse import urlparse
 import logging
 
@@ -29,54 +27,57 @@ logger = logging.getLogger(__name__)
 credentials_bp = Blueprint('credentials', __name__)
 
 
+class CredentialEncryptionError(RuntimeError):
+    """Raised when CREDENTIAL_ENCRYPTION_KEY is missing or unusable."""
+
+
 def get_encryption_key():
-    """Get or create encryption key for credentials."""
-    # Versuche zuerst aus Umgebungsvariable zu lesen
-    key = os.environ.get('CREDENTIAL_ENCRYPTION_KEY')
-    if key:
-        # Wenn als String, in Bytes konvertieren
-        if isinstance(key, str):
-            return key.encode('utf-8')
-        return key
-    
-    # Fallback: Versuche aus Datei zu lesen (für Migration)
-    key_file = 'credential_key.key'
-    if os.path.exists(key_file):
-        with open(key_file, 'rb') as f:
-            return f.read()
-    
-    # Wenn nichts gefunden, generiere neuen Key (nur für Entwicklung)
-    # In Produktion sollte der Key immer in .env gesetzt sein
-    key = Fernet.generate_key()
-    logger.warning(
-        "CREDENTIAL_ENCRYPTION_KEY nicht in .env gefunden! Bitte setzen Sie den Key in der .env-Datei."
-    )
+    """
+    Load Fernet key for credential passwords.
+
+    Fail-closed: only from CREDENTIAL_ENCRYPTION_KEY (env/config). No ephemeral
+    key and no CWD file fallback — those break at-rest encryption guarantees.
+    """
+    from app.utils.encryption import read_encryption_key
+
+    key = read_encryption_key('CREDENTIAL_ENCRYPTION_KEY')
+    if not key:
+        raise CredentialEncryptionError(
+            "CREDENTIAL_ENCRYPTION_KEY fehlt in der .env. "
+            "Erzeugen mit: python scripts/generate_encryption_keys.py"
+        )
     return key
 
 
+def _credentials_key_missing_response(*, as_json=False):
+    msg = translate('credentials.errors.encryption_key_missing')
+    logger.error("CREDENTIAL_ENCRYPTION_KEY fehlt — Credentials-Aktion abgebrochen.")
+    if as_json:
+        return jsonify({'error': msg}), 503
+    flash(msg, 'danger')
+    return redirect(url_for('credentials.index'))
+
+
 def get_favicon_url(website_url):
-    """Get favicon URL for a website."""
+    """
+    Favicon-URL nur über öffentliches CDN aus dem Domain-Label.
+
+    Kein Server-seitiger Fetch gegen User-URLs (SSRF-/Intranet-Probe).
+    """
     try:
-        parsed = urlparse(website_url)
-        domain = f"{parsed.scheme}://{parsed.netloc}"
-        
-        # Try common favicon locations
-        favicon_urls = [
-            f"{domain}/favicon.ico",
-            f"https://www.google.com/s2/favicons?domain={parsed.netloc}&sz=32",
-        ]
-        
-        for url in favicon_urls:
-            try:
-                response = requests.head(url, timeout=2)
-                if response.status_code == 200:
-                    return url
-            except:
-                continue
-        
-        # Fallback to Google's favicon service
-        return f"https://www.google.com/s2/favicons?domain={parsed.netloc}&sz=32"
-    except:
+        parsed = urlparse((website_url or '').strip())
+        host = (parsed.hostname or '').strip().lower().rstrip('.')
+        if not host:
+            # Fallback: netloc ohne Port/Userinfo grob parsen
+            netloc = (parsed.netloc or '').strip().lower()
+            if '@' in netloc:
+                netloc = netloc.rsplit('@', 1)[-1]
+            host = netloc.split(':', 1)[0].rstrip('.')
+        if not host or host in {'localhost', '127.0.0.1', '::1'} or host.endswith('.local'):
+            return None
+        # Nur Label an CDN — keine Requests vom Server
+        return f'https://www.google.com/s2/favicons?domain={host}&sz=32'
+    except Exception:
         return None
 
 
@@ -329,7 +330,7 @@ def index():
             )
         )
 
-    credentials = credentials_query.all()
+    credentials, pagination = paginate_list(credentials_query)
     nav = visibility_nav_context('credentials', current_user, section, filter_team_id)
 
     return render_template(
@@ -343,6 +344,8 @@ def index():
         favorite_ids=favorite_ids,
         show_favorites_nav=show_favorites_nav,
         search_query=search_query,
+        list_page=pagination.page,
+        list_has_more=pagination.has_next,
         **nav,
     )
 
@@ -381,8 +384,10 @@ def create():
         )
         apply_visibility_from_form(credential, 'credentials', current_user)
 
-        # Encrypt and set password
-        key = get_encryption_key()
+        try:
+            key = get_encryption_key()
+        except CredentialEncryptionError:
+            return _credentials_key_missing_response()
         credential.set_password(password, key)
 
         db.session.add(credential)
@@ -414,7 +419,10 @@ def edit(credential_id):
     credential = Credential.query.get_or_404(credential_id)
     if not can_edit_item(current_user, credential, 'credentials'):
         return _credentials_denied()
-    key = get_encryption_key()
+    try:
+        key = get_encryption_key()
+    except CredentialEncryptionError:
+        return _credentials_key_missing_response()
     
     if request.method == 'POST':
         credential.website_url = request.form.get('website_url', '').strip()
@@ -441,6 +449,13 @@ def edit(credential_id):
     
     # Decrypt password for display
     decrypted_password = credential.get_password(key)
+    logger.info(
+        'credential_password_reveal user_id=%s credential_id=%s owner_id=%s via=edit ip=%s',
+        getattr(current_user, 'id', None),
+        credential.id,
+        getattr(credential, 'created_by', None),
+        request.headers.get('X-Forwarded-For', request.remote_addr),
+    )
     is_favorite = CredentialFavorite.query.filter_by(
         user_id=current_user.id,
         credential_id=credential.id
@@ -483,10 +498,20 @@ def view_password(credential_id):
     credential = Credential.query.get_or_404(credential_id)
     if not can_view_item(current_user, credential, 'credentials'):
         return jsonify({'error': translate('visibility.flash.access_denied')}), 403
-    key = get_encryption_key()
-    
+    try:
+        key = get_encryption_key()
+    except CredentialEncryptionError:
+        return _credentials_key_missing_response(as_json=True)
+
     try:
         password = credential.get_password(key)
+        logger.info(
+            'credential_password_reveal user_id=%s credential_id=%s owner_id=%s ip=%s',
+            getattr(current_user, 'id', None),
+            credential.id,
+            getattr(credential, 'created_by', None),
+            request.headers.get('X-Forwarded-For', request.remote_addr),
+        )
         return jsonify({'password': password})
     except Exception as e:
         return jsonify({'error': translate('credentials.errors.decrypt_error')}), 500
@@ -628,23 +653,14 @@ def move_credential(credential_id):
 @check_module_access('module_credentials')
 def toggle_favorite(credential_id):
     """Toggle per-user credential favorite status."""
+    from app.utils.favorites import toggle_user_favorite
+
     credential = Credential.query.get_or_404(credential_id)
     if not can_view_item(current_user, credential, 'credentials'):
         return jsonify({'success': False, 'error': translate('visibility.flash.access_denied')}), 403
-    existing = CredentialFavorite.query.filter_by(
-        user_id=current_user.id,
-        credential_id=credential.id
-    ).first()
-
-    if existing:
-        db.session.delete(existing)
-        is_favorite = False
-    else:
-        db.session.add(CredentialFavorite(user_id=current_user.id, credential_id=credential.id))
-        is_favorite = True
-
-    db.session.commit()
-    favorites_count = CredentialFavorite.query.filter_by(user_id=current_user.id).count()
+    is_favorite, favorites_count = toggle_user_favorite(
+        current_user.id, CredentialFavorite, 'credential_id', credential.id
+    )
     return jsonify({
         'success': True,
         'is_favorite': is_favorite,

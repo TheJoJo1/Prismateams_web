@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _('protocols.agenda.title') }} — {{ protocol.title }}{% endblock %}
+
+{% block content %}
+{% from 'protocols/_workspace_chrome.html' import protocols_chrome_nav, protocols_chrome_brand, protocols_steps, protocols_index_url with context %}
+{% set index_url = protocols_index_url() %}
+
+<div class="protocols-workspace">
+    <header class="mod-toolbar protocols-workspace-toolbar">
+        <div class="protocols-workspace-toolbar-start">
+            {{ protocols_chrome_nav(
+                back_url=url_for('protocols.edit_meta', protocol_id=protocol.id),
+                close_url=index_url
+            ) }}
+            {{ protocols_chrome_brand('bi-list-ol', _('protocols.agenda.title'), protocol.title) }}
+        </div>
+        <div class="protocols-workspace-toolbar-end">
+            {{ protocols_steps('agenda', protocol.id) }}
+            <button type="submit" form="protocolsAgendaForm" name="action" value="save" class="btn mod-pill-btn">
+                <i class="bi bi-save"></i>
+                <span class="d-none d-sm-inline">{{ _('protocols.actions.save_draft') }}</span>
+            </button>
+            <button type="submit" form="protocolsAgendaForm" name="action" value="continue" class="btn btn-accent rounded-pill mod-pill-btn">
+                <i class="bi bi-arrow-right"></i>
+                {{ _('protocols.agenda.continue') }}
+            </button>
+        </div>
+    </header>
+
+    <div class="protocols-workspace-body protocols-workspace-body--scroll">
+        <form method="POST" class="protocols-form protocols-form--wide" id="protocolsAgendaForm" action="{{ url_for('protocols.edit_agenda', protocol_id=protocol.id) }}">
+            <section class="protocols-form-card">
+                <p class="text-muted small mb-3">{{ _('protocols.agenda.hint') }}</p>
+                <ul class="protocols-agenda-list list-unstyled mb-3" id="protocolsAgendaList">
+                    {% for item in protocol.agenda_items %}
+                    <li class="protocols-agenda-item" data-agenda-item>
+                        <span class="protocols-agenda-handle" title="{{ _('protocols.agenda.reorder') }}" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span>
+                        <input type="hidden" name="item_ids" value="{{ item.id }}">
+                        <input type="text" class="form-control mod-pill-input" name="titles" value="{{ item.title }}" placeholder="{{ _('protocols.agenda.item_placeholder') }}" required>
+                        <button type="button" class="protocols-agenda-remove" data-remove-agenda aria-label="{{ _('common.delete') }}"><i class="bi bi-trash"></i></button>
+                    </li>
+                    {% else %}
+                    <li class="protocols-agenda-item" data-agenda-item>
+                        <span class="protocols-agenda-handle" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span>
+                        <input type="hidden" name="item_ids" value="">
+                        <input type="text" class="form-control mod-pill-input" name="titles" value="" placeholder="{{ _('protocols.agenda.item_placeholder') }}" required>
+                        <button type="button" class="protocols-agenda-remove" data-remove-agenda aria-label="{{ _('common.delete') }}"><i class="bi bi-trash"></i></button>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <button type="button" class="btn mod-pill-btn" id="protocolsAddAgenda">
+                    <i class="bi bi-plus-lg"></i> {{ _('protocols.agenda.add') }}
+                </button>
+            </section>
+        </form>
+    </div>
+</div>
+
+<template id="protocolsAgendaItemTpl">
+    <li class="protocols-agenda-item" data-agenda-item>
+        <span class="protocols-agenda-handle" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span>
+        <input type="hidden" name="item_ids" value="">
+        <input type="text" class="form-control mod-pill-input" name="titles" value="" placeholder="{{ _('protocols.agenda.item_placeholder') }}" required>
+        <button type="button" class="protocols-agenda-remove" data-remove-agenda aria-label="{{ _('common.delete') }}"><i class="bi bi-trash"></i></button>
+    </li>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/protocols.js') }}"></script>
+{% endblock %}

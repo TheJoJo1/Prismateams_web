@@ -10,7 +10,16 @@ log_info "=== Apache Konfiguration ==="
 
 # Apache-Module aktivieren
 log_info "Aktiviere erforderliche Apache-Module..."
-a2enmod proxy proxy_http proxy_wstunnel headers rewrite ssl 2>/dev/null || true
+a2enmod proxy proxy_http proxy_wstunnel headers rewrite ssl deflate 2>/dev/null || true
+
+_deflate_src="${LIB_DIR}/apache-deflate.conf"
+if [ -f "$_deflate_src" ]; then
+    cp "$_deflate_src" /etc/apache2/conf-available/teamportal-deflate.conf
+    a2enconf teamportal-deflate >/dev/null 2>&1 || a2enconf teamportal-deflate.conf 2>/dev/null || true
+    log_success "Gzip/Deflate aktiviert (mod_deflate)"
+else
+    log_warning "apache-deflate.conf nicht gefunden unter ${LIB_DIR}"
+fi
 
 # Apache Virtual Host-Konfiguration erstellen
 log_info "Erstelle Apache Virtual Host-Konfiguration..."
@@ -30,9 +39,9 @@ LimitRequestBody 104857600
 ProxyPreserveHost On
 ProxyRequests Off
 
-# OnlyOffice Cache (MUSS VOR /onlyoffice kommen!)
-# OnlyOffice benötigt diesen Pfad für interne Cache-Dateien
-# Entfernen Sie diesen Block, wenn OnlyOffice NICHT installiert ist
+# Document Server Cache (MUSS VOR /onlyoffice und /eurooffice kommen!)
+# Euro-Office / OnlyOffice benötigen diesen Pfad für interne Cache-Dateien
+# Entfernen Sie diesen Block, wenn der Document Server NICHT installiert ist
 <Location /cache>
     ProxyPass http://127.0.0.1:8080/cache
     ProxyPassReverse http://127.0.0.1:8080/cache
@@ -45,8 +54,29 @@ ProxyRequests Off
     RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
 </Location>
 
-# OnlyOffice Document Server (OPTIONAL - nur wenn installiert)
-# Entfernen Sie diesen Block, wenn OnlyOffice NICHT installiert ist
+# Print PDF preview (Datei -> Drucken in EuroOffice Docs) – Origin-Root, nicht unter /eurooffice
+<Location /printfile>
+    ProxyPass http://127.0.0.1:8080/printfile
+    ProxyPassReverse http://127.0.0.1:8080/printfile
+    ProxyPreserveHost On
+    RequestHeader set Host "\${HTTP_HOST}"
+    RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+    RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+    RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
+</Location>
+
+# Document conversion service (Download as / Print pipeline)
+<Location /ConvertService.ashx>
+    ProxyPass http://127.0.0.1:8080/ConvertService.ashx
+    ProxyPassReverse http://127.0.0.1:8080/ConvertService.ashx
+    ProxyPreserveHost On
+    RequestHeader set Host "\${HTTP_HOST}"
+    RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+    RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+    RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
+</Location>
+
+# Document Server – Legacy-Pfad /onlyoffice (bestehende .env)
 <Location /onlyoffice>
     ProxyPass http://127.0.0.1:8080/
     ProxyPassReverse http://127.0.0.1:8080/
@@ -57,11 +87,54 @@ ProxyRequests Off
     RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
     RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
     
-    # CORS headers for OnlyOffice
     Header always set Access-Control-Allow-Origin "*"
     Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
     Header always set Access-Control-Allow-Headers "Authorization, Content-Type"
     Header always set Access-Control-Allow-Credentials "true"
+</Location>
+
+# Document Server – Standard-Pfad /eurooffice (neue Installationen)
+# Parallel zu /onlyoffice; ONLYOFFICE_DOCUMENT_SERVER_URL steuert, welchen die App nutzt
+<Location /eurooffice>
+    ProxyPass http://127.0.0.1:8080/
+    ProxyPassReverse http://127.0.0.1:8080/
+    
+    ProxyPreserveHost On
+    RequestHeader set Host "\${HTTP_HOST}"
+    RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+    RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+    RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
+    
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE"
+    Header always set Access-Control-Allow-Headers "Authorization, Content-Type"
+    Header always set Access-Control-Allow-Credentials "true"
+</Location>
+
+# Document Server ohne /eurooffice-Prefix (Editor lädt /sdkjs, /fonts, /doc vom Origin)
+<Location /sdkjs/fonts>
+    ProxyPass http://127.0.0.1:8080/fonts
+    ProxyPassReverse http://127.0.0.1:8080/fonts
+</Location>
+<Location /sdkjs>
+    ProxyPass http://127.0.0.1:8080/sdkjs
+    ProxyPassReverse http://127.0.0.1:8080/sdkjs
+</Location>
+<Location /fonts>
+    ProxyPass http://127.0.0.1:8080/fonts
+    ProxyPassReverse http://127.0.0.1:8080/fonts
+</Location>
+<Location /dictionaries>
+    ProxyPass http://127.0.0.1:8080/dictionaries
+    ProxyPassReverse http://127.0.0.1:8080/dictionaries
+</Location>
+<Location /web-apps>
+    ProxyPass http://127.0.0.1:8080/web-apps
+    ProxyPassReverse http://127.0.0.1:8080/web-apps
+</Location>
+<Location /doc>
+    ProxyPass ws://127.0.0.1:8080/doc
+    ProxyPassReverse http://127.0.0.1:8080/doc
 </Location>
 
 # Excalidraw Room (OPTIONAL - nur wenn installiert)
@@ -129,6 +202,38 @@ ErrorLog \${APACHE_LOG_DIR}/teamportal_error.log
 CustomLog \${APACHE_LOG_DIR}/teamportal_access.log combined
 </VirtualHost>
 EOF
+
+# X-Forwarded-Proto an öffentliche Meet-URL koppeln (kein REQUEST_SCHEME —
+# MiroTalk sonst oft mit https Join-URLs trotz reinem HTTP-vHost).
+_meet_host=$(mirotalk_meet_hostname)
+_meet_scheme=$(mirotalk_public_scheme)
+if is_yes "${INSTALL_MIROTALK:-n}" && [ -n "$_meet_host" ]; then
+    cat > /etc/apache2/sites-available/teamportal-meet.conf <<EOF
+<VirtualHost *:80>
+ServerName ${_meet_host}
+
+ProxyPreserveHost On
+ProxyRequests Off
+LimitRequestBody 52428800
+
+RewriteEngine On
+RewriteCond %{HTTP:Upgrade} websocket [NC]
+RewriteRule /(.*) ws://127.0.0.1:${MIROTALK_HOST_PORT:-3010}/\$1 [P,L]
+
+ProxyPass / http://127.0.0.1:${MIROTALK_HOST_PORT:-3010}/
+ProxyPassReverse / http://127.0.0.1:${MIROTALK_HOST_PORT:-3010}/
+
+RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+RequestHeader set X-Forwarded-Proto "${_meet_scheme}"
+
+ErrorLog \${APACHE_LOG_DIR}/teamportal_meet_error.log
+CustomLog \${APACHE_LOG_DIR}/teamportal_meet_access.log combined
+</VirtualHost>
+EOF
+    a2ensite teamportal-meet.conf || { log_error "MiroTalk-Site-Aktivierung fehlgeschlagen"; return 1; }
+    log_info "MiroTalk-vHost ${_meet_host} → 127.0.0.1:${MIROTALK_HOST_PORT:-3010} (X-Forwarded-Proto=${_meet_scheme})"
+fi
 
 # Site aktivieren
 log_info "Aktiviere Apache-Site..."

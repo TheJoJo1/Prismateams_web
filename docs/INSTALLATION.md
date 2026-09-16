@@ -5,8 +5,8 @@
 <h1 align="center">Prismateams – Installation</h1>
 
 <p align="center">
-  <strong>Dokumentation · Version 3.0.1</strong><br>
-  <img src="https://img.shields.io/badge/version-3.0.1-7c3aed?style=flat-square" alt="Version 3.0.1">
+  <strong>Dokumentation · Version 3.4.12</strong><br>
+  <img src="https://img.shields.io/badge/version-3.4.12-7c3aed?style=flat-square" alt="Version 3.4.12">
   <img src="https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python">
 </p>
 
@@ -20,7 +20,7 @@
 ---
 
 > **Empfohlen: modularer Ubuntu-Installer**  
-> Produktion auf Ubuntu 24.04 / 26.04 LTS: `sudo bash scripts/install_ubuntu.sh` — vollständig einsatzbereit. Alle Optionen: [INSTALLATION_SCRIPT.md](INSTALLATION_SCRIPT.md). Diese Seite beschreibt die **manuelle** Installation für Sonderfälle.
+> Produktion auf Ubuntu 24.04 / 26.04 LTS: `sudo bash scripts/install_ubuntu.sh` — vollständig einsatzbereit. Alle Optionen und 26.04-Besonderheiten (Python 3.14, MySQL 8.4, Docker-Fallback, cloud-init/apt in VMs): [INSTALLATION_SCRIPT.md](INSTALLATION_SCRIPT.md). Diese Seite beschreibt die **manuelle** Installation für Sonderfälle.
 
 ## Hinweis zu VAPID- und Encryption-Keys
 
@@ -49,10 +49,10 @@ CLI, Module und Beispiele: **[INSTALLATION_SCRIPT.md](INSTALLATION_SCRIPT.md)**
 
 ## Produktionsinstallation (Ubuntu Server) – Manuelle Methode
 
-Schritt-für-Schritt-Installation von **Prismateams 3.0.1** auf Ubuntu Server (Alternative zum Skript), inkl. optionaler Integrationen (Excalidraw, OnlyOffice).
+Schritt-für-Schritt-Installation von **Prismateams 3.4.12** auf Ubuntu Server (Alternative zum Skript), inkl. optionaler Integrationen (Excalidraw, Euro-Office).
 
 **⚠️ Wichtiger Hinweis zu optionalen Features:**
-- **OnlyOffice** und **Excalidraw** sind **OPTIONAL** und nicht zwingend erforderlich
+- **Euro-Office** und **Excalidraw** sind **OPTIONAL** und nicht zwingend erforderlich
 - **Media Downloader** ist **OPTIONAL** (benötigt FFmpeg, kein Docker)
 - **Dateikonverter** ist **OPTIONAL** (Audio/Bilder/PDF ohne Extra-Tools; Dokumente benötigen LibreOffice)
 - Wenn Sie diese Features **NICHT** benötigen, können Sie die entsprechenden Schritte überspringen
@@ -72,9 +72,9 @@ sudo apt install -y python3 python3-pip python3-venv \
     apt-transport-https ca-certificates gnupg lsb-release
 ```
 
-### Schritt 2: Docker installieren (für Excalidraw und OnlyOffice)
+### Schritt 2: Docker installieren (für Excalidraw, Euro-Office und MiroTalk)
 
-**Hinweis:** Docker ist nur erforderlich, wenn Sie Excalidraw oder OnlyOffice installieren möchten. Sie können diesen Schritt überspringen, wenn Sie diese Features nicht benötigen.
+**Hinweis:** Docker ist nur erforderlich, wenn Sie Excalidraw, Euro-Office oder MiroTalk SFU (Meetings) installieren möchten. Sie können diesen Schritt überspringen, wenn Sie diese Features nicht benötigen.
 
 ```bash
 # Docker + Compose-Plugin installieren (empfohlen)
@@ -143,44 +143,55 @@ sudo ./venv/bin/pip install --upgrade pip
 sudo ./venv/bin/pip install -r requirements.txt
 ```
 
-### Schritt 5: Optionale Installation - OnlyOffice Document Server (Docs)
+### Schritt 5: Optionale Installation - Euro-Office Document Server (Docs)
 
 **⚠️ OPTIONAL:** Nur nötig für Dokumentenbearbeitung im Portal. Sonst `ONLYOFFICE_ENABLED=False` in der `.env`.
 
-**Wichtig:** Installieren Sie **ONLYOFFICE Docs (Document Server)**, nicht Community Server / Workspace.
-Community Server ([Docker-CommunityServer](https://github.com/ONLYOFFICE/Docker-CommunityServer)) ist ein eigenes Portal und kollidiert mit Nginx/Apache (Port 80/443).
-Offizielles Image: [Docker-DocumentServer](https://github.com/ONLYOFFICE/Docker-DocumentServer) → `onlyoffice/documentserver:latest`.
+**Wichtig:** Installieren Sie den **Euro-Office Document Server** ([GitHub](https://github.com/Euro-Office/DocumentServer)), einen EU-Fork mit ONLYOFFICE-kompatibler API — nicht Community Server / Workspace.
+Standard-Image: `ghcr.io/euro-office/documentserver:latest`. ENV-Keys heißen historisch `ONLYOFFICE_*`.
+
+**Proxy-Pfade (Parallelbetrieb):** Neue Installationen nutzen `ONLYOFFICE_DOCUMENT_SERVER_URL=/eurooffice`. Bestehende Installationen können `/onlyoffice` behalten; Nginx/Apache verdrahten beide Prefixe auf denselben Container.
 
 **Voraussetzungen:** ≥4 GB RAM, mehrere GB freier Disk, Architektur **amd64/x86_64**, Docker Engine ≥20.10.21.
 
 ```bash
-# Volumes (Community Edition, offizielles Layout)
-sudo mkdir -p /var/lib/onlyoffice/DocumentServer/{data,logs,lib,fonts}
+# Volumes (Euro-Office Layout)
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/{data,logs,config,fonts}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/logs/{adminpanel,converter,docservice,metrics}
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/data/App_Data
+sudo chmod -R a+rwX /var/lib/eurooffice/DocumentServer/data /var/lib/eurooffice/DocumentServer/logs
 
-# Neueste Docs-Version laden und starten (JWT aktiv, nur localhost)
-sudo docker pull onlyoffice/documentserver:latest
+# Config aus dem Image seeden — ein leeres Bind-Mount auf
+# /etc/euro-office/documentserver verdeckt default.json/local.json.
+# Der Entrypoint crasht dann (jq: Could not open file local.json) im Restart-Loop.
+sudo docker pull ghcr.io/euro-office/documentserver:latest
+sudo docker create --name eurooffice-seed ghcr.io/euro-office/documentserver:latest
+sudo docker cp eurooffice-seed:/etc/euro-office/documentserver/. /var/lib/eurooffice/DocumentServer/config/
+sudo docker rm eurooffice-seed
+
+# Neueste Docs-Version starten (JWT aktiv, nur localhost)
 sudo docker run -d --restart=always \
-    --name onlyoffice-documentserver \
+    --name eurooffice-documentserver \
     -p 127.0.0.1:8080:80 \
-    -v /var/lib/onlyoffice/DocumentServer/logs:/var/log/onlyoffice \
-    -v /var/lib/onlyoffice/DocumentServer/data:/var/www/onlyoffice/Data \
-    -v /var/lib/onlyoffice/DocumentServer/lib:/var/lib/onlyoffice \
-    -v /var/lib/onlyoffice/DocumentServer/fonts:/usr/share/fonts/truetype/custom \
+    -v /var/lib/eurooffice/DocumentServer/logs:/var/log/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/data:/var/lib/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/config:/etc/euro-office/documentserver \
+    -v /var/lib/eurooffice/DocumentServer/fonts:/usr/share/fonts/truetype/custom \
     -e JWT_ENABLED=true \
     -e JWT_SECRET=dein-jwt-secret-key-hier \
     -e JWT_HEADER=Authorization \
     -e ALLOW_PRIVATE_IP_ADDRESS=true \
-    onlyoffice/documentserver:latest
+    ghcr.io/euro-office/documentserver:latest
 
 # Prüfen (Erststart kann 1–3 Minuten dauern)
-sudo docker ps | grep onlyoffice
+sudo docker ps | grep eurooffice
 curl -s http://127.0.0.1:8080/healthcheck
 curl -s http://127.0.0.1:8080/welcome/ | head
 ```
 
 **Wichtig:** Notieren Sie den `JWT_SECRET`-Wert – er muss mit `ONLYOFFICE_SECRET_KEY` in der `.env` übereinstimmen.
 
-**Hinweis:** JWT ist seit Docs ≥7.2 standardmäßig aktiv. Ohne JWT: `-e JWT_ENABLED=false` und `ONLYOFFICE_SECRET_KEY` in der `.env` leer lassen.
+**Hinweis:** JWT ist standardmäßig aktiv. Ohne JWT lokal: `-e JWT_ENABLED=false` und `ONLYOFFICE_SECRET_KEY` leer lassen (Dev erlaubt unsigned Callbacks automatisch). In **Production** ohne Secret werden Callbacks abgelehnt – entweder Secret setzen oder explizit `ONLYOFFICE_ALLOW_UNSIGNED_CALLBACKS=true`.
 
 #### Schriftarten für Rendering / PDF / Druck
 
@@ -193,23 +204,23 @@ echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select tr
 sudo apt install -y ttf-mscorefonts-installer cabextract
 
 # Volume leeren und nur mscorefonts kopieren (überlebt Container-Updates)
-sudo mkdir -p /var/lib/onlyoffice/DocumentServer/fonts
-sudo find /var/lib/onlyoffice/DocumentServer/fonts -maxdepth 1 -type f \
+sudo mkdir -p /var/lib/eurooffice/DocumentServer/fonts
+sudo find /var/lib/eurooffice/DocumentServer/fonts -maxdepth 1 -type f \
   \( -iname '*.ttf' -o -iname '*.otf' -o -iname '*.ttc' \) -delete
 sudo find /usr/share/fonts/truetype/msttcorefonts \
   -type f \( -iname '*.ttf' -o -iname '*.otf' \) \
-  -exec cp {} /var/lib/onlyoffice/DocumentServer/fonts/ \; 2>/dev/null || true
+  -exec cp {} /var/lib/eurooffice/DocumentServer/fonts/ \; 2>/dev/null || true
 
 # Font-Index: Container neu starten (Entrypoint indexiert das Volume selbst).
 # documentserver-generate-allfonts.sh nicht gegen einen laufenden Editor ausführen.
-sudo docker restart onlyoffice-documentserver
+sudo docker restart eurooffice-documentserver
 ```
 
 **Hinweise:**
-- **Carlito** (im Image) ist metric-kompatibel zu **Calibri**. Neue Dateien behalten den OOXML-Namen Calibri; OnlyOffice rendert sie als Carlito.
+- **Carlito** (im Image) ist metric-kompatibel zu **Calibri**. Neue Dateien behalten den OOXML-Namen Calibri; der Document Server rendert sie als Carlito.
 - Echte `Calibri.ttf` können Sie zusätzlich ins Fonts-Volume legen und den Container **neu starten** (kein Live-Generate-allfonts).
-- Browser-Cache leeren (Strg+F5 bzw. Cmd+Shift+R). Ab OnlyOffice Docs 8.2 oft nicht mehr nötig.
-- `ttf-mscorefonts-installer` lädt Schriften von SourceForge; bei Download-Fehlern nutzt OnlyOffice die Image-Fonts weiter.
+- Browser-Cache leeren (Strg+F5 bzw. Cmd+Shift+R).
+- `ttf-mscorefonts-installer` lädt Schriften von SourceForge; bei Download-Fehlern nutzt der Document Server die Image-Fonts weiter.
 
 ### Schritt 6: Optionale Installation - Excalidraw Room
 
@@ -273,6 +284,107 @@ soffice --version
 - Parallel laufende Jobs begrenzt `FILE_CONVERTER_MAX_CONCURRENT` (Standard: 2)
 - Ohne LibreOffice bleiben Audio-/Bild-/PDF-Funktionen nutzbar; Dokument-Optionen fehlen dann in der UI
 
+### Schritt 6d: Optionale Installation - MiroTalk SFU (Meetings)
+
+**⚠️ OPTIONAL:** Videoanrufe im Meetings-Modul und aus dem Chat. **Kein Path-Prefix** unter dem Portal (`/mirotalk/` funktioniert mit Socket.IO/WebRTC nicht zuverlässig). Stattdessen eigener Host `meet.IHRE-DOMAIN`.
+
+Voraussetzungen:
+
+- Docker
+- DNS: A/AAAA-Record `meet.example.com` → Server-IP
+- Firewall: **UDP und TCP 40000–40100** (WebRTC-Medien). HTTP 3010 bleibt auf Loopback, Nginx/Apache proxyn HTTPS.
+
+```bash
+sudo mkdir -p /var/lib/mirotalk-sfu
+sudo tee /var/lib/mirotalk-sfu/.env >/dev/null <<'EOF'
+NODE_ENV=production
+SFU_ANNOUNCED_IP=IHRE-PUBLIC-IPv4
+SFU_LISTEN_IP=0.0.0.0
+SFU_MIN_PORT=40000
+SFU_MAX_PORT=40100
+SERVER_HOST_URL=https://meet.example.com
+SERVER_LISTEN_IP=127.0.0.1
+SERVER_LISTEN_PORT=3010
+TRUST_PROXY=true
+CORS_ORIGIN=https://example.com,https://meet.example.com
+ALLOWED_EMBED_ORIGINS=https://example.com
+HOST_PROTECTED=true
+HOST_USER_AUTH=false
+HOST_USERS="portal:SICHERES-PASSWORT:Portal:*"
+API_KEY_SECRET=SICHERER-API-KEY
+JWT_SECRET=SICHERER-JWT-SECRET
+JWT_EXPIRATION=8h
+RECORDING_ENABLED=false
+EOF
+sudo chown 1000:1000 /var/lib/mirotalk-sfu /var/lib/mirotalk-sfu/.env
+sudo chmod 750 /var/lib/mirotalk-sfu
+sudo chmod 640 /var/lib/mirotalk-sfu/.env
+
+sudo docker pull mirotalk/sfu:latest
+sudo docker run -d --restart=always \
+    --name mirotalksfu \
+    --hostname mirotalksfu \
+    --network host \
+    --user 1000:1000 \
+    -v /var/lib/mirotalk-sfu/.env:/src/.env:ro \
+    mirotalk/sfu:latest
+
+curl -I http://127.0.0.1:3010/
+```
+
+Nginx – **eigene Site** `/etc/nginx/sites-available/teamportal-meet` (nicht in `location /` des Portals):
+
+```nginx
+server {
+    listen 80;
+    server_name meet.example.com;
+    client_max_body_size 50M;
+
+    location / {
+        proxy_pass http://127.0.0.1:3010;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $connection_upgrade;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        # An öffentliche Meet-URL koppeln (http oder https) — nicht Client-Header
+        proxy_set_header X-Forwarded-Proto http;
+        proxy_read_timeout 86400s;
+        proxy_buffering off;
+    }
+}
+```
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/teamportal-meet /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+sudo certbot --nginx -d meet.example.com
+```
+
+Portal-`.env`:
+
+```env
+MIROTALK_ENABLED=True
+MIROTALK_URL=https://meet.example.com
+MIROTALK_API_URL=http://127.0.0.1:3010
+MIROTALK_API_KEY=SICHERER-API-KEY
+MIROTALK_HOST_USER=portal
+MIROTALK_HOST_PASSWORD=SICHERES-PASSWORT
+```
+
+Diese sechs Werte schreibt das Installationsskript bei `--mirotalk` automatisch in die Portal-`.env` (API-Key und Host-Passwort identisch zu `/var/lib/mirotalk-sfu/.env`).
+**Hinweise:**
+
+- `SFU_ANNOUNCED_IP` muss die **öffentliche IPv4** (oder der Hostname) sein, sonst scheitert ICE/WebRTC hinter NAT
+- **LAN / nur IP ohne DNS:** kein `meet.192.168.…` — Browser braucht Hosts-Datei. Stattdessen `SERVER_HOST_URL`/`MIROTALK_URL=http://SERVER-IP:3010`, Container auf `0.0.0.0:3010`, Firewall `3010/tcp` + Medienports, `SFU_ANNOUNCED_IP=SERVER-IP` (LAN)
+- **HTTPS Pflicht für Kamera/Mikrofon:** unter `http://IP` ist kein Secure Context — Browser setzen `mediaDevices` außer Kraft (Blackscreen). Produktion: Domain + Let's Encrypt für Portal und `meet.`
+- Portal-`.env` und `/var/lib/mirotalk-sfu/.env` müssen dieselben Secrets teilen: `MIROTALK_API_KEY`=`API_KEY_SECRET`, `MIROTALK_HOST_USER`/`PASSWORD`=`HOST_USERS` — sonst nur „Waiting for host…“
+- `ALLOWED_EMBED_ORIGINS` = Portal-Origin, damit der Call im Iframe läuft
+- Kein `X-Frame-Options SAMEORIGIN` auf dem meet.-vHost setzen
+- Am Proxy `X-Forwarded-Proto` an die öffentliche Meet-URL koppeln (nicht blind Client-Header), sonst erzeugt MiroTalk oft `https://…`-Join-Links unter HTTP
+- Image und Docs: https://hub.docker.com/r/mirotalk/sfu · https://docs.mirotalk.com/mirotalk-sfu/self-hosting/
+
 ### Schritt 7: Konfiguration (.env-Datei)
 
 ```bash
@@ -303,6 +415,12 @@ VAPID_PUBLIC_KEY=your-vapid-public-key-here
 VAPID_PRIVATE_KEY=your-vapid-private-key-here
 ONLYOFFICE_ENABLED=True
 EXCALIDRAW_ENABLED=True
+MIROTALK_ENABLED=True
+MIROTALK_URL=https://meet.example.com
+MIROTALK_API_URL=http://127.0.0.1:3010
+MIROTALK_API_KEY=SICHERER-API-KEY
+MIROTALK_HOST_USER=portal
+MIROTALK_HOST_PASSWORD=SICHERES-PASSWORT
 REDIS_ENABLED=True
 REDIS_URL=redis://localhost:6379/0
 ```
@@ -316,12 +434,16 @@ REDIS_URL=redis://localhost:6379/0
 - **VAPID_PRIVATE_KEY:** Kopieren Sie den Private Key aus der Ausgabe von `generate_vapid_keys.py`
 - **TOTP_ENCRYPTION_KEY:** Optional, aber empfohlen für stabile 2FA/TOTP-Verschlüsselung
 - **ONLYOFFICE_ENABLED:** 
-  - Setzen Sie auf `True`, wenn OnlyOffice installiert ist (Schritt 5)
-  - Setzen Sie auf `False`, wenn OnlyOffice NICHT installiert ist
+  - Setzen Sie auf `True`, wenn Euro-Office Document Server installiert ist (Schritt 5)
+  - Setzen Sie auf `False`, wenn der Document Server NICHT installiert ist
+  - Neu: `ONLYOFFICE_DOCUMENT_SERVER_URL=/eurooffice` (Legacy: `/onlyoffice`)
 - **EXCALIDRAW_ENABLED:**
   - Setzen Sie auf `True`, wenn Excalidraw installiert ist (Schritt 6)
   - Setzen Sie auf `False`, wenn Excalidraw NICHT installiert ist
-- **REDIS_ENABLED:** Setzen Sie auf `True`, wenn mehrere Gunicorn-Worker genutzt werden
+- **MIROTALK_ENABLED / MIROTALK_URL:** `True` und `https://meet.IHRE-DOMAIN`, wenn MiroTalk SFU läuft (Schritt 6d). Join-API intern über `MIROTALK_API_URL=http://127.0.0.1:3010`
+- **MIROTALK_API_KEY / MIROTALK_HOST_USER / MIROTALK_HOST_PASSWORD:** Pflicht bei `HOST_PROTECTED` — identisch zu `API_KEY_SECRET` und `HOST_USERS` in `/var/lib/mirotalk-sfu/.env`. Ohne passende Werte: Join scheitert bzw. „Waiting for host…“
+- **HTTPS:** Ohne Secure Context (nur `http://IP`) blockieren Browser Kamera/Mikrofon → Blackscreen. Für produktive Meetings SSL für Portal und `meet.` setzen; dann `SESSION_COOKIE_SECURE=True`
+- **REDIS_ENABLED:** In Produktion `True` (Kanban-SSE, SocketIO, mehrere Gunicorn-Worker). Lokal `python app.py` darf `False` bleiben — Kanban pollt dann inkrementell.
 - **REDIS_URL:** Standard ist `redis://localhost:6379/0`, nur bei abweichender Redis-Konfiguration ändern
 
 **Wichtig zu den Encryption Keys:**
@@ -331,7 +453,7 @@ REDIS_URL=redis://localhost:6379/0
 
 **Weitere optionale `.env`-Variablen (nicht in `env.example`):**
 
-- **OnlyOffice:** `ONLYOFFICE_DOCUMENT_SERVER_URL`, `ONLYOFFICE_SECRET_KEY`, `ONLYOFFICE_PUBLIC_URL`
+- **Euro-Office / Document Server:** `ONLYOFFICE_DOCUMENT_SERVER_URL` (`/eurooffice` neu, `/onlyoffice` Legacy), `ONLYOFFICE_SECRET_KEY`, `ONLYOFFICE_PUBLIC_URL`
 - **Excalidraw:** `EXCALIDRAW_ROOM_URL` (Standard `/excalidraw-room`)
 - **Redis:** `REDIS_URL` (Standard: `redis://localhost:6379/0`)
 - **Portal-Fallbacks:** `APP_NAME`, `APP_LOGO` (optional, wenn nicht über Setup/System-Einstellungen gesetzt)
@@ -341,6 +463,9 @@ REDIS_URL=redis://localhost:6379/0
 - **Uploads:** `UPLOAD_FOLDER` (Dateigrößenlimits werden in den Datei-Einstellungen verwaltet)
 - **Media Downloader:** `MEDIA_DOWNLOADER_RETENTION_HOURS`, `MEDIA_DOWNLOADER_MAX_CONCURRENT`, `FFMPEG_PATH`
 - **Dateikonverter:** `FILE_CONVERTER_RETENTION_HOURS`, `FILE_CONVERTER_MAX_CONCURRENT`, `LIBREOFFICE_PATH`
+- **Datei-Papierkorb:** `FILES_TRASH_DAYS` (Standard 30; `0` = kein Auto-Purge; auch in Admin → Datei-Einstellungen)
+- **Zugriffsprotokolle (IP/UA):** `SESSION_RECORD_RETENTION_DAYS` (Standard 30), `SHARE_ACCESS_LOG_RETENTION_DAYS` (Standard 90); `0` = kein Auto-Purge; auch in Admin → System
+- **Gzip in der App:** `ENABLE_APP_GZIP` — in Development standardmäßig an (`python app.py`). In Production/Staging aus, weil Nginx/Apache komprimieren. Nur setzen, wenn Gunicorn ohne Reverse-Proxy erreichbar ist.
 - **Session/Cookies (Produktion):** `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_HTTPONLY`, `SESSION_COOKIE_SAMESITE`
   - `SESSION_COOKIE_SECURE=True` nur bei HTTPS (z. B. Let's Encrypt). Bei Zugriff über `http://` muss der Wert `False` sein, sonst speichert der Browser die Session nicht und Setup/Login scheitern nach der Account-Erstellung.
   - Der Ubuntu-Installer setzt das Flag automatisch passend zu `--ssl` / SSL-Prompt.
@@ -391,21 +516,28 @@ REDIS_ENABLED=True
 REDIS_URL=redis://localhost:6379/0
 ```
 
-**Hinweis:** Wenn Sie nur einen Worker verwenden (`-w 1`), können Sie Redis deaktiviert lassen (`REDIS_ENABLED=False`). Für Production mit mehreren Workern ist Redis jedoch dringend empfohlen.
+**Produktion:** Redis ist Pflicht für Kanban-Live-Updates (SSE), SocketIO und mehrere Worker. Ohne Redis pollt das Board inkrementell alle 8s (Dev). Wenn Sie nur einen Worker verwenden (`-w 1`) und Redis weglassen, bleiben Chat und Kanban auf Fallbacks beschränkt.
 
 ### Schritt 10: Systemd-Service konfigurieren
+
+Schema vorher anlegen (Installer macht das automatisch; manuell):
+
+```bash
+cd /var/www/teamportal
+sudo -u www-data bash -c "source venv/bin/activate && FLASK_ENV=production PRISMATEAMS_FORCE_SCHEMA_INIT=1 python scripts/init_database.py"
+```
 
 ```bash
 sudo nano /etc/systemd/system/teamportal.service
 ```
 
-**WICHTIG:** Für den ersten Start verwenden wir `--workers 1` (nur 1 Worker), damit die Datenbank automatisch initialisiert wird!
+Produktion: **`gthread`**, 2–4 Worker × 8 Threads (mit Redis), Timeout 180s.
+**Wichtig:** Default-`sync`-Worker werden von SSE (`/sse/events/...`) komplett blockiert — dann warten Seitenaufrufe mehrere Sekunden (Worker-Queue), obwohl CPU/DB idle sind.
 
-Inhalt für den ersten Start:
 ```ini
 [Unit]
 Description=Team Portal Gunicorn Application Server
-After=network.target mysql.service
+After=network.target mysql.service redis-server.service
 
 [Service]
 User=www-data
@@ -414,9 +546,14 @@ WorkingDirectory=/var/www/teamportal
 Environment="PATH=/var/www/teamportal/venv/bin"
 Environment="FLASK_ENV=production"
 ExecStart=/var/www/teamportal/venv/bin/gunicorn \
-    --workers 1 \
+    --worker-class gthread \
+    --workers 2 \
+    --threads 8 \
     --bind 127.0.0.1:5000 \
-    --timeout 600 \
+    --timeout 180 \
+    --graceful-timeout 30 \
+    --max-requests 1000 \
+    --max-requests-jitter 100 \
     --access-logfile - \
     --error-logfile - \
     wsgi:app
@@ -442,54 +579,13 @@ sudo systemctl start teamportal
 sudo systemctl status teamportal
 ```
 
-**Wichtig:** Beim ersten Start wird die Datenbank **automatisch** initialisiert und alle Tabellen werden erstellt. Warten Sie etwa 1 Minute, dann prüfen Sie die Logs:
+**Ohne Redis:** `--workers 1` belassen — SocketIO (Chat, Live-Updates) braucht Redis für mehrere Prozesse.
+
+**Mehr Worker (2–4):** Redis muss laufen (`REDIS_ENABLED=True`). Siehe [WARTUNG.md – Performance](WARTUNG.md#performance-optimierung).
 
 ```bash
-# Prüfen Sie die Logs, ob die Datenbank erfolgreich erstellt wurde
+# Logs
 sudo journalctl -u teamportal -n 50 -f
-```
-
-**Nach dem ersten erfolgreichen Start** (wenn die Datenbank erstellt wurde) können Sie auf mehrere Worker umstellen:
-
-**WICHTIG:** Wenn Sie mehrere Worker verwenden möchten, stellen Sie sicher, dass Redis installiert und konfiguriert ist (siehe Schritt 9)!
-
-```bash
-sudo nano /etc/systemd/system/teamportal.service
-```
-
-Ändern Sie die `--workers 1` Zeile zu `--workers 4` (oder mehr, siehe [WARTUNG.md – Performance](WARTUNG.md#performance-optimierung)):
-
-```ini
-[Unit]
-Description=Team Portal Gunicorn Application Server
-After=network.target mysql.service
-
-[Service]
-User=www-data
-Group=www-data
-WorkingDirectory=/var/www/teamportal
-Environment="PATH=/var/www/teamportal/venv/bin"
-Environment="FLASK_ENV=production"
-ExecStart=/var/www/teamportal/venv/bin/gunicorn \
-    --workers 4 \
-    --bind 127.0.0.1:5000 \
-    --timeout 600 \
-    --access-logfile - \
-    --error-logfile - \
-    wsgi:app
-
-Restart=always
-RestartSec=3
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-# Systemd neu laden und Service neu starten
-sudo systemctl daemon-reload
-sudo systemctl restart teamportal
-sudo systemctl status teamportal
 ```
 
 **Hinweis zu Multi-Worker-Setups:**
@@ -525,6 +621,20 @@ http {
 }
 ```
 
+Zusätzlich Gzip für CSS/JS/JSON (Ubuntu komprimiert sonst oft nur HTML). Entweder den Block im `server { }` (siehe unten) oder:
+
+```bash
+sudo cp /var/www/teamportal/scripts/install_ubuntu/nginx-gzip.conf /etc/nginx/conf.d/teamportal-gzip.conf
+```
+
+Ubuntu **24.04+** hat bereits `gzip on;` in `/etc/nginx/nginx.conf`. Das Snippet in `conf.d` darf `gzip on;` **nicht** erneut im `http`-Kontext setzen, sonst schlägt `nginx -t` mit `"gzip" directive is duplicate` fehl. `gzip on;` im `server { }`-Block (unten) ist ein anderer Kontext und bleibt gültig.
+
+Optional Brotli, wenn das Nginx-Modul installiert ist (`libnginx-mod-http-brotli`):
+
+```bash
+sudo cp /var/www/teamportal/scripts/install_ubuntu/nginx-brotli.conf /etc/nginx/conf.d/teamportal-brotli.conf
+```
+
 Dann erstellen Sie die Site-Konfiguration:
 
 ```bash
@@ -552,9 +662,21 @@ server {
     # File upload limit
     client_max_body_size 100M;
 
-    # OnlyOffice Cache (MUSS VOR /onlyoffice kommen!)
-    # OnlyOffice benötigt diesen Pfad für interne Cache-Dateien
-    # Entfernen Sie diesen Block, wenn OnlyOffice NICHT installiert ist
+    # Gzip: CSS/JS/JSON (Ubuntu-Default komprimiert oft nur HTML)
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 5;
+    gzip_min_length 256;
+    gzip_types text/plain text/css text/xml text/javascript
+               application/javascript application/json application/xml image/svg+xml;
+
+    # Document Server ohne /eurooffice-Prefix (/sdkjs, /fonts, /doc, Versions-Hash)
+    include /etc/nginx/snippets/teamportal-documentserver-extra.conf;
+
+    # Document Server Cache (MUSS VOR /onlyoffice und /eurooffice kommen!)
+    # Euro-Office / OnlyOffice benötigen diesen Pfad für interne Cache-Dateien
+    # Entfernen Sie diesen Block, wenn der Document Server NICHT installiert ist
     location /cache {
         proxy_pass http://127.0.0.1:8080;
         proxy_set_header Host $host;
@@ -575,33 +697,25 @@ server {
         proxy_request_buffering off;
     }
 
-    # OnlyOffice Document Server (OPTIONAL - nur wenn installiert)
-    # Entfernen Sie diesen Block, wenn OnlyOffice NICHT installiert ist
+    # Document Server – Legacy-Pfad /onlyoffice (bestehende .env)
     location /onlyoffice {
-        # WICHTIG: MIT trailing slash bei proxy_pass, damit der /onlyoffice Präfix entfernt wird
-        # OnlyOffice erwartet /web-apps/... nicht /onlyoffice/web-apps/...
+        # WICHTIG: MIT trailing slash bei proxy_pass, damit der Präfix entfernt wird
+        # Backend erwartet /web-apps/... nicht /onlyoffice/web-apps/...
         proxy_pass http://127.0.0.1:8080/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         
-        # OnlyOffice spezifische Header
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
         
-        # WICHTIG: Content-Type Header vom Backend übernehmen
-        # Standardmäßig sollte Nginx den Content-Type vom Backend übernehmen,
-        # aber wir stellen sicher, dass er nicht überschrieben wird
-        
-        # CORS headers für OnlyOffice (wichtig für API-Zugriff)
         add_header Access-Control-Allow-Origin * always;
         add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
         add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
         add_header Access-Control-Allow-Credentials true always;
         
-        # Handle preflight requests
         if ($request_method = 'OPTIONS') {
             add_header Access-Control-Allow-Origin * always;
             add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
@@ -612,13 +726,47 @@ server {
             return 204;
         }
         
-        # Timeouts für große Dokumente
         proxy_connect_timeout 600;
         proxy_send_timeout 600;
         proxy_read_timeout 600;
         send_timeout 600;
         
-        # Disable buffering für OnlyOffice (wichtig für Streaming)
+        proxy_buffering off;
+        proxy_request_buffering off;
+    }
+
+    # Document Server – Standard-Pfad /eurooffice (neue Installationen)
+    location /eurooffice {
+        proxy_pass http://127.0.0.1:8080/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
+        add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+        add_header Access-Control-Allow-Credentials true always;
+        
+        if ($request_method = 'OPTIONS') {
+            add_header Access-Control-Allow-Origin * always;
+            add_header Access-Control-Allow-Methods "GET, POST, OPTIONS, PUT, DELETE" always;
+            add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+            add_header Access-Control-Allow-Credentials true always;
+            add_header Content-Length 0;
+            add_header Content-Type text/plain;
+            return 204;
+        }
+        
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+        
         proxy_buffering off;
         proxy_request_buffering off;
     }
@@ -702,6 +850,27 @@ server {
         add_header Access-Control-Allow-Credentials true always;
     }
 
+    # WebDAV (Windows Explorer / Netzlaufwerk) — MUSS VOR / kommen!
+    # Details: docs/WEBDAV.md
+    location /webdav {
+        proxy_pass http://teamportal_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Authorization $http_authorization;
+        proxy_pass_header Authorization;
+        proxy_http_version 1.1;
+        proxy_request_buffering off;
+        proxy_buffering off;
+        gzip off;
+        client_max_body_size 100M;
+        proxy_connect_timeout 600;
+        proxy_send_timeout 600;
+        proxy_read_timeout 600;
+        send_timeout 600;
+    }
+
     # Hauptanwendung (MUSS ZULETZT kommen!)
     location / {
         proxy_pass http://teamportal_backend;
@@ -724,14 +893,14 @@ server {
 ```
 
 **Wichtig:** 
-- Entfernen Sie die OnlyOffice-Location-Blöcke (`/onlyoffice`), wenn OnlyOffice NICHT installiert ist
+- Entfernen Sie die Document-Server-Location-Blöcke (`/eurooffice`, `/onlyoffice`, `/cache`) und das Snippet `teamportal-documentserver-extra.conf` (inkl. `/printfile`, `/ConvertService.ashx`, `/sdkjs`, …), wenn der Document Server NICHT installiert ist
 - Entfernen Sie den Excalidraw-Location-Block (`/excalidraw-room/`), wenn der Room-Server NICHT installiert ist
 - Ersetzen Sie `ihre-domain.de` mit Ihrer tatsächlichen Domain oder IP-Adresse
+- Gzip: `scripts/install_ubuntu/nginx-gzip.conf` nach `/etc/nginx/conf.d/` kopieren (oder den `gzip`-Block im `server` behalten)
 
 ```bash
 # Site aktivieren
 sudo ln -s /etc/nginx/sites-available/teamportal /etc/nginx/sites-enabled/
-
 # Standard-Site deaktivieren (falls vorhanden)
 sudo rm -f /etc/nginx/sites-enabled/default
 
@@ -761,6 +930,9 @@ sudo certbot renew --dry-run
 # Firewall-Regeln setzen
 sudo ufw allow ssh
 sudo ufw allow 'Nginx Full'
+# MiroTalk SFU Medien (nur wenn Meetings installiert)
+sudo ufw allow 40000:40100/udp
+sudo ufw allow 40000:40100/tcp
 sudo ufw enable
 sudo ufw status
 ```
@@ -787,7 +959,7 @@ sudo ufw status
 4. Konfiguration (.env-Datei)
 5. Berechtigungen setzen
 6. Redis installieren (erforderlich für Multi-Worker-Setups)
-7. Systemd-Service konfigurieren und starten (Datenbank wird beim ersten Start automatisch erstellt!)
+7. Systemd-Service konfigurieren und starten (2 Worker, Redis; Schema per `init_database.py`)
 8. Nginx konfigurieren
 9. SSL mit Let's Encrypt (empfohlen)
 10. Firewall konfigurieren
@@ -795,17 +967,18 @@ sudo ufw status
 
 ### Optionale Schritte (nur bei Bedarf)
 
-- **Docker installieren:** Nur erforderlich für OnlyOffice oder Excalidraw
-- **OnlyOffice installieren:** Optional, für Dokumentenbearbeitung
+- **Docker installieren:** Nur erforderlich für Euro-Office, Excalidraw oder MiroTalk
+- **Euro-Office installieren:** Optional, für Dokumentenbearbeitung
 - **Excalidraw installieren:** Optional, für Canvas-Modul
+- **MiroTalk SFU installieren:** Optional, für Meetings/Videoanrufe (`meet.`-Subdomain, UDP 40000–40100)
 - **Media Downloader installieren:** Optional, FFmpeg installieren und Modul in Admin aktivieren
 - **Dateikonverter installieren:** Optional, LibreOffice für Dokumente; Audio/Bilder/PDF ohne LibreOffice nutzbar
 
 ### Wichtige Hinweise
 
-1. **.env-Konfiguration:** `ONLYOFFICE_ENABLED=False` / `EXCALIDRAW_ENABLED=False` wenn nicht installiert
-2. **Nginx-Konfiguration:** OnlyOffice- und Excalidraw-Location-Blöcke entfernen wenn nicht genutzt
-3. **Datenbank:** Nur leere DB anlegen; Tabellen beim ersten Gunicorn-Start; `--workers 1` für ersten Start
+1. **.env-Konfiguration:** `ONLYOFFICE_ENABLED=False` / `EXCALIDRAW_ENABLED=False` / `MIROTALK_ENABLED=False` wenn nicht installiert
+2. **Nginx-Konfiguration:** Document-Server- und Excalidraw-Location-Blöcke entfernen wenn nicht genutzt
+3. **Datenbank:** Leere DB anlegen, dann `scripts/init_database.py` (Installer-Oneshot). Gunicorn mit 2 Workern und Redis; ohne Redis `--workers 1`.
 4. **Redis:** Erforderlich für Multi-Worker mit SocketIO
 
 ## Sicherheits-Checkliste
@@ -815,10 +988,13 @@ sudo ufw status
 - [ ] SSL/HTTPS ist aktiviert
 - [ ] Firewall ist konfiguriert
 - [ ] Regelmäßige Backups sind eingerichtet ([WARTUNG.md](WARTUNG.md))
+- [ ] Datenschutz: AVV-Inventar und Rechtstexte geprüft ([DSGVO.md](DSGVO.md))
+- [ ] `SESSION_COOKIE_SECURE=True` bei HTTPS (Admin → System → Session-Cookies prüfen)
+- [ ] Freitext/Art. 9: Richtlinie bekannt ([DSGVO.md](DSGVO.md#besondere-kategorien-und-freitext-art-9--minderjährige))
 - [ ] Standard-Ports sind geschützt
 - [ ] Nur notwendige Services laufen
 - [ ] System-Updates sind aktuell
-- [ ] OnlyOffice JWT ist aktiviert (falls OnlyOffice installiert)
+- [ ] Document-Server-JWT ist aktiviert (falls Euro-Office installiert)
 - [ ] 2FA (TOTP) für Admin-Accounts empfohlen
 - [ ] Redis aktiv, wenn Gunicorn mit mehreren Workern läuft
 - [ ] `TOTP_ENCRYPTION_KEY` / Encryption-Keys gesetzt ([env.example](env.example))
@@ -856,9 +1032,10 @@ Der frühere **Lageplan-Editor** und die **Besucherbewertung / Besucherrangliste
 ## Weitere Informationen
 
 - **Excalidraw Dokumentation:** https://docs.excalidraw.com
-- **OnlyOffice Dokumentation:** https://api.onlyoffice.com/
+- **Euro-Office DocumentServer:** https://github.com/Euro-Office/DocumentServer
+- **Euro-Office Organisation:** https://github.com/Euro-Office
+- **API (ONLYOFFICE-kompatibel):** https://api.onlyoffice.com/
 - **Docker Hub Excalidraw Room:** https://hub.docker.com/r/excalidraw/excalidraw-room
-- **Docker Hub OnlyOffice:** https://hub.docker.com/r/onlyoffice/documentserver
 
 ## Support
 
@@ -872,5 +1049,5 @@ Bei Problemen:
 
 <p align="center">
   <img src="../app/static/img/logo.png" alt="" width="40"><br>
-  <sub>Prismateams 3.0.1</sub>
+  <sub>Prismateams 3.4.12</sub>
 </p>

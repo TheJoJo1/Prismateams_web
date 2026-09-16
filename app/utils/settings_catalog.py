@@ -38,10 +38,45 @@ def build_settings_catalog(user) -> list[dict]:
         'profil name email telefon bild avatar',
     ))
     catalog.append(_entry(
+        translate('settings.profile.delete.heading'),
+        'settings.profile',
+        'user',
+        'konto löschen delete account dsgvo erasure',
+        anchor='profile-delete',
+    ))
+    catalog.append(_entry(
         translate('settings.index.cards.appearance.title'),
         'settings.appearance',
         'user',
         'darstellung theme dark mode sprache akzentfarbe layout',
+    ))
+    catalog.append(_entry(
+        translate('settings.appearance.section_language'),
+        'settings.appearance',
+        'user',
+        'sprache language',
+        anchor='appearance-language',
+    ))
+    catalog.append(_entry(
+        translate('settings.appearance.section_theme'),
+        'settings.appearance',
+        'user',
+        'dark mode oled theme',
+        anchor='appearance-theme',
+    ))
+    catalog.append(_entry(
+        translate('settings.appearance.section_color'),
+        'settings.appearance',
+        'user',
+        'akzentfarbe gradient farbe accent',
+        anchor='appearance-accent',
+    ))
+    catalog.append(_entry(
+        translate('settings.appearance.section_layout'),
+        'settings.appearance',
+        'user',
+        'layout mobile desktop',
+        anchor='appearance-layout',
     ))
     catalog.append(_entry(
         translate('settings.index.cards.notifications.title'),
@@ -56,11 +91,46 @@ def build_settings_catalog(user) -> list[dict]:
         'sicherheit passwort 2fa zwei faktor geräte session google login',
     ))
     catalog.append(_entry(
+        translate('settings.index.cards.privacy.title'),
+        'settings.privacy',
+        'user',
+        'datenschutz privacy export daten download dsgvo gdpr portabilität auskunft',
+    ))
+    catalog.append(_entry(
+        translate('settings.privacy.export.heading'),
+        'settings.privacy',
+        'user',
+        'datenexport zip json persönliche daten herunterladen',
+        anchor='privacy-export',
+    ))
+    catalog.append(_entry(
         translate('settings.index.cards.about.title'),
         'settings.about',
         'user',
         'über about version prismateams',
     ))
+
+    if is_module_enabled('module_files'):
+        catalog.append(_entry(
+            translate('settings.cloud_import.title'),
+            'settings.cloud_import',
+            'user',
+            'cloud import nextcloud google drive umzug sync dateien transfer',
+        ))
+
+    if is_module_enabled('module_kanban'):
+        try:
+            from app.utils.kanban_access import allowed_import_board_targets
+            from app.utils.access_control import has_module_access
+            if has_module_access(user, 'module_kanban') and allowed_import_board_targets(user):
+                catalog.append(_entry(
+                    translate('settings.kanban_import.nav'),
+                    'settings.kanban_import',
+                    'user',
+                    'kanban board import json csv zip trello',
+                ))
+        except Exception:
+            pass
 
     if is_module_enabled('module_email') and is_email_multi_enabled():
         catalog.append(_entry(
@@ -203,7 +273,7 @@ def build_settings_catalog(user) -> list[dict]:
         translate('settings.admin.cards.file_settings.title'),
         'settings.admin_file_settings',
         'admin',
-        'dateien speicher sharing dropbox onlyoffice format',
+        'dateien speicher sharing dropbox onlyoffice eurooffice euro-office format',
     ))
 
     return catalog

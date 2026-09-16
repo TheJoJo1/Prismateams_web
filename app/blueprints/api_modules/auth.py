@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 
-from flask import jsonify, request, session as flask_session, url_for
+from flask import current_app, jsonify, request, session as flask_session, url_for
 from flask_login import current_user, login_user
 
 from app import db
@@ -8,7 +8,7 @@ from app.models.api_token import ApiToken
 from app.models.user import User
 from app.utils.common import portal_now_naive
 from app.utils.guest_accounts import parse_guest_login_email
-from app.utils.session_manager import create_session
+from app.utils.session_manager import create_session, rotate_session_on_login
 from app.utils.totp import verify_totp
 
 
@@ -107,25 +107,30 @@ def register_auth_routes(api_bp, require_api_auth, limiter):
 
             user.last_login = datetime.utcnow()
             db.session.commit()
+            rotate_session_on_login()
             login_user(user, remember=remember)
+            flask_session['user_scope'] = 'portal'
 
             if not return_token:
                 create_session(user.id)
 
             response_data = {"success": True, "user": _user_payload(user)}
             if return_token:
-                token = ApiToken.create_token(user_id=user.id, name="API Login", expires_in_days=30)
-                response_data["token"] = token.token
+                token, raw_token = ApiToken.create_token(
+                    user_id=user.id, name="API Login", expires_in_days=30
+                )
+                response_data["token"] = raw_token
+                response_data["token_prefix"] = token.token_prefix
                 response_data["token_expires_at"] = token.expires_at.isoformat() if token.expires_at else None
 
             return jsonify(response_data), 200
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 500
+        except Exception:
+            return jsonify({"success": False, "error": "Interner Serverfehler"}), 500
 
     @api_bp.route("/auth/logout", methods=["POST"])
     def api_logout():
         from flask_login import logout_user
-        from app.utils.session_manager import revoke_session_by_id
+        from app.utils.session_manager import revoke_session_by_id, rotate_session_on_login
 
         if current_user.is_authenticated:
             session_id = flask_session.get("session_id")
@@ -136,10 +141,13 @@ def register_auth_routes(api_bp, require_api_auth, limiter):
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header.replace("Bearer ", "").strip()
-            api_token = ApiToken.query.filter_by(token=token).first()
+            api_token = ApiToken.find_by_raw_token(token)
             if api_token:
                 db.session.delete(api_token)
                 db.session.commit()
+
+        # Scope/Session-Reste (z. B. assessment) entfernen — verhindert Scope-Mixing
+        rotate_session_on_login()
 
         return jsonify({"success": True, "message": "Erfolgreich abgemeldet"}), 200
 
@@ -154,11 +162,9 @@ def register_auth_routes(api_bp, require_api_auth, limiter):
             if not token:
                 return jsonify({"success": False, "error": "Token erforderlich"}), 400
 
-            api_token = ApiToken.query.filter_by(token=token, expires_at=None).first()
-            if not api_token:
-                api_token = ApiToken.query.filter_by(token=token).first()
-                if not api_token or api_token.is_expired():
-                    return jsonify({"success": False, "error": "Ungültiger oder abgelaufener Token"}), 401
+            api_token = ApiToken.find_by_raw_token(token)
+            if not api_token or api_token.is_expired():
+                return jsonify({"success": False, "error": "Ungültiger oder abgelaufener Token"}), 401
 
             user = api_token.user
             if not user or not user.is_active:
@@ -166,6 +172,7 @@ def register_auth_routes(api_bp, require_api_auth, limiter):
 
             api_token.mark_as_used()
             return jsonify({"success": True, "user": _user_payload(user)}), 200
-        except Exception as e:
-            return jsonify({"success": False, "error": str(e)}), 500
+        except Exception:
+            current_app.logger.exception("API verify-token failed")
+            return jsonify({"success": False, "error": "Interner Serverfehler"}), 500
 

@@ -28,6 +28,60 @@ if (document.body) {
 }
 window.applyPreferredLayout = applyPreferredLayout;
 
+/**
+ * P23: Lazy I18N-Packs (PWA / Kontextmenü) nachladen und in PRISMATEAMS_I18N mergen.
+ */
+window._ptI18nPackPromise = null;
+window.ensurePrismateamsI18nPacks = function ensurePrismateamsI18nPacks(packNames) {
+    const names = Array.isArray(packNames) && packNames.length
+        ? packNames
+        : ['pwa_install', 'pwa_update', 'context_menu'];
+    const root = window.PRISMATEAMS_I18N || (window.PRISMATEAMS_I18N = {});
+    const missing = names.filter((n) => !root[n]);
+    if (!missing.length) {
+        return Promise.resolve(root);
+    }
+    if (window._ptI18nPackPromise) {
+        return window._ptI18nPackPromise.then(() => {
+            const still = names.filter((n) => !root[n]);
+            if (!still.length) return root;
+            return window.ensurePrismateamsI18nPacks(still);
+        });
+    }
+    const base = window.PRISMATEAMS_I18N_PACKS_URL || '/api/i18n/packs';
+    const url = base + (base.indexOf('?') >= 0 ? '&' : '?') + 'packs=' + encodeURIComponent(missing.join(','));
+    window._ptI18nPackPromise = fetch(url, {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+    })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+            const packs = (data && data.packs) || {};
+            Object.keys(packs).forEach((key) => {
+                root[key] = packs[key];
+            });
+            return root;
+        })
+        .catch(() => root)
+        .finally(() => {
+            window._ptI18nPackPromise = null;
+        });
+    return window._ptI18nPackPromise;
+};
+
+(function prefetchI18nPacksIdle() {
+    const run = function () {
+        window.ensurePrismateamsI18nPacks(['pwa_install', 'pwa_update', 'context_menu']);
+    };
+    if (typeof window.requestIdleCallback === 'function') {
+        window.requestIdleCallback(run, { timeout: 2500 });
+    } else {
+        window.addEventListener('DOMContentLoaded', function () {
+            setTimeout(run, 1);
+        });
+    }
+})();
+
 function ptI18nCommon(key, fallback) {
     const common = (window.PRISMATEAMS_I18N && window.PRISMATEAMS_I18N.common) || {};
     return common[key] || fallback;
@@ -489,6 +543,12 @@ if ('serviceWorker' in navigator) {
         return pack[key] || fallback;
     }
 
+    function ensurePwaUpdateI18n() {
+        return window.ensurePrismateamsI18nPacks
+            ? window.ensurePrismateamsI18nPacks(['pwa_update'])
+            : Promise.resolve();
+    }
+
     function hidePwaUpdatePrompt() {
         var prompt = document.getElementById(PWA_UPDATE_PROMPT_ID);
         if (prompt) {
@@ -556,6 +616,7 @@ if ('serviceWorker' in navigator) {
         _swPendingWorker = worker;
         _swPendingRegistration = registration;
 
+        var build = function () {
         var prompt = document.createElement('div');
         prompt.id = PWA_UPDATE_PROMPT_ID;
         prompt.className = 'pwa-update-prompt';
@@ -603,6 +664,8 @@ if ('serviceWorker' in navigator) {
                 dismissPwaUpdate();
             }
         });
+        };
+        ensurePwaUpdateI18n().then(build);
     }
 
     function promptAndActivateWaitingWorker(worker, registration) {
@@ -770,6 +833,7 @@ function showInstallPrompt() {
         return;
     }
 
+    const build = function () {
     const prompt = document.createElement('div');
     prompt.id = PWA_INSTALL_PROMPT_ID;
     prompt.className = 'pwa-install-prompt';
@@ -819,6 +883,13 @@ function showInstallPrompt() {
         } catch (e) { /* ignore */ }
         hidePwaInstallPrompt();
     });
+    };
+
+    if (window.ensurePrismateamsI18nPacks) {
+        window.ensurePrismateamsI18nPacks(['pwa_install']).then(build);
+    } else {
+        build();
+    }
 }
 
 /** @deprecated Alias für ältere Aufrufe / Settings-Seite */
@@ -2102,6 +2173,177 @@ window.updateEmailNavBadge = function updateEmailNavBadge(count) {
     });
 };
 
+/**
+ * Hover- und Long-Press-Infos für Icon-Buttons (Navbar, Editor-Toolbar, …).
+ * Markierung: data-action-tip oder data-nav-tip; Text aus aria-label/title.
+ */
+(function portalActionTips() {
+    const LONG_PRESS_MS = 420;
+    const HIDE_DELAY_MS = 140;
+    const bound = typeof WeakSet !== 'undefined' ? new WeakSet() : null;
+    let tipEl = null;
+    let hideTimer = null;
+    let pressTimer = null;
+    let activeTarget = null;
+    let suppressClickUntil = 0;
+    let globalListenersBound = false;
 
+    function ensureTip() {
+        if (tipEl) return tipEl;
+        tipEl = document.createElement('div');
+        tipEl.className = 'portal-action-tip';
+        tipEl.setAttribute('role', 'tooltip');
+        tipEl.hidden = true;
+        document.body.appendChild(tipEl);
+        return tipEl;
+    }
+
+    function tipText(el) {
+        return (
+            (el.getAttribute('aria-label') || '').trim() ||
+            (el.getAttribute('title') || '').trim() ||
+            (el.getAttribute('data-tip') || '').trim() ||
+            ''
+        );
+    }
+
+    function placeTip(el) {
+        const tip = ensureTip();
+        const text = tipText(el);
+        if (!text) return;
+        tip.textContent = text;
+        tip.hidden = false;
+        const rect = el.getBoundingClientRect();
+        const tipWidth = tip.offsetWidth || 120;
+        const half = tipWidth / 2;
+        const centerX = rect.left + rect.width / 2;
+        const left = Math.min(
+            Math.max(centerX, half + 8),
+            window.innerWidth - half - 8
+        );
+        tip.style.left = left + 'px';
+        tip.style.top = Math.max(12, rect.top - 8) + 'px';
+        tip.style.removeProperty('transform');
+        requestAnimationFrame(function () {
+            tip.classList.add('is-visible');
+        });
+        activeTarget = el;
+    }
+
+    function hideTip(immediate) {
+        clearTimeout(hideTimer);
+        const run = function () {
+            if (!tipEl) return;
+            tipEl.classList.remove('is-visible');
+            tipEl.hidden = true;
+            activeTarget = null;
+        };
+        if (immediate) {
+            run();
+            return;
+        }
+        hideTimer = setTimeout(run, HIDE_DELAY_MS);
+    }
+
+    function clearPress() {
+        clearTimeout(pressTimer);
+        pressTimer = null;
+    }
+
+    function ensureGlobalListeners() {
+        if (globalListenersBound) return;
+        globalListenersBound = true;
+        window.addEventListener('scroll', function () {
+            if (activeTarget) hideTip(true);
+        }, { passive: true });
+        window.addEventListener('resize', function () {
+            if (activeTarget) hideTip(true);
+        });
+    }
+
+    function bindOne(el) {
+        if (!el) return;
+        if (bound && bound.has(el)) return;
+        if (el.dataset && el.dataset.actionTipBound === '1') return;
+        if (bound) bound.add(el);
+        if (el.dataset) el.dataset.actionTipBound = '1';
+
+        if (!el.getAttribute('title') && tipText(el)) {
+            el.setAttribute('title', tipText(el));
+        }
+
+        el.addEventListener('mouseenter', function () {
+            if (window.matchMedia('(hover: hover)').matches) {
+                clearTimeout(hideTimer);
+                placeTip(el);
+            }
+        });
+        el.addEventListener('mouseleave', function () {
+            hideTip(false);
+        });
+        el.addEventListener('focus', function () {
+            placeTip(el);
+        });
+        el.addEventListener('blur', function () {
+            hideTip(false);
+        });
+
+        el.addEventListener('touchstart', function (e) {
+            if (!e.touches || e.touches.length !== 1) return;
+            clearPress();
+            pressTimer = setTimeout(function () {
+                pressTimer = null;
+                suppressClickUntil = Date.now() + 650;
+                placeTip(el);
+                if (navigator.vibrate) {
+                    try { navigator.vibrate(12); } catch (_) { /* noop */ }
+                }
+            }, LONG_PRESS_MS);
+        }, { passive: true });
+
+        el.addEventListener('touchend', function () {
+            clearPress();
+            if (activeTarget === el) hideTip(false);
+        }, { passive: true });
+
+        el.addEventListener('touchcancel', function () {
+            clearPress();
+            hideTip(true);
+        }, { passive: true });
+
+        el.addEventListener('touchmove', function () {
+            clearPress();
+        }, { passive: true });
+
+        el.addEventListener('click', function (e) {
+            if (Date.now() < suppressClickUntil) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }, true);
+
+        el.addEventListener('contextmenu', function (e) {
+            if (activeTarget === el || Date.now() < suppressClickUntil) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    window.bindPortalActionTips = function bindPortalActionTips(root) {
+        ensureGlobalListeners();
+        const scope = root && root.querySelectorAll ? root : document;
+        scope.querySelectorAll('[data-action-tip], [data-nav-tip]').forEach(bindOne);
+    };
+
+    function onReady() {
+        window.bindPortalActionTips(document);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', onReady);
+    } else {
+        onReady();
+    }
+})();
 
 

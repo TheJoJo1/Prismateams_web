@@ -1,12 +1,11 @@
 """Background cleanup for expired file converter jobs."""
 
 import logging
-import threading
-import time
 from datetime import datetime
 
 from app import db
 from app.models.file_converter import ConversionJob
+from app.tasks.interval_scheduler import IntervalScheduler
 from app.utils.file_converter import delete_job_files
 
 logger = logging.getLogger(__name__)
@@ -44,31 +43,21 @@ def cleanup_expired_conversions():
         return 0
 
 
-class FileConverterCleanupScheduler:
-    def __init__(self, app):
-        self.app = app
-        self.running = False
-        self.thread = None
+class FileConverterCleanupScheduler(IntervalScheduler):
+    name = "file-converter-cleanup"
+    wait_step_seconds = 60
+    error_wait_seconds = 60
 
-    def start(self):
-        if self.running:
+    def interval_seconds(self):
+        return 900
+
+    def run_job(self):
+        from app.utils.common import is_module_enabled
+
+        if not is_module_enabled('module_file_converter'):
+            logger.debug("module_file_converter deaktiviert — Cleanup idle")
             return
-        self.running = True
-        self.thread = threading.Thread(
-            target=self._run,
-            daemon=True,
-            name='file-converter-cleanup',
-        )
-        self.thread.start()
-
-    def _run(self):
-        while self.running:
-            try:
-                with self.app.app_context():
-                    cleanup_expired_conversions()
-            except Exception as exc:
-                logger.error('File converter cleanup scheduler error: %s', exc, exc_info=True)
-            time.sleep(900)
+        cleanup_expired_conversions()
 
 
 def start_file_converter_cleanup(app):

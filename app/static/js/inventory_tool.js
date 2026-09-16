@@ -6,6 +6,11 @@ class InventoryToolManager {
         this.readOnly = !!options.readOnly;
         this.items = new Map();
         this.pollingInterval = null;
+        this.eventSource = null;
+        this._sseConnected = false;
+        this._sseFallbackTimer = null;
+        this._visibilityBound = false;
+        this._liveFallbackMs = 15000;
         this.lastUpdateTime = null;
         this.currentEditingProductId = null;
         this.lockRefreshTimer = null;
@@ -19,7 +24,7 @@ class InventoryToolManager {
         this.setupFilterChips();
         this.loadItems();
         if (!this.readOnly) {
-            this.startPolling();
+            this.startLiveUpdates();
         }
     }
 
@@ -95,8 +100,17 @@ class InventoryToolManager {
         const isGrid = this.viewMode === 'grid';
         if (listView) listView.style.display = isGrid ? 'none' : '';
         if (gridView) gridView.style.display = isGrid ? '' : 'none';
-        if (listBtn) listBtn.classList.toggle('active', !isGrid);
-        if (gridBtn) gridBtn.classList.toggle('active', isGrid);
+        if (listBtn) {
+            listBtn.classList.toggle('active', !isGrid);
+            listBtn.classList.toggle('is-active', !isGrid);
+        }
+        if (gridBtn) {
+            gridBtn.classList.toggle('active', isGrid);
+            gridBtn.classList.toggle('is-active', isGrid);
+        }
+        document.querySelectorAll('.inventory-shell .mod-view-toggle').forEach((el) => {
+            el.dataset.view = isGrid ? 'grid' : 'list';
+        });
         try { localStorage.setItem('inventurSessionViewMode', this.viewMode); } catch (e) {}
         this.renderItems();
     }
@@ -115,7 +129,7 @@ class InventoryToolManager {
 
     async loadItems() {
         try {
-            const response = await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/items`);
+            const response = await fetch(`/inventory/api/inventory/${this.inventoryId}/items`);
             if (!response.ok) throw new Error('Fehler beim Laden der Inventur-Items');
 
             const data = await response.json();
@@ -498,7 +512,7 @@ class InventoryToolManager {
         try {
             const item = this.items.get(productId);
             const payload = { checked: checked, version: item?.version };
-            const response = await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/item/${productId}`, {
+            const response = await fetch(`/inventory/api/inventory/${this.inventoryId}/item/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload),
@@ -760,7 +774,7 @@ class InventoryToolManager {
         }
 
         try {
-            const response = await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/item/${productId}`, {
+            const response = await fetch(`/inventory/api/inventory/${this.inventoryId}/item/${productId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -813,7 +827,7 @@ class InventoryToolManager {
 
     async handleScan(qrData) {
         try {
-            const response = await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/scan`, {
+            const response = await fetch(`/inventory/api/inventory/${this.inventoryId}/scan`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ qr_data: qrData }),
@@ -906,8 +920,67 @@ class InventoryToolManager {
         this.updateStats();
     }
 
-    startPolling() {
-        this.pollingInterval = setInterval(() => this.loadItems(), 3000);
+    startLiveUpdates() {
+        this.stopLiveUpdates();
+        this._bindVisibilityHandler();
+        if (typeof EventSource === 'undefined') {
+            this.startPollingFallback();
+            return;
+        }
+        try {
+            const es = new EventSource(`/sse/events/inventory/${this.inventoryId}`);
+            this.eventSource = es;
+            this._sseConnected = false;
+
+            es.addEventListener('connected', () => {
+                this._sseConnected = true;
+                this.stopPolling();
+                if (this._sseFallbackTimer) {
+                    clearTimeout(this._sseFallbackTimer);
+                    this._sseFallbackTimer = null;
+                }
+            });
+
+            ['inventory:item_updated', 'inventory:scan', 'inventory:items_updated'].forEach((name) => {
+                es.addEventListener(name, () => {
+                    if (!document.hidden) this.loadItems();
+                });
+            });
+
+            es.addEventListener('error', (ev) => {
+                // Server meldet z. B. fehlendes Redis als event:error
+                try {
+                    const payload = ev && ev.data ? JSON.parse(ev.data) : null;
+                    if (payload && payload.message) {
+                        this._closeEventSource();
+                        this.startPollingFallback();
+                    }
+                } catch (_) { /* ignore */ }
+            });
+
+            es.onerror = () => {
+                if (this._sseConnected) return;
+                this._closeEventSource();
+                this.startPollingFallback();
+            };
+
+            this._sseFallbackTimer = setTimeout(() => {
+                if (!this._sseConnected) {
+                    this._closeEventSource();
+                    this.startPollingFallback();
+                }
+            }, 4000);
+        } catch (_) {
+            this.startPollingFallback();
+        }
+    }
+
+    startPollingFallback() {
+        this.stopPolling();
+        if (document.hidden) return;
+        this.pollingInterval = setInterval(() => {
+            if (!document.hidden) this.loadItems();
+        }, this._liveFallbackMs);
     }
 
     stopPolling() {
@@ -915,6 +988,39 @@ class InventoryToolManager {
             clearInterval(this.pollingInterval);
             this.pollingInterval = null;
         }
+    }
+
+    _closeEventSource() {
+        if (this._sseFallbackTimer) {
+            clearTimeout(this._sseFallbackTimer);
+            this._sseFallbackTimer = null;
+        }
+        if (this.eventSource) {
+            try { this.eventSource.close(); } catch (_) { /* ignore */ }
+            this.eventSource = null;
+        }
+        this._sseConnected = false;
+    }
+
+    stopLiveUpdates() {
+        this._closeEventSource();
+        this.stopPolling();
+    }
+
+    _bindVisibilityHandler() {
+        if (this._visibilityBound) return;
+        this._visibilityBound = true;
+        document.addEventListener('visibilitychange', () => {
+            if (this.readOnly) return;
+            if (document.hidden) {
+                this.stopPolling();
+                return;
+            }
+            this.loadItems();
+            if (!this.eventSource || !this._sseConnected) {
+                this.startPollingFallback();
+            }
+        });
     }
 
     showScanSuccess() {
@@ -938,13 +1044,18 @@ class InventoryToolManager {
     }
 
     showConflictMessage(conflictPayload) {
+        if (conflictPayload?.code === 'lock_conflict') {
+            const lockUser = conflictPayload?.details?.locked_by || 'einem anderen Nutzer';
+            this.showError(`Dieses Produkt wird gerade von ${lockUser} bearbeitet.`);
+            return;
+        }
         const currentVersion = conflictPayload?.details?.current_version;
         this.showError(`Konflikt erkannt: Datensatz wurde inzwischen geändert (Version ${currentVersion || 'neu'}). Bitte erneut pruefen.`);
     }
 
     async acquireLock(productId) {
         try {
-            const response = await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/locks/acquire`, {
+            const response = await fetch(`/inventory/api/inventory/${this.inventoryId}/locks/acquire`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ product_id: productId, ttl_seconds: 90, reason: 'modal_edit' }),
@@ -956,18 +1067,20 @@ class InventoryToolManager {
                     this.showError(`Dieses Produkt wird gerade von ${lockUser} bearbeitet.`);
                     return null;
                 }
+                this.showError('Produkt-Sperre konnte nicht erworben werden. Bitte erneut versuchen.');
                 return null;
             }
             return await response.json();
         } catch (error) {
-            console.warn('Locking nicht verfügbar, fahre ohne Lock fort', error);
-            return { ok: true };
+            console.warn('Locking nicht verfügbar', error);
+            this.showError('Produkt-Sperre konnte nicht erworben werden. Bitte erneut versuchen.');
+            return null;
         }
     }
 
     async releaseLock(productId) {
         try {
-            await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/locks/release`, {
+            await fetch(`/inventory/api/inventory/${this.inventoryId}/locks/release`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ product_id: productId }),
@@ -979,7 +1092,7 @@ class InventoryToolManager {
 
     async refreshLock(productId) {
         try {
-            await fetch(`/inventory/vnext/api/inventory/${this.inventoryId}/locks/refresh`, {
+            await fetch(`/inventory/api/inventory/${this.inventoryId}/locks/refresh`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ product_id: productId, ttl_seconds: 90 }),

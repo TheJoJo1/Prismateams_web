@@ -1,24 +1,7 @@
 /* Surveys module */
-.surveys-btn-pill {
-    border-radius: var(--mod-radius-pill, 1.5rem) !important;
-}
-
-.surveys-btn-accent {
-    background: var(--accent-color, var(--bs-primary)) !important;
-    border-color: var(--accent-color, var(--bs-primary)) !important;
-    color: #fff !important;
-    font-weight: 600;
-    box-shadow: 0 0.2rem 0.65rem color-mix(in srgb, var(--accent-color, #0d6efd) 35%, transparent);
-}
-
-.surveys-btn-accent:hover,
-.surveys-btn-accent:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 88%, #000) !important;
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 88%, #000) !important;
-    color: #fff !important;
-}
 
 /* Modals above fullscreen workspace */
+
 body:has(.surveys-workspace) .modal-backdrop {
     z-index: 1070 !important;
 }
@@ -28,6 +11,7 @@ body:has(.surveys-workspace) .modal {
 }
 
 /* Fullscreen workspace (edit / results) — hides app chrome */
+
 body:has(.surveys-workspace) #desktopTopNav,
 body:has(.surveys-workspace) #desktopSidebar,
 body:has(.surveys-workspace) #desktopFavoritesRail,
@@ -166,19 +150,19 @@ body:has(.surveys-workspace) {
 
 .surveys-pill-dropdown .dropdown-item:hover,
 .surveys-pill-dropdown .dropdown-item:focus {
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 12%, transparent);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 12%, transparent);
 }
 
-.surveys-settings-panel .inv-pill-select {
+.surveys-settings-panel .mod-pill-select {
     width: 100%;
 }
 
-.surveys-settings-panel .inv-pill-select__trigger {
+.surveys-settings-panel .mod-pill-select__trigger {
     width: 100%;
     min-height: 2.35rem;
 }
 
-.surveys-logic-rule .inv-pill-select {
+.surveys-logic-rule .mod-pill-select {
     width: 100%;
     margin-bottom: 0.35rem;
 }
@@ -211,60 +195,12 @@ body:has(.surveys-workspace) {
 }
 
 /* Navbar search (like shortlinks / files) */
-.surveys-search {
+
+.surveys-shell .mod-search--icon {
     position: relative;
     max-width: 28rem;
     margin: 0 auto;
     width: 100%;
-}
-
-.surveys-search-icon {
-    position: absolute;
-    left: 0.95rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--accent-color, #0d6efd);
-    pointer-events: none;
-    font-size: 0.95rem;
-}
-
-.surveys-search-input,
-.form-control.surveys-search-input {
-    border-radius: var(--mod-radius-pill, 1.5rem) !important;
-    padding-left: 2.35rem;
-    padding-right: 2.35rem;
-    height: 2.55rem;
-    background: var(--bs-body-bg);
-    border: 1px solid var(--bs-border-color);
-    box-shadow: none;
-}
-
-.surveys-search-input:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 55%, var(--bs-border-color));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
-}
-
-.surveys-search-clear {
-    position: absolute;
-    right: 0.35rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 1.85rem;
-    height: 1.85rem;
-    padding: 0;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--bs-secondary-color, #6c757d);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-}
-
-.surveys-search-clear:hover {
-    background: rgba(127, 127, 127, 0.12);
-    color: var(--bs-body-color);
 }
 
 .surveys-mobile-toolbar {
@@ -273,23 +209,19 @@ body:has(.surveys-workspace) {
     gap: 0.5rem;
 }
 
-.surveys-mobile-search .surveys-search {
+.surveys-mobile-search .mod-search--icon {
     max-width: none;
     margin: 0;
 }
 
-.surveys-mobile-search .surveys-search-input,
-.surveys-mobile-search .form-control.surveys-search-input {
+.surveys-mobile-search .mod-search-input,
+.surveys-mobile-search .form-control.mod-search-input {
     height: 2.35rem;
 }
 
-.surveys-mobile-view-toggle .files-view-toggle__btn {
+.surveys-mobile-view-toggle .mod-view-toggle__btn {
     width: 2.1rem;
     height: 2.1rem;
-}
-
-.page-toolbar-row .files-view-toggle {
-    flex-shrink: 0;
 }
 
 .surveys-actions-menu {
@@ -309,6 +241,7 @@ body:has(.surveys-workspace) {
 }
 
 /* Create form shell (aligned with shortlinks / credentials) */
+
 .surveys-form {
     --surveys-form-surface: var(--bs-tertiary-bg, #f8f9fa);
     --surveys-form-elevated: var(--bs-body-bg, #fff);
@@ -405,8 +338,8 @@ body:has(.surveys-workspace) {
 
 .surveys-form .form-control:focus,
 .surveys-form .form-select:focus {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 45%, var(--surveys-form-border));
-    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, #0d6efd) 18%, transparent);
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 45%, var(--surveys-form-border));
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--accent-color, var(--bs-primary)) 18%, transparent);
 }
 
 .surveys-form-actions {
@@ -441,7 +374,7 @@ body:has(.surveys-workspace) {
 }
 
 .surveys-card:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 35%, var(--bs-border-color));
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 35%, var(--bs-border-color));
     box-shadow: 0 0.35rem 1.25rem rgba(0, 0, 0, 0.06);
 }
 
@@ -468,6 +401,7 @@ body:has(.surveys-workspace) {
 }
 
 /* Builder */
+
 .surveys-builder-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 340px;
@@ -499,7 +433,7 @@ body:has(.surveys-workspace) {
 .surveys-header-image-wrap {
     position: relative;
     min-height: 140px;
-    background: linear-gradient(135deg, var(--bs-secondary-bg), color-mix(in srgb, var(--accent-color, #0d6efd) 8%, var(--bs-secondary-bg)));
+    background: linear-gradient(135deg, var(--bs-secondary-bg), color-mix(in srgb, var(--accent-color, var(--bs-primary)) 8%, var(--bs-secondary-bg)));
 }
 
 .surveys-header-image,
@@ -657,6 +591,7 @@ body:has(.surveys-workspace) {
 }
 
 /* Question editor cards */
+
 .surveys-question-card {
     position: relative;
     border: 1px solid var(--bs-border-color-translucent, rgba(127, 127, 127, 0.22));
@@ -670,7 +605,7 @@ body:has(.surveys-workspace) {
 }
 
 .surveys-question-card:hover {
-    border-color: color-mix(in srgb, var(--accent-color, #0d6efd) 30%, var(--bs-border-color));
+    border-color: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 30%, var(--bs-border-color));
     box-shadow: 0 0.35rem 1.1rem rgba(0, 0, 0, 0.06);
 }
 
@@ -681,7 +616,7 @@ body:has(.surveys-workspace) {
 
 .surveys-question-card.drag-over {
     border-color: var(--accent-color, var(--bs-primary));
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, #0d6efd) 22%, transparent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color, var(--bs-primary)) 22%, transparent);
 }
 
 .surveys-question-card-inner {
@@ -716,10 +651,10 @@ body:has(.surveys-workspace) {
     letter-spacing: 0.04em;
     text-transform: uppercase;
     padding: 0.28rem 0.65rem;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--accent-color, #0d6efd) 14%, var(--bs-body-bg));
+    border-radius: var(--mod-radius-pill);
+    background: color-mix(in srgb, var(--accent-color, var(--bs-primary)) 14%, var(--bs-body-bg));
     color: var(--accent-color, var(--bs-primary));
-    border: 1px solid color-mix(in srgb, var(--accent-color, #0d6efd) 25%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-color, var(--bs-primary)) 25%, transparent);
 }
 
 .surveys-question-toolbar-spacer {
@@ -747,7 +682,7 @@ body:has(.surveys-workspace) {
     height: 2rem;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     background: transparent;
     color: var(--bs-secondary-color);
     display: inline-flex;
@@ -839,7 +774,7 @@ body:has(.surveys-workspace) {
     height: 1.85rem;
     padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     background: transparent;
     color: var(--bs-secondary-color);
     flex-shrink: 0;
@@ -952,12 +887,62 @@ body:has(.surveys-workspace) {
 }
 
 .surveys-logic-rule {
-    border-radius: 0.85rem !important;
-    border-color: var(--bs-border-color-translucent) !important;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 0.85rem;
     background: color-mix(in srgb, var(--bs-secondary-bg) 50%, var(--bs-body-bg));
+    margin-bottom: 0.5rem;
+}
+
+.surveys-logic-rule--summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.45rem 0.55rem;
+}
+
+.surveys-logic-rule--editing {
+    padding: 0.75rem;
+}
+
+.surveys-logic-summary {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+}
+
+.surveys-logic-summary:hover .surveys-logic-summary-text {
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.surveys-logic-summary-text {
+    flex: 1;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: var(--bs-body-color);
+}
+
+.surveys-logic-summary-icon {
+    flex-shrink: 0;
+    opacity: 0.45;
+    font-size: 0.85rem;
+    margin-top: 0.1rem;
+}
+
+.surveys-logic-rule--summary .logic-del {
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 0.05rem;
 }
 
 /* Results */
+
 .surveys-stat-card {
     background: var(--bs-body-bg);
     border: 1px solid var(--bs-border-color-translucent);
@@ -1005,18 +990,19 @@ body:has(.surveys-workspace) {
 .surveys-bar-track {
     height: 10px;
     background: var(--bs-secondary-bg);
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     overflow: hidden;
 }
 
 .surveys-bar-fill {
     height: 100%;
-    background: linear-gradient(90deg, var(--accent-color, var(--bs-primary)), color-mix(in srgb, var(--accent-color, #0d6efd) 70%, #fff));
-    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent-color, var(--bs-primary)), color-mix(in srgb, var(--accent-color, var(--bs-primary)) 70%, #fff));
+    border-radius: var(--mod-radius-pill);
     min-width: 2px;
 }
 
 /* Result charts */
+
 .surveys-chart--pie {
     display: flex;
     flex-wrap: wrap;
@@ -1054,7 +1040,7 @@ body:has(.surveys-workspace) {
 .surveys-pie-swatch {
     width: 0.75rem;
     height: 0.75rem;
-    border-radius: 999px;
+    border-radius: var(--mod-radius-pill);
     flex-shrink: 0;
 }
 
@@ -1100,6 +1086,7 @@ body:has(.surveys-workspace) {
 }
 
 /* Public fill */
+
 .survey-public-body {
     min-height: 100vh;
     background: var(--auth-page-bg, #f5f5f5);

@@ -27,8 +27,8 @@ class User(UserMixin, db.Model):
     confirmation_code_expires = db.Column(db.DateTime, nullable=True)
     is_email_confirmed = db.Column(db.Boolean, default=False, nullable=False)
     
-    # Password reset
-    password_reset_code = db.Column(db.String(6), nullable=True)
+    # Password reset (stores SHA-256 hex of token_urlsafe secret)
+    password_reset_code = db.Column(db.String(128), nullable=True)
     password_reset_code_expires = db.Column(db.DateTime, nullable=True)
     
     # Profile settings
@@ -71,7 +71,8 @@ class User(UserMixin, db.Model):
     # Two-Factor Authentication (2FA)
     totp_secret = db.Column(db.String(255), nullable=True)  # Verschlüsseltes TOTP-Secret
     totp_enabled = db.Column(db.Boolean, default=False, nullable=False)
-    totp_recovery_code = db.Column(db.String(6), nullable=True)
+    # SHA-256-Hex des Klartext-Recovery-Codes (früher 6-stellig Klartext)
+    totp_recovery_code = db.Column(db.String(128), nullable=True)
     totp_recovery_code_expires = db.Column(db.DateTime, nullable=True)
 
     # Google Login / Registrierung / Verknüpfung
