@@ -13,6 +13,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ drawing.name }} - {{ _('excalidraw.edit.page_title_suffix') }}</title>
 {% include 'partials/vendor_bootstrap_css.html' %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mod-buttons.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mod-forms.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/excalidraw.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/portal-msg.css') }}">
     <link rel="stylesheet" href="{{ excalidraw_css_url }}" onerror="this.onerror=null;this.href='{{ excalidraw_cdn_base }}index.css';">
@@ -99,6 +101,10 @@
             align-items: center;
             gap: 0.4rem;
             flex-shrink: 0;
+        }
+        .onlyoffice-viewer-actions .mod-pill-btn,
+        .onlyoffice-viewer-actions .btn.mod-pill-btn {
+            border-radius: var(--mod-radius-pill, 1.5rem) !important;
         }
     </style>
 </head>

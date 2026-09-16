@@ -887,9 +887,58 @@ body:has(.surveys-workspace) {
 }
 
 .surveys-logic-rule {
-    border-radius: 0.85rem !important;
-    border-color: var(--bs-border-color-translucent) !important;
+    border: 1px solid var(--bs-border-color-translucent);
+    border-radius: 0.85rem;
     background: color-mix(in srgb, var(--bs-secondary-bg) 50%, var(--bs-body-bg));
+    margin-bottom: 0.5rem;
+}
+
+.surveys-logic-rule--summary {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    padding: 0.45rem 0.55rem;
+}
+
+.surveys-logic-rule--editing {
+    padding: 0.75rem;
+}
+
+.surveys-logic-summary {
+    flex: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    border: 0;
+    background: transparent;
+    text-align: left;
+    padding: 0;
+    color: inherit;
+    cursor: pointer;
+}
+
+.surveys-logic-summary:hover .surveys-logic-summary-text {
+    color: var(--accent-color, var(--bs-primary));
+}
+
+.surveys-logic-summary-text {
+    flex: 1;
+    font-size: 0.82rem;
+    line-height: 1.35;
+    color: var(--bs-body-color);
+}
+
+.surveys-logic-summary-icon {
+    flex-shrink: 0;
+    opacity: 0.45;
+    font-size: 0.85rem;
+    margin-top: 0.1rem;
+}
+
+.surveys-logic-rule--summary .logic-del {
+    flex-shrink: 0;
+    line-height: 1;
+    margin-top: 0.05rem;
 }
 
 /* Results */

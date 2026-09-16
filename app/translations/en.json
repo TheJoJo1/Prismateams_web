@@ -6860,7 +6860,7 @@
     },
     "logic": {
       "title": "Conditional logic",
-      "hint": "Show, hide or skip pages based on answers.",
+      "hint": "Create rules: if question X equals an answer, then skip or show a question/page. Tap a rule to edit.",
       "add_rule": "Add rule",
       "if_answer": "If answer",
       "then": "then",

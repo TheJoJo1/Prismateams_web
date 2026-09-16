@@ -6860,7 +6860,7 @@
     },
     "logic": {
       "title": "Verknüpfungen",
-      "hint": "Seiten oder Fragen abhängig von Antworten anzeigen, ausblenden oder überspringen.",
+      "hint": "Regeln anlegen: Wenn Frage X = Antwort, dann Frage/Seite überspringen oder anzeigen. Tippen zum Bearbeiten.",
       "add_rule": "Regel hinzufügen",
       "if_answer": "Wenn Antwort",
       "then": "dann",

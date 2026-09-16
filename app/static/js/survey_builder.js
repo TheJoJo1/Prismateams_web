@@ -512,8 +512,11 @@
             .then((r) => r.json())
             .then((data) => {
                 if (data.ok && data.structure) {
+                    const keepEdit = editingLogicIdx;
                     structure = data.structure;
                     syncPageUiFromSettings();
+                    editingLogicIdx = keepEdit;
+                    renderLogicRules();
                     if (els.saveStatus) els.saveStatus.textContent = 'Gespeichert';
                     setTimeout(() => { if (els.saveStatus) els.saveStatus.textContent = ''; }, 2000);
                 } else if (els.saveStatus) {
@@ -636,24 +639,28 @@
         if (addLogicBtn) {
             addLogicBtn.addEventListener('click', () => {
                 structure.logic_rules = structure.logic_rules || [];
-                const questions = [];
-                (structure.pages || []).forEach((p) => (p.questions || []).forEach((q) => questions.push(q)));
+                const questions = allQuestions();
                 if (!questions.length) return;
+                const firstQ = questions[0];
+                const defaultValue = defaultLogicValueForQuestion(firstQ);
                 structure.logic_rules.push({
                     id: tempId(),
-                    source_question_id: questions[0].id,
+                    source_question_id: firstQ.id,
                     operator: 'equals',
-                    value: '',
-                    action: 'goto_page',
-                    target_page_id: structure.pages[0]?.id,
-                    target_question_id: null,
+                    value: defaultValue,
+                    action: 'hide_question',
+                    target_page_id: null,
+                    target_question_id: questions[1]?.id || firstQ.id,
                     rule_order: structure.logic_rules.length,
                 });
+                editingLogicIdx = structure.logic_rules.length - 1;
                 renderLogicRules();
                 scheduleSave();
             });
         }
     }
+
+    let editingLogicIdx = null;
 
     function allQuestions() {
         const list = [];
@@ -661,49 +668,407 @@
         return list;
     }
 
+    function escapeHtml(text) {
+        return String(text ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function sameId(a, b) {
+        return Number(a) === Number(b);
+    }
+
+    function findQuestionById(id) {
+        return allQuestions().find((q) => sameId(q.id, id)) || null;
+    }
+
+    function questionDisplayLabel(q) {
+        if (!q) return 'Frage';
+        const label = (q.label || '').trim();
+        return label || 'Frage';
+    }
+
+    function pageDisplayLabel(page) {
+        if (!page) return 'Seite';
+        const title = (page.title || '').trim();
+        return title || 'Seite';
+    }
+
+    function isPageAction(action) {
+        return action === 'goto_page' || action === 'skip_page';
+    }
+
+    function isQuestionAction(action) {
+        return action === 'hide_question' || action === 'show_question';
+    }
+
+    function operatorsForQuestion(q) {
+        const type = q?.question_type;
+        if (type === 'rating_stars' || type === 'number' || type === 'slider') {
+            return [
+                ['equals', '='],
+                ['not_equals', '≠'],
+                ['greater_than', '>'],
+                ['less_than', '<'],
+                ['is_empty', 'leer'],
+                ['is_not_empty', 'nicht leer'],
+            ];
+        }
+        if (type === 'single_choice' || type === 'multiple_choice') {
+            return [
+                ['equals', '='],
+                ['not_equals', '≠'],
+                ['is_empty', 'leer'],
+                ['is_not_empty', 'nicht leer'],
+            ];
+        }
+        return [
+            ['equals', '='],
+            ['not_equals', '≠'],
+            ['contains', 'enthält'],
+            ['is_empty', 'leer'],
+            ['is_not_empty', 'nicht leer'],
+        ];
+    }
+
+    function operatorNeedsValue(operator) {
+        return operator !== 'is_empty' && operator !== 'is_not_empty';
+    }
+
+    function choiceOptions(q) {
+        return (q?.config?.options || []).filter((opt) => opt && (opt.id != null || opt.label));
+    }
+
+    function defaultLogicValueForQuestion(q) {
+        if (!q) return '';
+        if (q.question_type === 'single_choice' || q.question_type === 'multiple_choice') {
+            const opts = choiceOptions(q);
+            if (!opts.length) return '';
+            return opts[0].id != null ? String(opts[0].id) : String(opts[0].label);
+        }
+        if (q.question_type === 'rating_stars') return '5';
+        if (q.question_type === 'number' || q.question_type === 'slider') return '0';
+        return '';
+    }
+
+    function normalizeLogicValueForQuestion(rule, q) {
+        if (!operatorNeedsValue(rule.operator)) {
+            rule.value = null;
+            return;
+        }
+        if (q?.question_type === 'single_choice' || q?.question_type === 'multiple_choice') {
+            const opts = choiceOptions(q);
+            const match = opts.find((opt) => String(opt.id) === String(rule.value) || String(opt.label) === String(rule.value));
+            if (match) {
+                rule.value = match.id != null ? String(match.id) : String(match.label);
+            } else {
+                rule.value = defaultLogicValueForQuestion(q);
+            }
+            return;
+        }
+        if (q?.question_type === 'rating_stars') {
+            const max = Number(q.config?.max_stars) || 5;
+            const num = Number(rule.value);
+            if (!Number.isFinite(num) || num < 1 || num > max) {
+                rule.value = String(max);
+            } else {
+                rule.value = String(num);
+            }
+            return;
+        }
+        if ((q?.question_type === 'number' || q?.question_type === 'slider') && (rule.value === '' || rule.value == null)) {
+            rule.value = defaultLogicValueForQuestion(q);
+        }
+    }
+
+    function ensureValidOperator(rule, q) {
+        const allowed = operatorsForQuestion(q).map((pair) => pair[0]);
+        if (!allowed.includes(rule.operator)) {
+            rule.operator = 'equals';
+        }
+    }
+
+    function formatRuleValueLabel(rule, sourceQ) {
+        if (!operatorNeedsValue(rule.operator)) return '';
+        const val = rule.value;
+        if (val == null || val === '') return '…';
+        if (sourceQ?.question_type === 'single_choice' || sourceQ?.question_type === 'multiple_choice') {
+            const opt = choiceOptions(sourceQ).find((o) => String(o.id) === String(val) || String(o.label) === String(val));
+            return opt ? (opt.label || String(val)) : String(val);
+        }
+        if (sourceQ?.question_type === 'rating_stars') {
+            return `${val} ★`;
+        }
+        return String(val);
+    }
+
+    function actionSummaryLabel(action) {
+        const map = {
+            goto_page: 'gehe zu Seite',
+            skip_page: 'überspringe Seite',
+            hide_question: 'überspringe Frage',
+            show_question: 'zeige Frage',
+        };
+        return map[action] || action;
+    }
+
+    function targetSummaryLabel(rule) {
+        if (isPageAction(rule.action)) {
+            const page = (structure.pages || []).find((p) => sameId(p.id, rule.target_page_id));
+            return pageDisplayLabel(page);
+        }
+        return questionDisplayLabel(findQuestionById(rule.target_question_id));
+    }
+
+    function summarizeLogicRule(rule) {
+        const src = findQuestionById(rule.source_question_id);
+        const srcLabel = questionDisplayLabel(src);
+        const opMap = {
+            equals: '=',
+            not_equals: '≠',
+            contains: 'enthält',
+            greater_than: '>',
+            less_than: '<',
+            is_empty: 'leer ist',
+            is_not_empty: 'nicht leer ist',
+        };
+        const op = opMap[rule.operator] || rule.operator;
+        let condition;
+        if (rule.operator === 'is_empty' || rule.operator === 'is_not_empty') {
+            condition = `Wenn „${srcLabel}“ ${op}`;
+        } else {
+            condition = `Wenn „${srcLabel}“ ${op} „${formatRuleValueLabel(rule, src)}“`;
+        }
+        return `${condition} → dann ${actionSummaryLabel(rule.action)} „${targetSummaryLabel(rule)}“`;
+    }
+
+    function buildValueFieldHtml(rule, sourceQ) {
+        if (!operatorNeedsValue(rule.operator)) {
+            return '<div class="logic-val-wrap d-none"></div>';
+        }
+        const type = sourceQ?.question_type;
+        if (type === 'single_choice' || type === 'multiple_choice') {
+            const opts = choiceOptions(sourceQ);
+            if (!opts.length) {
+                return '<div class="text-muted small mb-1 logic-val-wrap">Keine Antwortoptionen vorhanden</div>';
+            }
+            const optionsHtml = opts.map((opt) => {
+                const val = opt.id != null ? String(opt.id) : String(opt.label);
+                const selected = String(rule.value) === val ? 'selected' : '';
+                return `<option value="${escapeHtml(val)}" ${selected}>${escapeHtml(opt.label || val)}</option>`;
+            }).join('');
+            return `<select class="form-select form-select-sm mb-1 logic-val" data-mod-pill-select>${optionsHtml}</select>`;
+        }
+        if (type === 'rating_stars') {
+            const max = Number(sourceQ.config?.max_stars) || 5;
+            const optionsHtml = Array.from({ length: max }, (_, i) => {
+                const n = String(i + 1);
+                const selected = String(rule.value) === n ? 'selected' : '';
+                return `<option value="${n}" ${selected}>${n} ★</option>`;
+            }).join('');
+            return `<select class="form-select form-select-sm mb-1 logic-val" data-mod-pill-select>${optionsHtml}</select>`;
+        }
+        if (type === 'number' || type === 'slider') {
+            return `<input type="number" class="form-control form-control-sm mb-1 logic-val" value="${escapeHtml(rule.value ?? '')}" placeholder="Wert" step="any">`;
+        }
+        return `<input type="text" class="form-control form-control-sm mb-1 logic-val" value="${escapeHtml(rule.value ?? '')}" placeholder="Wert">`;
+    }
+
+    function buildTargetFieldHtml(rule, questions) {
+        if (isQuestionAction(rule.action)) {
+            const qOpts = questions.map((q) => {
+                const selected = sameId(q.id, rule.target_question_id) ? 'selected' : '';
+                return `<option value="${q.id}" ${selected}>${escapeHtml(questionDisplayLabel(q))}</option>`;
+            }).join('');
+            return `
+                <label class="form-label small mb-0 text-muted">Ziel-Frage</label>
+                <select class="form-select form-select-sm mb-1 logic-target" data-mod-pill-select>${qOpts}</select>
+            `;
+        }
+        const pageOpts = (structure.pages || []).map((p) => {
+            const selected = sameId(p.id, rule.target_page_id) ? 'selected' : '';
+            return `<option value="${p.id}" ${selected}>${escapeHtml(pageDisplayLabel(p))}</option>`;
+        }).join('');
+        return `
+            <label class="form-label small mb-0 text-muted">Ziel-Seite</label>
+            <select class="form-select form-select-sm mb-1 logic-target" data-mod-pill-select>${pageOpts}</select>
+        `;
+    }
+
+    function syncRuleTargets(rule) {
+        const questions = allQuestions();
+        if (isQuestionAction(rule.action)) {
+            rule.target_page_id = null;
+            if (!findQuestionById(rule.target_question_id)) {
+                const fallback = questions.find((q) => !sameId(q.id, rule.source_question_id)) || questions[0];
+                rule.target_question_id = fallback ? fallback.id : null;
+            }
+        } else {
+            rule.target_question_id = null;
+            if (!(structure.pages || []).some((p) => sameId(p.id, rule.target_page_id))) {
+                rule.target_page_id = structure.pages?.[0]?.id ?? null;
+            }
+        }
+    }
+
+    function getLogicRule(idx) {
+        return (structure.logic_rules || [])[idx] || null;
+    }
+
     function renderLogicRules() {
         const container = document.getElementById('surveyLogicRules');
         if (!container) return;
         container.innerHTML = '';
         structure.logic_rules = structure.logic_rules || [];
+        if (editingLogicIdx != null && (editingLogicIdx < 0 || editingLogicIdx >= structure.logic_rules.length)) {
+            editingLogicIdx = null;
+        }
+
+        if (!structure.logic_rules.length) {
+            const empty = document.createElement('p');
+            empty.className = 'text-muted small mb-0';
+            empty.textContent = 'Noch keine Verknüpfungen.';
+            container.appendChild(empty);
+            return;
+        }
+
         structure.logic_rules.forEach((rule, idx) => {
-            const row = document.createElement('div');
-            row.className = 'border rounded p-2 mb-2 small surveys-logic-rule';
             const questions = allQuestions();
-            const qOpts = questions.map((q) => `<option value="${q.id}" ${q.id === rule.source_question_id ? 'selected' : ''}>${q.label || 'Frage'}</option>`).join('');
-            const pageOpts = (structure.pages || []).map((p) => `<option value="${p.id}" ${p.id === rule.target_page_id ? 'selected' : ''}>${p.title || 'Seite'}</option>`).join('');
+            const sourceQ = findQuestionById(rule.source_question_id) || questions[0];
+            if (sourceQ && !sameId(rule.source_question_id, sourceQ.id)) {
+                rule.source_question_id = sourceQ.id;
+            }
+            ensureValidOperator(rule, sourceQ);
+            normalizeLogicValueForQuestion(rule, sourceQ);
+            syncRuleTargets(rule);
+
+            const row = document.createElement('div');
+            row.className = `surveys-logic-rule ${editingLogicIdx === idx ? 'surveys-logic-rule--editing' : 'surveys-logic-rule--summary'}`;
+
+            if (editingLogicIdx !== idx) {
+                row.innerHTML = `
+                    <button type="button" class="surveys-logic-summary logic-edit" title="Regel bearbeiten">
+                        <span class="surveys-logic-summary-text">${escapeHtml(summarizeLogicRule(rule))}</span>
+                        <i class="bi bi-pencil surveys-logic-summary-icon" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-link text-danger p-0 logic-del" title="Entfernen">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                `;
+                row.querySelector('.logic-edit').addEventListener('click', () => {
+                    editingLogicIdx = idx;
+                    renderLogicRules();
+                });
+                row.querySelector('.logic-del').addEventListener('click', () => {
+                    structure.logic_rules.splice(idx, 1);
+                    if (editingLogicIdx === idx) editingLogicIdx = null;
+                    else if (editingLogicIdx != null && editingLogicIdx > idx) editingLogicIdx -= 1;
+                    renderLogicRules();
+                    scheduleSave();
+                });
+                container.appendChild(row);
+                return;
+            }
+
+            const qOpts = questions.map((q) => {
+                const selected = sameId(q.id, rule.source_question_id) ? 'selected' : '';
+                return `<option value="${q.id}" ${selected}>${escapeHtml(questionDisplayLabel(q))}</option>`;
+            }).join('');
+            const opOpts = operatorsForQuestion(sourceQ).map(([value, label]) => {
+                const selected = rule.operator === value ? 'selected' : '';
+                return `<option value="${value}" ${selected}>${label}</option>`;
+            }).join('');
+
             row.innerHTML = `
-                <div class="mb-1 fw-semibold">Regel ${idx + 1}</div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="fw-semibold small">Regel ${idx + 1}</div>
+                    <button type="button" class="btn btn-sm btn-link p-0 logic-done">Fertig</button>
+                </div>
+                <label class="form-label small mb-0 text-muted">Wenn Frage</label>
                 <select class="form-select form-select-sm mb-1 logic-src" data-mod-pill-select>${qOpts}</select>
-                <select class="form-select form-select-sm mb-1 logic-op" data-mod-pill-select>
-                    <option value="equals" ${rule.operator === 'equals' ? 'selected' : ''}>=</option>
-                    <option value="not_equals" ${rule.operator === 'not_equals' ? 'selected' : ''}>≠</option>
-                    <option value="contains" ${rule.operator === 'contains' ? 'selected' : ''}>enthält</option>
-                    <option value="is_empty" ${rule.operator === 'is_empty' ? 'selected' : ''}>leer</option>
-                    <option value="is_not_empty" ${rule.operator === 'is_not_empty' ? 'selected' : ''}>nicht leer</option>
-                </select>
-                <input type="text" class="form-control form-control-sm mb-1 logic-val" value="${rule.value || ''}" placeholder="Wert">
+                <label class="form-label small mb-0 text-muted">Bedingung</label>
+                <select class="form-select form-select-sm mb-1 logic-op" data-mod-pill-select>${opOpts}</select>
+                ${buildValueFieldHtml(rule, sourceQ)}
+                <label class="form-label small mb-0 text-muted">Dann</label>
                 <select class="form-select form-select-sm mb-1 logic-action" data-mod-pill-select>
+                    <option value="hide_question" ${rule.action === 'hide_question' ? 'selected' : ''}>Frage überspringen</option>
+                    <option value="show_question" ${rule.action === 'show_question' ? 'selected' : ''}>Frage anzeigen</option>
                     <option value="goto_page" ${rule.action === 'goto_page' ? 'selected' : ''}>Gehe zu Seite</option>
                     <option value="skip_page" ${rule.action === 'skip_page' ? 'selected' : ''}>Seite überspringen</option>
-                    <option value="hide_question" ${rule.action === 'hide_question' ? 'selected' : ''}>Frage ausblenden</option>
-                    <option value="show_question" ${rule.action === 'show_question' ? 'selected' : ''}>Frage anzeigen</option>
                 </select>
-                <select class="form-select form-select-sm mb-1 logic-page" data-mod-pill-select>${pageOpts}</select>
+                ${buildTargetFieldHtml(rule, questions)}
                 <button type="button" class="btn btn-sm btn-link text-danger p-0 logic-del">Entfernen</button>
             `;
-            row.querySelector('.logic-src').addEventListener('change', (e) => { rule.source_question_id = Number(e.target.value); scheduleSave(); });
-            row.querySelector('.logic-op').addEventListener('change', (e) => { rule.operator = e.target.value; scheduleSave(); });
-            row.querySelector('.logic-val').addEventListener('input', (e) => { rule.value = e.target.value; scheduleSave(); });
-            row.querySelector('.logic-action').addEventListener('change', (e) => { rule.action = e.target.value; scheduleSave(); });
-            row.querySelector('.logic-page').addEventListener('change', (e) => { rule.target_page_id = Number(e.target.value); scheduleSave(); });
+
+            const refreshEditor = () => {
+                editingLogicIdx = idx;
+                renderLogicRules();
+                scheduleSave();
+            };
+
+            row.querySelector('.logic-src').addEventListener('change', (e) => {
+                const current = getLogicRule(idx);
+                if (!current) return;
+                current.source_question_id = Number(e.target.value);
+                const nextQ = findQuestionById(current.source_question_id);
+                ensureValidOperator(current, nextQ);
+                current.value = defaultLogicValueForQuestion(nextQ);
+                syncRuleTargets(current);
+                refreshEditor();
+            });
+            row.querySelector('.logic-op').addEventListener('change', (e) => {
+                const current = getLogicRule(idx);
+                if (!current) return;
+                current.operator = e.target.value;
+                normalizeLogicValueForQuestion(current, findQuestionById(current.source_question_id));
+                refreshEditor();
+            });
+            const valEl = row.querySelector('.logic-val');
+            if (valEl) {
+                const onVal = (e) => {
+                    const current = getLogicRule(idx);
+                    if (!current) return;
+                    current.value = e.target.value;
+                    scheduleSave();
+                };
+                // change: Selects sofort, Text/Zahl beim Verlassen — vermeidet Fokusverlust beim Autosave-Re-Render
+                valEl.addEventListener('change', onVal);
+            }
+            row.querySelector('.logic-action').addEventListener('change', (e) => {
+                const current = getLogicRule(idx);
+                if (!current) return;
+                current.action = e.target.value;
+                syncRuleTargets(current);
+                refreshEditor();
+            });
+            row.querySelector('.logic-target').addEventListener('change', (e) => {
+                const current = getLogicRule(idx);
+                if (!current) return;
+                const value = Number(e.target.value);
+                if (isQuestionAction(current.action)) {
+                    current.target_question_id = value;
+                    current.target_page_id = null;
+                } else {
+                    current.target_page_id = value;
+                    current.target_question_id = null;
+                }
+                scheduleSave();
+            });
+            row.querySelector('.logic-done').addEventListener('click', () => {
+                editingLogicIdx = null;
+                renderLogicRules();
+            });
             row.querySelector('.logic-del').addEventListener('click', () => {
                 structure.logic_rules.splice(idx, 1);
+                editingLogicIdx = null;
                 renderLogicRules();
                 scheduleSave();
             });
             container.appendChild(row);
         });
+
         if (window.InventoryPillSelect) {
             window.InventoryPillSelect.enhanceAll(container);
         }
