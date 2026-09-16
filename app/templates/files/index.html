@@ -82,12 +82,12 @@
 {% macro files_move_menu_item(item_type, item_id) %}
 {% if not is_trash_view %}
 <li>
-    <a class="dropdown-item" href="#" role="button"
+    <button type="button" class="dropdown-item"
        data-files-move-type="{{ item_type }}"
        data-files-move-id="{{ item_id }}"
-       onclick="openMoveModal({{ item_type|tojson }}, {{ item_id }}); return false;">
+       onclick="return openMoveModal({{ item_type|tojson }}, {{ item_id }}, event);">
         <i class="bi bi-folder-symlink me-2"></i> {{ _('files.index.actions.move') }}
-    </a>
+    </button>
 </li>
 {% endif %}
 {% endmacro %}
@@ -1354,6 +1354,7 @@ window.FILES_BULK_RESTORE_URL = {{ url_for('files.api_bulk_restore')|tojson }};
 window.FILES_MOVE_URL = {{ url_for('files.move_item')|tojson }};
 window.FILES_MOVE_DESTINATIONS_URL = {{ url_for('files.api_move_destinations')|tojson }};
 </script>
+<script src="{{ url_for('static', filename='js/files-move.js') }}"></script>
 <script src="{{ url_for('static', filename='js/lazy-load-more.js') }}"></script>
 <script src="{{ url_for('static', filename='js/mod-view-toggle.js') }}"></script>
 <script src="{{ url_for('static', filename='js/files-index.js') }}"></script>
