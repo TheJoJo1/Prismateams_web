@@ -54,6 +54,28 @@ ProxyRequests Off
     RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
 </Location>
 
+# Print PDF preview (Datei -> Drucken in EuroOffice Docs) – Origin-Root, nicht unter /eurooffice
+<Location /printfile>
+    ProxyPass http://127.0.0.1:8080/printfile
+    ProxyPassReverse http://127.0.0.1:8080/printfile
+    ProxyPreserveHost On
+    RequestHeader set Host "\${HTTP_HOST}"
+    RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+    RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+    RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
+</Location>
+
+# Document conversion service (Download as / Print pipeline)
+<Location /ConvertService.ashx>
+    ProxyPass http://127.0.0.1:8080/ConvertService.ashx
+    ProxyPassReverse http://127.0.0.1:8080/ConvertService.ashx
+    ProxyPreserveHost On
+    RequestHeader set Host "\${HTTP_HOST}"
+    RequestHeader set X-Real-IP "\${REMOTE_ADDR}"
+    RequestHeader set X-Forwarded-For "\${HTTP_X_FORWARDED_FOR}"
+    RequestHeader set X-Forwarded-Proto "\${REQUEST_SCHEME}"
+</Location>
+
 # Document Server – Legacy-Pfad /onlyoffice (bestehende .env)
 <Location /onlyoffice>
     ProxyPass http://127.0.0.1:8080/

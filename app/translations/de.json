@@ -3158,6 +3158,9 @@
           "confirm": "Hierher verschieben",
           "empty": "Keine Ordner verfügbar.",
           "root_hint": "Bereich (Root)",
+          "selected": "Ziel: {path}",
+          "expand": "Unterordner anzeigen",
+          "collapse": "Unterordner ausblenden",
           "item_file": "Datei in einen anderen Ordner oder Bereich verschieben.",
           "item_folder": "Ordner in einen anderen Ordner oder Bereich verschieben."
         }

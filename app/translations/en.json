@@ -3155,6 +3155,9 @@
           "confirm": "Move here",
           "empty": "No folders available.",
           "root_hint": "Area (root)",
+          "selected": "Destination: {path}",
+          "expand": "Show subfolders",
+          "collapse": "Hide subfolders",
           "item_file": "Move file to another folder or area.",
           "item_folder": "Move folder to another folder or area."
         }

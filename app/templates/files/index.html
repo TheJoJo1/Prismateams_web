@@ -1230,22 +1230,25 @@
 
 <!-- Verschieben Modal: außerhalb der Shell (sonst hinter Backdrop wegen Stacking-Context) -->
 <div class="modal fade" id="filesMoveModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ _('files.index.modals.move.title') }}</h5>
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content files-move-modal-content">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title">
+                    <i class="bi bi-folder-symlink me-2" aria-hidden="true"></i>{{ _('files.index.modals.move.title') }}
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.cancel') }}"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body pt-3">
                 <p class="small text-muted mb-3" id="filesMoveItemLabel"></p>
                 <div id="filesMoveLoading" class="text-muted small py-3">{{ _('files.index.modals.move.loading') }}</div>
                 <div id="filesMoveTree" class="files-move-tree" hidden></div>
-                <div id="filesMoveError" class="alert alert-danger py-2 small mb-0" hidden></div>
+                <div id="filesMoveSelectedPath" class="files-move-selected-path" hidden></div>
+                <div id="filesMoveError" class="alert alert-danger py-2 small mb-0 mt-2" hidden></div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
-                <button type="button" class="btn btn-accent" id="filesMoveConfirmBtn" disabled>
-                    <i class="bi bi-folder-symlink me-1"></i>{{ _('files.index.modals.move.confirm') }}
+            <div class="modal-footer border-0 pt-0 gap-2">
+                <button type="button" class="btn btn-secondary mod-pill-btn" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-accent mod-pill-btn mod-pill-btn--accent" id="filesMoveConfirmBtn" disabled>
+                    <i class="bi bi-folder-symlink me-1" aria-hidden="true"></i>{{ _('files.index.modals.move.confirm') }}
                 </button>
             </div>
         </div>

@@ -893,7 +893,7 @@ server {
 ```
 
 **Wichtig:** 
-- Entfernen Sie die Document-Server-Location-Blöcke (`/eurooffice`, `/onlyoffice`, `/cache`), wenn der Document Server NICHT installiert ist
+- Entfernen Sie die Document-Server-Location-Blöcke (`/eurooffice`, `/onlyoffice`, `/cache`) und das Snippet `teamportal-documentserver-extra.conf` (inkl. `/printfile`, `/ConvertService.ashx`, `/sdkjs`, …), wenn der Document Server NICHT installiert ist
 - Entfernen Sie den Excalidraw-Location-Block (`/excalidraw-room/`), wenn der Room-Server NICHT installiert ist
 - Ersetzen Sie `ihre-domain.de` mit Ihrer tatsächlichen Domain oder IP-Adresse
 - Gzip: `scripts/install_ubuntu/nginx-gzip.conf` nach `/etc/nginx/conf.d/` kopieren (oder den `gzip`-Block im `server` behalten)

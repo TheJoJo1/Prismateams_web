@@ -1,4 +1,4 @@
-/** Dateien: Verschieben-Modal (eigenstaendig, unabhaengig von files-index.js). */
+/** Dateien: Verschieben-Modal mit Ordnerbaum. */
 (function () {
     'use strict';
 
@@ -6,7 +6,8 @@
         itemType: null,
         itemId: null,
         selected: null,
-        modal: null
+        modal: null,
+        pathLabel: ''
     };
     var openGuard = 0;
 
@@ -18,9 +19,12 @@
             loading: modals.loading || 'Lade Ziele…',
             confirm: modals.confirm || 'Hierher verschieben',
             empty: modals.empty || 'Keine Ordner verfügbar.',
-            root_hint: modals.root_hint || 'In diesen Bereich (Root)',
+            root_hint: modals.root_hint || 'Bereich (Root)',
             item_file: modals.item_file || 'Datei verschieben',
-            item_folder: modals.item_folder || 'Ordner verschieben'
+            item_folder: modals.item_folder || 'Ordner verschieben',
+            selected: modals.selected || 'Ziel: {path}',
+            expand: modals.expand || 'Aufklappen',
+            collapse: modals.collapse || 'Zuklappen'
         };
     }
 
@@ -44,7 +48,21 @@
         el.textContent = message;
     }
 
-    function setMoveSelection(payload, button) {
+    function setSelectedPath(pathLabel) {
+        moveState.pathLabel = pathLabel || '';
+        var el = document.getElementById('filesMoveSelectedPath');
+        if (!el) return;
+        if (!pathLabel) {
+            el.hidden = true;
+            el.textContent = '';
+            return;
+        }
+        var tpl = moveLabels().selected || 'Ziel: {path}';
+        el.textContent = tpl.split('{path}').join(pathLabel);
+        el.hidden = false;
+    }
+
+    function setMoveSelection(payload, button, pathLabel) {
         moveState.selected = payload;
         document.querySelectorAll('.files-move-node.is-selected').forEach(function (el) {
             el.classList.remove('is-selected');
@@ -52,24 +70,40 @@
         if (button) button.classList.add('is-selected');
         var confirmBtn = document.getElementById('filesMoveConfirmBtn');
         if (confirmBtn) confirmBtn.disabled = !payload;
+        setSelectedPath(pathLabel || '');
     }
 
-    function renderFolderNodes(nodes, depth) {
+    function countFolders(nodes) {
+        if (!nodes || !nodes.length) return 0;
+        var n = nodes.length;
+        nodes.forEach(function (node) {
+            n += countFolders(node.children);
+        });
+        return n;
+    }
+
+    function renderFolderNodes(nodes, depth, spaceLabel) {
         if (!nodes || !nodes.length) return '';
         return nodes.map(function (node) {
-            var hasChildren = node.children && node.children.length;
+            var hasChildren = !!(node.children && node.children.length);
             var kids = hasChildren
-                ? '<div class="files-move-children">' + renderFolderNodes(node.children, depth + 1) + '</div>'
+                ? '<div class="files-move-children" data-depth="' + (depth + 1) + '">' +
+                    renderFolderNodes(node.children, depth + 1, spaceLabel) +
+                  '</div>'
                 : '';
             var toggle = hasChildren
-                ? '<button type="button" class="files-move-toggle" aria-expanded="true" title="Unterordner"><i class="bi bi-caret-down-fill"></i></button>'
-                : '<span class="files-move-toggle-spacer"></span>';
+                ? '<button type="button" class="files-move-toggle" aria-expanded="true" title="' +
+                    escapeHtml(moveLabels().collapse) + '"><i class="bi bi-caret-down-fill" aria-hidden="true"></i></button>'
+                : '<span class="files-move-toggle-spacer" aria-hidden="true"></span>';
             var colorStyle = node.color ? ' style="color:' + escapeHtml(node.color) + '"' : '';
+            var path = spaceLabel + ' / ' + node.name;
             return (
                 '<div class="files-move-branch" data-depth="' + depth + '">' +
-                    '<div class="files-move-row">' +
+                    '<div class="files-move-row" style="--files-move-depth:' + depth + '">' +
                         toggle +
-                        '<button type="button" class="files-move-node" data-folder-id="' + node.id + '" data-view="" data-team-id="">' +
+                        '<button type="button" class="files-move-node" ' +
+                            'data-folder-id="' + node.id + '" ' +
+                            'data-path="' + escapeHtml(path) + '">' +
                             '<i class="bi bi-folder-fill folder-color-icon"' + colorStyle + '></i>' +
                             '<span class="text-truncate">' + escapeHtml(node.name) + '</span>' +
                         '</button>' +
@@ -88,60 +122,95 @@
                 : (space.view === 'team' ? 'bi-people-fill' : 'bi-globe2');
             var colorDot = space.color
                 ? '<span class="files-move-team-dot" style="background:' + escapeHtml(space.color) + '"></span>'
-                : '<i class="bi ' + icon + '"></i>';
+                : '<i class="bi ' + icon + '" aria-hidden="true"></i>';
             var teamAttr = space.team_id != null ? ' data-team-id="' + space.team_id + '"' : ' data-team-id=""';
-            var children = renderFolderNodes(space.folders || [], 1);
+            var folders = space.folders || [];
+            var children = renderFolderNodes(folders, 1, space.label);
+            var folderCount = countFolders(folders);
+            var hasChildren = !!children;
+            var spaceToggle = hasChildren
+                ? '<button type="button" class="files-move-toggle" aria-expanded="true" title="' +
+                    escapeHtml(labels.collapse) + '"><i class="bi bi-caret-down-fill" aria-hidden="true"></i></button>'
+                : '<span class="files-move-toggle-spacer" aria-hidden="true"></span>';
+            var countBadge = folderCount
+                ? '<span class="files-move-count">' + folderCount + '</span>'
+                : '';
             return (
                 '<div class="files-move-space" data-space-key="' + escapeHtml(space.key) + '">' +
-                    '<button type="button" class="files-move-node files-move-space-root" data-folder-id="" data-view="' +
-                        escapeHtml(space.view) + '"' + teamAttr + '>' +
-                        colorDot +
-                        '<span class="text-truncate">' + escapeHtml(space.label) + '</span>' +
-                        '<span class="files-move-root-hint">' + escapeHtml(labels.root_hint) + '</span>' +
-                    '</button>' +
-                    (children ? '<div class="files-move-children">' + children + '</div>' : '') +
+                    '<div class="files-move-row files-move-row--space" style="--files-move-depth:0">' +
+                        spaceToggle +
+                        '<button type="button" class="files-move-node files-move-space-root" ' +
+                            'data-folder-id="" ' +
+                            'data-view="' + escapeHtml(space.view) + '" ' +
+                            'data-path="' + escapeHtml(space.label) + '"' +
+                            teamAttr + '>' +
+                            colorDot +
+                            '<span class="text-truncate">' + escapeHtml(space.label) + '</span>' +
+                            countBadge +
+                            '<span class="files-move-root-hint">' + escapeHtml(labels.root_hint) + '</span>' +
+                        '</button>' +
+                    '</div>' +
+                    (children ? '<div class="files-move-children files-move-children--space">' + children + '</div>' : '') +
                 '</div>'
             );
         }).join('');
     }
 
-    function bindTreeEvents(treeEl) {
-        treeEl.querySelectorAll('.files-move-toggle').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var branch = btn.closest('.files-move-branch');
-                if (!branch) return;
-                var kids = branch.querySelector(':scope > .files-move-children');
-                if (!kids) return;
-                var open = kids.hidden;
-                kids.hidden = !open;
-                btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-                var icon = btn.querySelector('i');
-                if (icon) {
-                    icon.className = open ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill';
-                }
-            });
-        });
+    function toggleBranch(toggleBtn) {
+        var row = toggleBtn.closest('.files-move-row');
+        var branch = toggleBtn.closest('.files-move-branch, .files-move-space');
+        if (!branch) return;
+        var kids = null;
+        if (row && row.parentElement === branch) {
+            kids = branch.querySelector(':scope > .files-move-children');
+        }
+        if (!kids) return;
+        var willOpen = kids.hidden;
+        kids.hidden = !willOpen;
+        toggleBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        toggleBtn.title = willOpen ? moveLabels().collapse : moveLabels().expand;
+        var icon = toggleBtn.querySelector('i');
+        if (icon) {
+            icon.className = willOpen ? 'bi bi-caret-down-fill' : 'bi bi-caret-right-fill';
+        }
+    }
 
-        treeEl.querySelectorAll('.files-move-node').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var rawFolder = btn.getAttribute('data-folder-id');
-                var view = btn.getAttribute('data-view') || '';
-                var teamRaw = btn.getAttribute('data-team-id');
-                var targetFolderId = null;
-                if (rawFolder !== '' && rawFolder != null) {
-                    targetFolderId = parseInt(rawFolder, 10);
-                }
-                var space = btn.closest('.files-move-space');
-                var spaceRoot = space && space.querySelector('.files-move-space-root');
-                var resolvedView = view || (spaceRoot && spaceRoot.getAttribute('data-view')) || window.FILES_VIEW || 'public';
-                var resolvedTeam = teamRaw || (spaceRoot && spaceRoot.getAttribute('data-team-id')) || '';
-                setMoveSelection({
-                    target_folder_id: Number.isFinite(targetFolderId) ? targetFolderId : null,
-                    view: resolvedView,
-                    team_id: resolvedTeam ? parseInt(resolvedTeam, 10) : undefined
-                }, btn);
-            });
-        });
+    function selectNode(btn) {
+        var rawFolder = btn.getAttribute('data-folder-id');
+        var view = btn.getAttribute('data-view') || '';
+        var teamRaw = btn.getAttribute('data-team-id');
+        var pathLabel = btn.getAttribute('data-path') || btn.textContent.trim();
+        var targetFolderId = null;
+        if (rawFolder !== '' && rawFolder != null) {
+            targetFolderId = parseInt(rawFolder, 10);
+        }
+        var space = btn.closest('.files-move-space');
+        var spaceRoot = space && space.querySelector('.files-move-space-root');
+        var resolvedView = view || (spaceRoot && spaceRoot.getAttribute('data-view')) || window.FILES_VIEW || 'public';
+        var resolvedTeam = teamRaw || (spaceRoot && spaceRoot.getAttribute('data-team-id')) || '';
+        setMoveSelection({
+            target_folder_id: Number.isFinite(targetFolderId) ? targetFolderId : null,
+            view: resolvedView,
+            team_id: resolvedTeam ? parseInt(resolvedTeam, 10) : undefined
+        }, btn, pathLabel);
+    }
+
+    function bindTreeEvents(treeEl) {
+        treeEl.onclick = function (e) {
+            var toggle = e.target.closest('.files-move-toggle');
+            if (toggle && treeEl.contains(toggle)) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleBranch(toggle);
+                return;
+            }
+            var node = e.target.closest('.files-move-node');
+            if (node && treeEl.contains(node)) {
+                e.preventDefault();
+                e.stopPropagation();
+                selectNode(node);
+            }
+        };
     }
 
     function loadDestinations() {
@@ -155,6 +224,7 @@
         }
         if (confirmBtn) confirmBtn.disabled = true;
         setMoveError('');
+        setSelectedPath('');
         moveState.selected = null;
 
         var params = new URLSearchParams();
@@ -177,7 +247,7 @@
                 }
                 if (!tree) return;
                 if (!result.data.spaces || !result.data.spaces.length) {
-                    tree.innerHTML = '<div class="text-muted small">' + escapeHtml(moveLabels().empty) + '</div>';
+                    tree.innerHTML = '<div class="text-muted small p-2">' + escapeHtml(moveLabels().empty) + '</div>';
                 } else {
                     tree.innerHTML = renderSpaces(result.data.spaces);
                     bindTreeEvents(tree);
@@ -261,6 +331,7 @@
     };
 
     document.addEventListener('click', function (e) {
+        if (e.target.closest('#filesMoveModal')) return;
         var trigger = e.target.closest('[data-files-move-type][data-files-move-id]');
         if (!trigger) return;
         e.preventDefault();

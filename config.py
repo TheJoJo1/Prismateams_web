@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 
 # About-Seite (Release / Build)
 ABOUT_RELEASE_VERSION = 'v3.4.12'
-ABOUT_BUILD_NUMBER = 'B3412.20260916.04'
+ABOUT_BUILD_NUMBER = 'B3412.20260916.06'
 
 load_dotenv()
 

@@ -571,6 +571,47 @@ def _serialize_move_folder_nodes(by_parent, parent_id, exclude_ids):
     return nodes
 
 
+def _build_move_folder_tree(by_parent, root_parent_id, exclude_ids):
+    """
+    Nested folder tree for the move picker.
+    Orphan folders (parent missing/not visible) are attached at the space root
+    so every reachable destination remains selectable.
+    """
+    tree = _serialize_move_folder_nodes(by_parent, root_parent_id, exclude_ids)
+    included = set()
+
+    def _walk(nodes):
+        for node in nodes:
+            included.add(node['id'])
+            _walk(node.get('children') or [])
+
+    _walk(tree)
+
+    orphans = []
+    for parent_id, folders in by_parent.items():
+        if parent_id == root_parent_id:
+            continue
+        parent_visible = parent_id in included
+        for folder in folders:
+            if folder.id in exclude_ids or folder.id in included:
+                continue
+            if parent_visible:
+                continue
+            orphans.append({
+                'id': folder.id,
+                'name': folder.name,
+                'color': folder.color,
+                'children': _serialize_move_folder_nodes(by_parent, folder.id, exclude_ids),
+            })
+            included.add(folder.id)
+            _walk(orphans[-1]['children'])
+
+    if orphans:
+        orphans.sort(key=lambda n: (n.get('name') or '').lower())
+        tree.extend(orphans)
+    return tree
+
+
 def _folders_in_subtree(root_id):
     """Non-root folders whose ancestry includes root_id."""
     if root_id is None:
@@ -611,7 +652,7 @@ def list_move_destinations(user, exclude_folder_id=None):
             'team_id': None,
             'root_folder_id': personal_root.id,
             'label': 'ablage',
-            'folders': _serialize_move_folder_nodes(by_parent, personal_root.id, exclude_ids),
+            'folders': _build_move_folder_tree(by_parent, personal_root.id, exclude_ids),
         })
 
     if is_team_folders_enabled():
@@ -632,7 +673,7 @@ def list_move_destinations(user, exclude_folder_id=None):
                 'root_folder_id': team_root.id,
                 'label': team.name,
                 'color': getattr(team, 'color', None),
-                'folders': _serialize_move_folder_nodes(by_parent, team_root.id, exclude_ids),
+                'folders': _build_move_folder_tree(by_parent, team_root.id, exclude_ids),
             })
 
     public_folders = (
@@ -655,7 +696,7 @@ def list_move_destinations(user, exclude_folder_id=None):
         'team_id': None,
         'root_folder_id': None,
         'label': 'public',
-        'folders': _serialize_move_folder_nodes(by_parent, None, exclude_ids),
+        'folders': _build_move_folder_tree(by_parent, None, exclude_ids),
     })
 
     return spaces
