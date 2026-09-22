@@ -24,6 +24,7 @@ from werkzeug.utils import secure_filename
 from datetime import datetime, date, timedelta
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import joinedload, selectinload
+from .helpers import _apply_owner_from_form, owner_suggestion_payload
 import os
 import secrets
 import string
