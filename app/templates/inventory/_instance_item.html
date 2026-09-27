@@ -1,0 +1,156 @@
+{# Instance item row for the instances list #}
+<div class="inventory-instance-item"
+     data-instance-id="{{ instance.id }}"
+     data-identifier="{{ instance.display_identifier }}"
+     data-serial-number="{{ instance.serial_number or '' }}"
+     data-dguv-id="{{ instance.dguv_id or '' }}"
+     data-dguv-enabled="{{ instance.dguv_enabled|lower }}"
+     data-color-id="{{ instance.color_id or '' }}"
+     data-status="{{ instance.status }}"
+     data-location="{{ instance.location or '' }}">
+    
+    {# Mobile view #}
+    <div class="inventory-instance-item-mobile d-lg-none">
+        <div class="inventory-instance-item-mobile-header">
+            <div class="inventory-instance-item-mobile-identifier">
+                <strong>{{ instance.display_identifier }}</strong>
+                {% if instance.inventory_number %}
+                <div class="inventory-instance-item-mobile-meta text-muted small">{{ instance.inventory_number }}</div>
+                {% endif %}
+            </div>
+            <div class="inventory-instance-item-mobile-status">
+                <span class="badge bg-{{ get_status_badge_class(instance.status) }}">
+                    {{ _('inventory.instances.status.' + instance.status) }}
+                </span>
+            </div>
+        </div>
+        <div class="inventory-instance-item-mobile-body">
+            {% if instance.dguv_enabled %}
+            <div class="inventory-instance-item-mobile-field">
+                <span class="inventory-instance-item-mobile-field-label">{{ _('inventory.instances.list.dguv') }}:</span>
+                <span class="inventory-instance-item-mobile-field-value">{{ instance.dguv_id or _('inventory.instances.detail.not_set') }}</span>
+            </div>
+            {% endif %}
+            {% if instance.effective_color %}
+            <div class="inventory-instance-item-mobile-field">
+                <span class="inventory-instance-item-mobile-field-label">{{ _('inventory.instances.list.color') }}:</span>
+                <span class="inventory-instance-item-mobile-field-value" style="color: {{ instance.effective_color }}">
+                    {{ instance.color_override or (instance.color.name if instance.color else '') }}
+                </span>
+            </div>
+            {% endif %}
+            {% if instance.location %}
+            <div class="inventory-instance-item-mobile-field">
+                <span class="inventory-instance-item-mobile-field-label">{{ _('inventory.instances.list.location') }}:</span>
+                <span class="inventory-instance-item-mobile-field-value">{{ instance.location }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="inventory-instance-item-mobile-actions">
+            <button type="button" class="btn btn-sm btn-outline-primary instance-view-btn" 
+                    data-instance-id="{{ instance.id }}" 
+                    title="{{ _('inventory.instances.list.view') }}">
+                <i class="bi bi-eye"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary instance-edit-btn" 
+                    data-instance-id="{{ instance.id }}" 
+                    title="{{ _('inventory.instances.list.edit') }}">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-info instance-status-btn" 
+                    data-instance-id="{{ instance.id }}" 
+                    title="{{ _('inventory.instances.list.change_status') }}">
+                <i class="bi bi-arrow-repeat"></i>
+            </button>
+            {% if instance.active %}
+            <button type="button" class="btn btn-sm btn-outline-danger instance-delete-btn" 
+                    data-instance-id="{{ instance.id }}" 
+                    title="{{ _('inventory.instances.list.delete') }}">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    {# Desktop view #}
+    <div class="inventory-instance-item-desktop d-none d-lg-flex">
+        <div class="inventory-instances-list-col inventory-instances-list-col--identifier">
+            <div class="inventory-instance-identifier">
+                <strong>{{ instance.display_identifier }}</strong>
+                {% if instance.inventory_number %}
+                <div class="inventory-instance-identifier-secondary text-muted small">{{ instance.inventory_number }}</div>
+                {% endif %}
+                {% if instance.serial_number %}
+                <div class="inventory-instance-identifier-secondary text-muted small">{{ instance.serial_number }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--status">
+            <span class="badge bg-{{ get_status_badge_class(instance.status) }}">
+                {{ _('inventory.instances.status.' + instance.status) }}
+            </span>
+        </div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--dguv">
+            {% if instance.dguv_enabled %}
+            <div class="inventory-instance-dguv">
+                <i class="bi bi-shield-check me-1" title="{{ _('inventory.instances.dguv_enabled') }}"></i>
+                <span>{{ instance.dguv_id or _('inventory.instances.detail.not_set') }}</span>
+            </div>
+            {% else %}
+            <span class="text-muted">{{ _('inventory.instances.detail.not_set') }}</span>
+            {% endif %}
+        </div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--color">
+            {% if instance.effective_color %}
+            <div class="inventory-instance-color" style="--instance-color: {{ instance.effective_color }};">
+                <span class="inventory-instance-color-dot" style="background-color: var(--instance-color);"></span>
+                <span class="inventory-instance-color-name">{{ instance.color_override or (instance.color.name if instance.color else '') }}</span>
+            </div>
+            {% else %}
+            <span class="text-muted">{{ _('inventory.instances.detail.not_set') }}</span>
+            {% endif %}
+        </div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--location">
+            {{ instance.location or _('inventory.instances.detail.not_set') }}
+        </div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--actions">
+            <div class="inventory-instance-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary instance-view-btn" 
+                        data-instance-id="{{ instance.id }}" 
+                        title="{{ _('inventory.instances.list.view') }}">
+                    <i class="bi bi-eye"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary instance-edit-btn" 
+                        data-instance-id="{{ instance.id }}" 
+                        title="{{ _('inventory.instances.list.edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-info instance-status-btn" 
+                        data-instance-id="{{ instance.id }}" 
+                        title="{{ _('inventory.instances.list.change_status') }}">
+                    <i class="bi bi-arrow-repeat"></i>
+                </button>
+                {% if instance.active %}
+                <button type="button" class="btn btn-sm btn-outline-danger instance-delete-btn" 
+                        data-instance-id="{{ instance.id }}" 
+                        title="{{ _('inventory.instances.list.delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Helper macro for Jinja2 #}
+{% macro get_status_badge_class(status) %}
+    {% set classes = {
+        'available': 'success',
+        'borrowed': 'info',
+        'defective': 'warning',
+        'in_repair': 'warning',
+        'lost': 'danger',
+        'retired': 'secondary'
+    } %}
+    {{ classes.get(status, 'secondary') }}
+{% endmacro %}

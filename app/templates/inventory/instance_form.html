@@ -1,0 +1,308 @@
+{% extends "inventory/layout.html" %}
+
+{% block title %}{% if instance %}{{ _('inventory.instance.form.page_title_edit') }}{% else %}{{ _('inventory.instance.form.page_title_new') }}{% endif %}{% endblock %}
+{% block inventory_heading_icon %}bi-box-seam{% endblock %}
+{% block inventory_heading %}{% if instance %}{{ _('inventory.instance.form.heading_edit') }}{% else %}{{ _('inventory.instance.form.heading_new') }}{% endif %}{% endblock %}
+
+{% block inventory_content %}
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.product_instances', product_id=product.id) }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>{{ _('layout.nav.back') }}</span>
+    </a>
+</div>
+
+<form method="POST" enctype="multipart/form-data" class="inventory-form">
+    <input type="hidden" name="product_id" value="{{ product.id }}">
+    {% if instance %}
+    <input type="hidden" name="instance_id" value="{{ instance.id }}">
+    {% endif %}
+
+    {# Identification #}
+    <section class="inventory-form-card inventory-form-card--wide" aria-labelledby="inv-form-identification">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-identification" class="inventory-form-section-title">
+                <i class="bi bi-tag" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.identification') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields inventory-form-fields--2">
+            <div class="inventory-form-field">
+                <label for="inventory_number" class="form-label">{{ _('inventory.instance.form.inventory_number') }}</label>
+                <input type="text" class="form-control mod-pill-input" id="inventory_number" name="inventory_number"
+                       value="{{ instance.inventory_number if instance else '' }}"
+                       placeholder="{{ _('inventory.instance.form.inventory_number_placeholder') }}">
+                <div class="form-text">{{ _('inventory.instance.form.inventory_number_help') }}</div>
+            </div>
+            <div class="inventory-form-field">
+                <label for="serial_number" class="form-label">{{ _('inventory.instance.form.serial_number') }}</label>
+                <input type="text" class="form-control mod-pill-input" id="serial_number" name="serial_number"
+                       value="{{ instance.serial_number if instance else '' }}"
+                       placeholder="{{ _('inventory.instance.form.serial_number_placeholder') }}">
+                <div class="form-text">{{ _('inventory.instance.form.serial_number_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# Status #}
+    <section class="inventory-form-card" aria-labelledby="inv-form-status">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-status" class="inventory-form-section-title">
+                <i class="bi bi-activity" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.status') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields">
+            <div class="inventory-form-field">
+                <label for="status" class="form-label">{{ _('inventory.instance.form.status') }}</label>
+                <select class="form-select mod-pill-input" id="status" name="status">
+                    {% for status_option in ['available', 'borrowed', 'defective', 'in_repair', 'lost', 'retired'] %}
+                    <option value="{{ status_option }}" {% if instance and instance.status == status_option %}selected{% endif %}>
+                        {{ _('inventory.instances.status.' + status_option) }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">{{ _('inventory.instance.form.status_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# DGUV #}
+    <section class="inventory-form-card" aria-labelledby="inv-form-dguv">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-dguv" class="inventory-form-section-title">
+                <i class="bi bi-shield-check" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.dguv') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields">
+            <div class="inventory-form-field">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="dguv_enabled" name="dguv_enabled"
+                           {% if instance and instance.dguv_enabled %}checked{% endif %}>
+                    <label class="form-check-label" for="dguv_enabled">{{ _('inventory.instance.form.dguv_enabled') }}</label>
+                </div>
+                <div class="form-text">{{ _('inventory.instance.form.dguv_enabled_help') }}</div>
+            </div>
+            <div class="inventory-form-field">
+                <label for="dguv_id" class="form-label">{{ _('inventory.instance.form.dguv_id') }}</label>
+                <input type="text" class="form-control mod-pill-input" id="dguv_id" name="dguv_id"
+                       value="{{ instance.dguv_id if instance else '' }}"
+                       placeholder="{{ _('inventory.instance.form.dguv_id_placeholder') }}">
+                <div class="form-text">{{ _('inventory.instance.form.dguv_id_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# Color #}
+    <section class="inventory-form-card" aria-labelledby="inv-form-color">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-color" class="inventory-form-section-title">
+                <i class="bi bi-palette" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.color') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields inventory-form-fields--2">
+            <div class="inventory-form-field">
+                <label for="color_id" class="form-label">{{ _('inventory.instance.form.color') }}</label>
+                <select class="form-select mod-pill-input" id="color_id" name="color_id">
+                    <option value="">{{ _('inventory.instance.form.color_none') }}</option>
+                    {% for color in colors %}
+                    <option value="{{ color.id }}" {% if instance and instance.color_id == color.id %}selected{% endif %}>
+                        {{ color.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">{{ _('inventory.instance.form.color_help') }}</div>
+            </div>
+            <div class="inventory-form-field">
+                <label for="color_override" class="form-label">{{ _('inventory.instance.form.color_override') }}</label>
+                <div class="input-group">
+                    <input type="color" class="form-control form-control-color" id="color_override" name="color_override"
+                           value="{{ instance.color_override if instance else '#000000' }}">
+                    <input type="text" class="form-control mod-pill-input" id="color_override_text" 
+                           value="{{ instance.color_override if instance else '' }}"
+                           placeholder="{{ _('inventory.instance.form.color_override_placeholder') }}">
+                </div>
+                <div class="form-text">{{ _('inventory.instance.form.color_override_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# Location & Assignment #}
+    <section class="inventory-form-card" aria-labelledby="inv-form-location">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-location" class="inventory-form-section-title">
+                <i class="bi bi-geo-alt" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.location') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields inventory-form-fields--2">
+            <div class="inventory-form-field">
+                <label for="location" class="form-label">{{ _('inventory.instance.form.location') }}</label>
+                <input type="text" class="form-control mod-pill-input" id="location" name="location"
+                       value="{{ instance.location if instance else '' }}"
+                       placeholder="{{ _('inventory.instance.form.location_placeholder') }}">
+                <div class="form-text">{{ _('inventory.instance.form.location_help') }}</div>
+            </div>
+            <div class="inventory-form-field">
+                <label for="assigned_user_id" class="form-label">{{ _('inventory.instance.form.assigned_user') }}</label>
+                <select class="form-select mod-pill-input" id="assigned_user_id" name="assigned_user_id">
+                    <option value="">{{ _('inventory.instance.form.assigned_user_none') }}</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if instance and instance.assigned_user_id == user.id %}selected{% endif %}>
+                        {{ user.display_name or user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">{{ _('inventory.instance.form.assigned_user_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# Notes #}
+    <section class="inventory-form-card" aria-labelledby="inv-form-notes">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-notes" class="inventory-form-section-title">
+                <i class="bi bi-sticky-note" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.notes') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields">
+            <div class="inventory-form-field">
+                <label for="notes" class="form-label">{{ _('inventory.instance.form.notes') }}</label>
+                <textarea class="form-control mod-pill-input" id="notes" name="notes" rows="4">{{ instance.notes if instance else '' }}</textarea>
+                <div class="form-text">{{ _('inventory.instance.form.notes_help') }}</div>
+            </div>
+        </div>
+    </section>
+
+    {# Active state (only for edit) #}
+    {% if instance %}
+    <section class="inventory-form-card" aria-labelledby="inv-form-active">
+        <div class="inventory-form-card-head">
+            <h2 id="inv-form-active" class="inventory-form-section-title">
+                <i class="bi bi-toggle-on" aria-hidden="true"></i>
+                {{ _('inventory.instance.form.sections.active') }}
+            </h2>
+        </div>
+        <div class="inventory-form-fields">
+            <div class="inventory-form-field">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="active" name="active"
+                           {% if instance.active %}checked{% endif %}>
+                    <label class="form-check-label" for="active">{{ _('inventory.instance.form.active') }}</label>
+                </div>
+                <div class="form-text">{{ _('inventory.instance.form.active_help') }}</div>
+            </div>
+        </div>
+    </section>
+    {% endif %}
+
+    {# Submit #}
+    <div class="inventory-form-submit-row mt-4">
+        <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2 me-1"></i> {{ _('common.save') }}
+        </button>
+        <a href="{{ url_for('inventory.product_instances', product_id=product.id) }}" class="btn btn-secondary">
+            <i class="bi bi-x me-1"></i> {{ _('common.cancel') }}
+        </a>
+        {% if instance %}
+        <button type="button" class="btn btn-danger ms-auto" id="deleteInstanceBtn">
+            <i class="bi bi-trash me-1"></i> {{ _('common.delete') }}
+        </button>
+        {% endif %}
+    </div>
+</form>
+
+{# Delete confirmation modal #}
+{% if instance %}
+<div class="modal fade" id="deleteInstanceModal" tabindex="-1" aria-labelledby="deleteInstanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteInstanceModalLabel">{{ _('inventory.instance.form.delete.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ _('inventory.instance.form.delete.confirm', instance_identifier=instance.display_identifier) }}</p>
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="deleteConfirmCheckbox">
+                    <label class="form-check-label" for="deleteConfirmCheckbox">
+                        {{ _('inventory.instance.form.delete.confirm_text') }}
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="deleteInstanceConfirmBtn" disabled>
+                    <i class="bi bi-trash me-1"></i> {{ _('common.delete') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Color picker synchronization
+(function() {
+    const colorInput = document.getElementById('color_override');
+    const colorTextInput = document.getElementById('color_override_text');
+
+    if (colorInput && colorTextInput) {
+        // Sync color input to text input
+        colorInput.addEventListener('input', function() {
+            colorTextInput.value = this.value;
+        });
+
+        // Sync text input to color input
+        colorTextInput.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                colorInput.value = value;
+            }
+        });
+    }
+})();
+
+// Delete confirmation
+(function() {
+    const deleteBtn = document.getElementById('deleteInstanceBtn');
+    const deleteModal = document.getElementById('deleteInstanceModal');
+    const deleteConfirmBtn = document.getElementById('deleteInstanceConfirmBtn');
+    const deleteConfirmCheckbox = document.getElementById('deleteConfirmCheckbox');
+
+    if (deleteBtn && deleteModal && deleteConfirmBtn && deleteConfirmCheckbox) {
+        deleteBtn.addEventListener('click', function() {
+            const modal = new bootstrap.Modal(deleteModal);
+            modal.show();
+        });
+
+        deleteConfirmCheckbox.addEventListener('change', function() {
+            deleteConfirmBtn.disabled = !this.checked;
+        });
+
+        deleteConfirmBtn.addEventListener('click', function() {
+            // Create a hidden form to submit the delete action
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = window.location.href + '/delete';
+            
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrf_token';
+            csrfInput.value = document.querySelector('meta[name="csrf-token"]')?.content || '';
+            form.appendChild(csrfInput);
+            
+            document.body.appendChild(form);
+            form.submit();
+        });
+    }
+})();
+</script>
+{% endblock %}

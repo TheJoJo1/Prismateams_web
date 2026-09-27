@@ -938,3 +938,353 @@ def product_delete(product_id):
     
     flash(_('inventory.flash.product_deleted', name=product.name), 'success')
     return redirect(url_for('inventory.stock'))
+
+
+# ============================================================================
+# Produktinstanzen (Instance Management)
+# ============================================================================
+
+@inventory_bp.route('/products/<int:product_id>/instances')
+@inventory_bp.route('/products/<int:product_id>/instances/<int:page>')
+@login_required
+@check_module_access('module_inventory')
+def product_instances(product_id, page=1):
+    """Zeigt alle Instanzen eines Produkts an."""
+    from app.models.inventory import ProductInstance, InventoryColor
+    from app.services.inventory import InstanceService
+    
+    product = Product.query.get_or_404(product_id)
+    
+    # Pagination
+    per_page = 50
+    offset = (page - 1) * per_page
+    
+    # Get instances
+    instances = InstanceService.get_instances_by_product(product_id, include_inactive=False)
+    
+    # Get all colors for filter
+    colors = InventoryColor.query.filter_by(active=True).order_by(
+        InventoryColor.sort_order,
+        InventoryColor.name,
+    ).all()
+    
+    total_instances = len(instances)
+    total_pages = max(1, (total_instances + per_page - 1) // per_page)
+    
+    # Paginate instances
+    paginated_instances = instances[offset:offset + per_page]
+    
+    return render_template(
+        'inventory/product_instances.html',
+        product=product,
+        instances=paginated_instances,
+        colors=colors,
+        page=page,
+        total_pages=total_pages,
+        total_instances=total_instances,
+    )
+
+
+@inventory_bp.route('/products/<int:product_id>/instances/new', methods=['GET', 'POST'])
+@login_required
+@check_module_access('module_inventory')
+def product_instances_create(product_id):
+    """Erstellt eine neue Produktinstanz."""
+    from app.models.inventory import ProductInstance, InventoryColor
+    from app.services.inventory import InstanceService
+    from app.models.user import User
+    
+    product = Product.query.get_or_404(product_id)
+    
+    # Get all colors and users for form
+    colors = InventoryColor.query.filter_by(active=True).order_by(
+        InventoryColor.sort_order,
+        InventoryColor.name,
+    ).all()
+    users = User.query.order_by(User.display_name).all()
+    
+    if request.method == 'POST':
+        inventory_number = request.form.get('inventory_number', '').strip()
+        serial_number = request.form.get('serial_number', '').strip()
+        status = request.form.get('status', 'available')
+        dguv_enabled = request.form.get('dguv_enabled') == 'on'
+        dguv_id = request.form.get('dguv_id', '').strip()
+        color_id = request.form.get('color_id', '').strip()
+        color_override = request.form.get('color_override', '').strip()
+        location = request.form.get('location', '').strip()
+        assigned_user_id = request.form.get('assigned_user_id', '').strip()
+        notes = request.form.get('notes', '').strip()
+        
+        # Convert color_id to int or None
+        color_id_int = None
+        if color_id:
+            try:
+                color_id_int = int(color_id)
+            except ValueError:
+                color_id_int = None
+        
+        # Convert assigned_user_id to int or None
+        assigned_user_id_int = None
+        if assigned_user_id:
+            try:
+                assigned_user_id_int = int(assigned_user_id)
+            except ValueError:
+                assigned_user_id_int = None
+        
+        try:
+            InstanceService.create_instance(
+                product_id=product_id,
+                inventory_number=inventory_number or None,
+                serial_number=serial_number or None,
+                status=status,
+                dguv_enabled=dguv_enabled,
+                dguv_id=dguv_id or None,
+                color_id=color_id_int,
+                color_override=color_override or None,
+                location=location or None,
+                assigned_user_id=assigned_user_id_int,
+                notes=notes or None,
+                created_by=current_user.id,
+            )
+            db.session.commit()
+            flash(_('inventory.instances.flash.created'), 'success')
+            return redirect(url_for('inventory.product_instances', product_id=product_id))
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), 'danger')
+    
+    return render_template(
+        'inventory/instance_form.html',
+        product=product,
+        instance=None,
+        colors=colors,
+        users=users,
+    )
+
+
+@inventory_bp.route('/products/<int:product_id>/instance/<int:instance_id>/edit', methods=['GET', 'POST'])
+@login_required
+@check_module_access('module_inventory')
+def product_instance_edit(product_id, instance_id):
+    """Bearbeitet eine Produktinstanz."""
+    from app.models.inventory import ProductInstance, InventoryColor
+    from app.services.inventory import InstanceService
+    from app.models.user import User
+    
+    product = Product.query.get_or_404(product_id)
+    instance = ProductInstance.query.filter_by(
+        id=instance_id,
+        product_id=product_id,
+    ).first_or_404()
+    
+    # Get all colors and users for form
+    colors = InventoryColor.query.filter_by(active=True).order_by(
+        InventoryColor.sort_order,
+        InventoryColor.name,
+    ).all()
+    users = User.query.order_by(User.display_name).all()
+    
+    if request.method == 'POST':
+        inventory_number = request.form.get('inventory_number', '').strip()
+        serial_number = request.form.get('serial_number', '').strip()
+        status = request.form.get('status', instance.status)
+        dguv_enabled = request.form.get('dguv_enabled') == 'on'
+        dguv_id = request.form.get('dguv_id', '').strip()
+        color_id = request.form.get('color_id', '').strip()
+        color_override = request.form.get('color_override', '').strip()
+        location = request.form.get('location', '').strip()
+        assigned_user_id = request.form.get('assigned_user_id', '').strip()
+        notes = request.form.get('notes', '').strip()
+        active = request.form.get('active') == 'on'
+        
+        # Convert color_id to int or None
+        color_id_int = None
+        if color_id:
+            try:
+                color_id_int = int(color_id)
+            except ValueError:
+                color_id_int = None
+        
+        # Convert assigned_user_id to int or None
+        assigned_user_id_int = None
+        if assigned_user_id:
+            try:
+                assigned_user_id_int = int(assigned_user_id)
+            except ValueError:
+                assigned_user_id_int = None
+        
+        try:
+            InstanceService.update_instance(
+                instance_id=instance_id,
+                inventory_number=inventory_number or None,
+                serial_number=serial_number or None,
+                status=status,
+                dguv_enabled=dguv_enabled,
+                dguv_id=dguv_id or None,
+                color_id=color_id_int,
+                color_override=color_override or None,
+                location=location or None,
+                assigned_user_id=assigned_user_id_int,
+                notes=notes or None,
+                active=active,
+                updated_by=current_user.id,
+            )
+            db.session.commit()
+            flash(_('inventory.instances.flash.updated'), 'success')
+            return redirect(url_for('inventory.product_instances', product_id=product_id))
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), 'danger')
+    
+    return render_template(
+        'inventory/instance_form.html',
+        product=product,
+        instance=instance,
+        colors=colors,
+        users=users,
+    )
+
+
+@inventory_bp.route('/products/<int:product_id>/instance/<int:instance_id>/delete', methods=['POST'])
+@login_required
+@check_module_access('module_inventory')
+def product_instance_delete(product_id, instance_id):
+    """Löscht eine Produktinstanz."""
+    from app.models.inventory import ProductInstance
+    from app.services.inventory import InstanceService
+    from app.services.inventory.checkout_service import find_active_checkout_item_for_product_instance
+    
+    product = Product.query.get_or_404(product_id)
+    instance = ProductInstance.query.filter_by(
+        id=instance_id,
+        product_id=product_id,
+    ).first_or_404()
+    
+    # Check if instance is currently borrowed
+    if find_active_checkout_item_for_product_instance(instance_id) or instance.status == 'borrowed':
+        flash(_('inventory.instances.flash.cannot_delete_borrowed'), 'danger')
+        return redirect(url_for('inventory.product_instances', product_id=product_id))
+    
+    try:
+        InstanceService.delete_instance(
+            instance_id=instance_id,
+            deleted_by=current_user.id,
+        )
+        db.session.commit()
+        flash(_('inventory.instances.flash.deleted'), 'success')
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+    
+    return redirect(url_for('inventory.product_instances', product_id=product_id))
+
+
+# ============================================================================
+# Farben (Color Management)
+# ============================================================================
+
+@inventory_bp.route('/colors')
+@login_required
+@check_module_access('module_inventory')
+def colors_list():
+    """Zeigt alle Farben an."""
+    from app.models.inventory import InventoryColor
+    
+    colors = InventoryColor.query.order_by(
+        InventoryColor.sort_order,
+        InventoryColor.name,
+    ).all()
+    
+    return render_template(
+        'inventory/colors.html',
+        colors=colors,
+    )
+
+
+@inventory_bp.route('/colors/new', methods=['GET', 'POST'])
+@inventory_bp.route('/colors/<int:color_id>/edit', methods=['GET', 'POST'])
+@login_required
+@check_module_access('module_inventory')
+def colors_edit(color_id=None):
+    """Erstellt oder bearbeitet eine Farbe."""
+    from app.models.inventory import InventoryColor
+    from app.services.inventory import ColorService
+    
+    color = None
+    if color_id:
+        color = InventoryColor.query.get_or_404(color_id)
+    
+    if request.method == 'POST':
+        name = request.form.get('name', '').strip()
+        color_hex = request.form.get('color_hex', '').strip()
+        description = request.form.get('description', '').strip()
+        sort_order = request.form.get('sort_order', '0').strip()
+        active = request.form.get('active') == 'on'
+        
+        # Convert sort_order to int
+        sort_order_int = 0
+        try:
+            sort_order_int = int(sort_order)
+        except ValueError:
+            sort_order_int = 0
+        
+        try:
+            if color:
+                color = ColorService.update_color(
+                    color_id=color_id,
+                    name=name,
+                    color_hex=color_hex,
+                    description=description,
+                    sort_order=sort_order_int,
+                    active=active,
+                    updated_by=current_user.id,
+                )
+                flash(_('inventory.colors.flash.updated'), 'success')
+            else:
+                color = ColorService.create_color(
+                    name=name,
+                    color_hex=color_hex,
+                    description=description,
+                    sort_order=sort_order_int,
+                    created_by=current_user.id,
+                )
+                flash(_('inventory.colors.flash.created'), 'success')
+            db.session.commit()
+            return redirect(url_for('inventory.colors_list'))
+        except ValueError as e:
+            db.session.rollback()
+            flash(str(e), 'danger')
+    
+    return render_template(
+        'inventory/color_form.html',
+        color=color,
+    )
+
+
+@inventory_bp.route('/colors/<int:color_id>/delete', methods=['POST'])
+@login_required
+@check_module_access('module_inventory')
+def colors_delete(color_id):
+    """Löscht eine Farbe."""
+    from app.models.inventory import InventoryColor
+    from app.services.inventory import ColorService
+    
+    color = InventoryColor.query.get_or_404(color_id)
+    
+    # Check if color is used by any instances
+    if color.instances:
+        flash(_('inventory.colors.flash.cannot_delete_used', count=len(color.instances)), 'danger')
+        return redirect(url_for('inventory.colors_list'))
+    
+    try:
+        ColorService.delete_color(
+            color_id=color_id,
+            deleted_by=current_user.id,
+        )
+        db.session.commit()
+        flash(_('inventory.colors.flash.deleted', name=color.name), 'success')
+    except ValueError as e:
+        db.session.rollback()
+        flash(str(e), 'danger')
+    
+    return redirect(url_for('inventory.colors_list'))

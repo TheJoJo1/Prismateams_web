@@ -1,0 +1,392 @@
+{% extends "inventory/layout.html" %}
+{% set inventory_show_view_toggle = false %}
+{% set inventory_show_stock_tools = false %}
+
+{% block title %}{{ _('inventory.colors.page_title') }}{% endblock %}
+{% block inventory_heading_icon %}bi-palette{% endblock %}
+{% block inventory_heading %}{{ _('inventory.colors.heading') }}{% endblock %}
+
+{% block navbar_search %}
+<div class="mod-search" role="search">
+    <label class="mod-search-field" for="colorSearchInput">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search"
+               id="colorSearchInput"
+               class="mod-search-input"
+               placeholder="{{ _('inventory.colors.search.placeholder') }}"
+               aria-label="{{ _('inventory.colors.search.label') }}"
+               autocomplete="off"
+               enterkeyhint="search">
+    </label>
+</div>
+{% endblock %}
+
+{% block inventory_mobile_actions %}
+<div class="dropdown">
+    <button class="btn mod-new-btn btn-sm flex-shrink-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus-lg"></i> {{ _('common.actions') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('inventory.colors_create') }}">{{ _('inventory.colors.add_color') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('inventory.stock') }}">{{ _('inventory.colors.back_to_stock') }}</a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.stock') }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>{{ _('layout.nav.back') }}</span>
+    </a>
+</div>
+
+{# Color header #}
+<div class="inventory-colors-header mb-4">
+    <div class="inventory-colors-header-main">
+        <h1 class="inventory-colors-header-title">
+            <i class="bi bi-palette me-2"></i>
+            {{ _('inventory.colors.heading') }}
+        </h1>
+        <div class="inventory-colors-header-description">
+            {{ _('inventory.colors.description') }}
+        </div>
+    </div>
+    <div class="inventory-colors-header-actions">
+        <a href="{{ url_for('inventory.colors_create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.colors.add_color') }}
+        </a>
+    </div>
+</div>
+
+{# Color list #}
+<div class="inventory-colors-list">
+    <div class="inventory-colors-list-header d-none d-lg-flex">
+        <div class="inventory-colors-list-col inventory-colors-list-col--color">{{ _('inventory.colors.list.color') }}</div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--name">{{ _('inventory.colors.list.name') }}</div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--description">{{ _('inventory.colors.list.description') }}</div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--instances">{{ _('inventory.colors.list.instances') }}</div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--active">{{ _('inventory.colors.list.active') }}</div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--actions">{{ _('inventory.colors.list.actions') }}</div>
+    </div>
+
+    <div class="inventory-colors-list-body" id="colorsList">
+        {% for color in colors %}
+        {% include "inventory/_color_item.html" %}
+        {% else %}
+        <div class="inventory-colors-empty">
+            <i class="bi bi-palette" aria-hidden="true"></i>
+            <p>{{ _('inventory.colors.empty') }}</p>
+            <a href="{{ url_for('inventory.colors_create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.colors.add_first_color') }}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# Color form modal (for create and edit) #}
+<div class="modal fade" id="colorFormModal" tabindex="-1" aria-labelledby="colorFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="colorFormModalLabel">{{ _('inventory.colors.form.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="colorForm" class="inventory-form">
+                    <input type="hidden" id="colorFormId" name="color_id">
+                    <div class="inventory-form-fields">
+                        <div class="inventory-form-field">
+                            <label for="colorFormName" class="form-label">{{ _('inventory.colors.form.name') }} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control mod-pill-input" id="colorFormName" name="name" required>
+                            <div class="form-text">{{ _('inventory.colors.form.name_help') }}</div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <label for="colorFormHex" class="form-label">{{ _('inventory.colors.form.color_hex') }} <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="color" class="form-control form-control-color" id="colorFormHexColor" name="color_hex">
+                                <input type="text" class="form-control mod-pill-input" id="colorFormHex" 
+                                       placeholder="{{ _('inventory.colors.form.color_hex_placeholder') }}">
+                            </div>
+                            <div class="form-text">{{ _('inventory.colors.form.color_hex_help') }}</div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <label for="colorFormDescription" class="form-label">{{ _('inventory.colors.form.description') }}</label>
+                            <textarea class="form-control mod-pill-input" id="colorFormDescription" name="description" rows="2"></textarea>
+                            <div class="form-text">{{ _('inventory.colors.form.description_help') }}</div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <label for="colorFormSortOrder" class="form-label">{{ _('inventory.colors.form.sort_order') }}</label>
+                            <input type="number" class="form-control mod-pill-input" id="colorFormSortOrder" name="sort_order" value="0">
+                            <div class="form-text">{{ _('inventory.colors.form.sort_order_help') }}</div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="colorFormActive" name="active" checked>
+                                <label class="form-check-label" for="colorFormActive">{{ _('inventory.colors.form.active') }}</label>
+                            </div>
+                            <div class="form-text">{{ _('inventory.colors.form.active_help') }}</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="colorFormSaveBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Delete confirmation modal #}
+<div class="modal fade" id="colorDeleteModal" tabindex="-1" aria-labelledby="colorDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="colorDeleteModalLabel">{{ _('inventory.colors.delete.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p id="colorDeleteMessage">{{ _('inventory.colors.delete.confirm') }}</p>
+                <input type="hidden" id="colorDeleteId">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="colorDeleteConfirmCheckbox">
+                    <label class="form-check-label" for="colorDeleteConfirmCheckbox">
+                        {{ _('inventory.colors.delete.confirm_text') }}
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="colorDeleteConfirmBtn" disabled>{{ _('common.delete') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Color search and filtering
+(function() {
+    const colorsList = document.getElementById('colorsList');
+    const colorSearchInput = document.getElementById('colorSearchInput');
+
+    function filterColors() {
+        if (!colorsList) return;
+
+        const searchQuery = (colorSearchInput?.value || '').toLowerCase();
+
+        const colorItems = colorsList.querySelectorAll('.inventory-color-item');
+
+        colorItems.forEach(item => {
+            let visible = true;
+
+            if (searchQuery) {
+                const name = (item.dataset.name || '').toLowerCase();
+                const description = (item.dataset.description || '').toLowerCase();
+                const hex = (item.dataset.colorHex || '').toLowerCase();
+                
+                if (!name.includes(searchQuery) && 
+                    !description.includes(searchQuery) && 
+                    !hex.includes(searchQuery)) {
+                    visible = false;
+                }
+            }
+
+            item.style.display = visible ? '' : 'none';
+        });
+    }
+
+    if (colorSearchInput) {
+        colorSearchInput.addEventListener('input', filterColors);
+    }
+
+    filterColors();
+})();
+
+// Color form handling
+(function() {
+    const colorFormModal = document.getElementById('colorFormModal');
+    const colorForm = document.getElementById('colorForm');
+    const colorFormSaveBtn = document.getElementById('colorFormSaveBtn');
+    const colorFormId = document.getElementById('colorFormId');
+    const colorFormName = document.getElementById('colorFormName');
+    const colorFormHex = document.getElementById('colorFormHex');
+    const colorFormHexColor = document.getElementById('colorFormHexColor');
+    const colorFormDescription = document.getElementById('colorFormDescription');
+    const colorFormSortOrder = document.getElementById('colorFormSortOrder');
+    const colorFormActive = document.getElementById('colorFormActive');
+
+    // Color picker synchronization
+    if (colorFormHex && colorFormHexColor) {
+        colorFormHexColor.addEventListener('input', function() {
+            colorFormHex.value = this.value;
+        });
+        colorFormHex.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                colorFormHexColor.value = value;
+            }
+        });
+    }
+
+    // Open modal for create
+    function openColorForm(color = null) {
+        if (!colorFormModal) return;
+
+        // Reset form
+        colorFormId.value = '';
+        colorFormName.value = '';
+        colorFormHex.value = '#000000';
+        colorFormHexColor.value = '#000000';
+        colorFormDescription.value = '';
+        colorFormSortOrder.value = 0;
+        colorFormActive.checked = true;
+
+        // Set values if editing
+        if (color) {
+            colorFormId.value = color.id;
+            colorFormName.value = color.name;
+            colorFormHex.value = color.color_hex;
+            colorFormHexColor.value = color.color_hex;
+            colorFormDescription.value = color.description || '';
+            colorFormSortOrder.value = color.sort_order || 0;
+            colorFormActive.checked = color.active;
+        }
+
+        const modal = new bootstrap.Modal(colorFormModal);
+        modal.show();
+    }
+
+    // Save form
+    if (colorFormSaveBtn && colorForm) {
+        colorFormSaveBtn.addEventListener('click', function() {
+            const colorId = colorFormId.value;
+            const name = colorFormName.value.trim();
+            const colorHex = colorFormHex.value.trim();
+            const description = colorFormDescription.value.trim();
+            const sortOrder = parseInt(colorFormSortOrder.value) || 0;
+            const active = colorFormActive.checked;
+
+            if (!name) {
+                alert(window._('inventory.colors.form.name_required'));
+                return;
+            }
+            if (!colorHex) {
+                alert(window._('inventory.colors.form.color_required'));
+                return;
+            }
+
+            const url = colorId ? `/inventory/api/colors/${colorId}` : '/inventory/api/colors';
+            const method = colorId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    name: name,
+                    color_hex: colorHex,
+                    description: description,
+                    sort_order: sortOrder,
+                    active: active
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(colorFormModal);
+                    modal.hide();
+                    // Reload the page
+                    window.location.reload();
+                } else {
+                    alert(data.error || window._('inventory.colors.form.error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving color:', error);
+                alert(window._('inventory.colors.form.error'));
+            });
+        });
+    }
+
+    // Event listeners for action buttons
+    document.addEventListener('click', function(e) {
+        // Edit color
+        if (e.target.closest('.color-edit-btn')) {
+            const btn = e.target.closest('.color-edit-btn');
+            const colorId = btn.dataset.colorId;
+            fetch(`/inventory/api/colors/${colorId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.color) {
+                        openColorForm(data.color);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading color:', error);
+                    alert(window._('inventory.colors.form.error'));
+                });
+        }
+
+        // Delete color
+        if (e.target.closest('.color-delete-btn')) {
+            const btn = e.target.closest('.color-delete-btn');
+            const colorId = btn.dataset.colorId;
+            const colorName = btn.dataset.colorName;
+            
+            document.getElementById('colorDeleteId').value = colorId;
+            document.getElementById('colorDeleteMessage').textContent = 
+                window._('inventory.colors.delete.confirm_with_name', { name: colorName });
+            
+            const modal = new bootstrap.Modal(document.getElementById('colorDeleteModal'));
+            modal.show();
+        }
+    });
+
+    // Delete confirmation
+    const colorDeleteConfirmBtn = document.getElementById('colorDeleteConfirmBtn');
+    const colorDeleteConfirmCheckbox = document.getElementById('colorDeleteConfirmCheckbox');
+    const colorDeleteId = document.getElementById('colorDeleteId');
+
+    if (colorDeleteConfirmBtn && colorDeleteConfirmCheckbox) {
+        colorDeleteConfirmCheckbox.addEventListener('change', function() {
+            colorDeleteConfirmBtn.disabled = !this.checked;
+        });
+
+        colorDeleteConfirmBtn.addEventListener('click', function() {
+            const colorId = colorDeleteId.value;
+            
+            fetch(`/inventory/api/colors/${colorId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('colorDeleteModal'));
+                    modal.hide();
+                    window.location.reload();
+                } else {
+                    alert(data.error || window._('inventory.colors.delete.error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting color:', error);
+                alert(window._('inventory.colors.delete.error'));
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}

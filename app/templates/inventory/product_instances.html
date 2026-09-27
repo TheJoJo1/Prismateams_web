@@ -1,0 +1,584 @@
+{% extends "inventory/layout.html" %}
+{% set inventory_show_view_toggle = true %}
+{% set inventory_show_stock_tools = true %}
+
+{% block title %}{{ _('inventory.instances.page_title') }} - {{ product.name }}{% endblock %}
+{% block inventory_heading_icon %}bi-box-seam{% endblock %}
+{% block inventory_heading %}{{ _('inventory.instances.heading') }}: {{ product.name }}{% endblock %}
+
+{% block navbar_search %}
+<div class="mod-search" role="search">
+    <label class="mod-search-field" for="instanceSearchInput">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search"
+               id="instanceSearchInput"
+               class="mod-search-input"
+               placeholder="{{ _('inventory.instances.search.placeholder') }}"
+               aria-label="{{ _('inventory.instances.search.label') }}"
+               autocomplete="off"
+               enterkeyhint="search">
+    </label>
+</div>
+{% endblock %}
+
+{% block inventory_mobile_actions %}
+<div class="dropdown">
+    <button class="btn mod-new-btn btn-sm flex-shrink-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus-lg"></i> {{ _('common.actions') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('inventory.product_instances_create', product_id=product.id) }}">{{ _('inventory.instances.add_instance') }}</a></li>
+        <li><a class="dropdown-item" href="{{ url_for('inventory.product_edit', product_id=product.id) }}">{{ _('inventory.instances.edit_product') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('inventory.stock') }}">{{ _('inventory.instances.back_to_stock') }}</a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block inventory_toolbar_center %}
+<div class="inventory-toolbar-stats">
+    <div class="inventory-toolbar-stat">
+        <span class="inventory-toolbar-stat-value">{{ product.total_instances }}</span>
+        <span class="inventory-toolbar-stat-label">{{ _('inventory.instances.total') }}</span>
+    </div>
+    <div class="inventory-toolbar-stat">
+        <span class="inventory-toolbar-stat-value text-success">{{ product.instances_available }}</span>
+        <span class="inventory-toolbar-stat-label">{{ _('inventory.instances.available') }}</span>
+    </div>
+    <div class="inventory-toolbar-stat">
+        <span class="inventory-toolbar-stat-value text-info">{{ product.instances_borrowed }}</span>
+        <span class="inventory-toolbar-stat-label">{{ _('inventory.instances.borrowed') }}</span>
+    </div>
+    <div class="inventory-toolbar-stat">
+        <span class="inventory-toolbar-stat-value text-warning">{{ product.instances_defective + product.instances_in_repair }}</span>
+        <span class="inventory-toolbar-stat-label">{{ _('inventory.instances.issues') }}</span>
+    </div>
+    <div class="inventory-toolbar-stat">
+        <span class="inventory-toolbar-stat-value text-danger">{{ product.instances_lost + product.instances_retired }}</span>
+        <span class="inventory-toolbar-stat-label">{{ _('inventory.instances.lost_retired') }}</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block inventory_mobile_toolbar_center %}
+<div class="inventory-mobile-stats">
+    <div class="inventory-mobile-stat">
+        <span class="inventory-mobile-stat-value">{{ product.total_instances }}</span>
+        <span class="inventory-mobile-stat-label small">{{ _('inventory.instances.total') }}</span>
+    </div>
+    <div class="inventory-mobile-stat">
+        <span class="inventory-mobile-stat-value text-success">{{ product.instances_available }}</span>
+        <span class="inventory-mobile-stat-label small">{{ _('inventory.instances.available') }}</span>
+    </div>
+    <div class="inventory-mobile-stat">
+        <span class="inventory-mobile-stat-value text-info">{{ product.instances_borrowed }}</span>
+        <span class="inventory-mobile-stat-label small">{{ _('inventory.instances.borrowed') }}</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.stock') }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>{{ _('layout.nav.back') }}</span>
+    </a>
+</div>
+
+{# Product header #}
+<div class="inventory-product-header mb-4">
+    <div class="inventory-product-header-main">
+        <h1 class="inventory-product-header-title">
+            <i class="bi bi-box-seam me-2"></i>
+            {{ product.name }}
+        </h1>
+        <div class="inventory-product-header-meta">
+            {% if product.category %}
+            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ product.category }}</span>
+            {% endif %}
+            {% if product.serial_number %}
+            <span class="badge bg-secondary-subtle text-secondary-emphasis">{{ product.serial_number }}</span>
+            {% endif %}
+        </div>
+        <div class="inventory-product-header-description">
+            {{ product.description or _('inventory.instances.no_description') }}
+        </div>
+    </div>
+    <div class="inventory-product-header-actions">
+        <a href="{{ url_for('inventory.product_instances_create', product_id=product.id) }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.instances.add_instance') }}
+        </a>
+    </div>
+</div>
+
+{# Instance filters #}
+{% block inventory_filter_nav %}
+<div class="inventory-filter-section">
+    <div class="inventory-filter-label">
+        <i class="bi bi-funnel" aria-hidden="true"></i>{{ _('inventory.instances.filters.title') }}
+    </div>
+    <div class="inventory-filter-grid">
+        <div>
+            <label for="instanceStatusFilter" class="form-label mb-1">{{ _('inventory.instances.filters.status') }}</label>
+            <select class="form-select form-select-sm inventory-filter-control mod-pill-input" id="instanceStatusFilter">
+                <option value="">{{ _('inventory.instances.filters.all_status') }}</option>
+                <option value="available">{{ _('inventory.instances.status.available') }}</option>
+                <option value="borrowed">{{ _('inventory.instances.status.borrowed') }}</option>
+                <option value="defective">{{ _('inventory.instances.status.defective') }}</option>
+                <option value="in_repair">{{ _('inventory.instances.status.in_repair') }}</option>
+                <option value="lost">{{ _('inventory.instances.status.lost') }}</option>
+                <option value="retired">{{ _('inventory.instances.status.retired') }}</option>
+            </select>
+        </div>
+        <div>
+            <label for="instanceDguvFilter" class="form-label mb-1">{{ _('inventory.instances.filters.dguv') }}</label>
+            <select class="form-select form-select-sm inventory-filter-control mod-pill-input" id="instanceDguvFilter">
+                <option value="">{{ _('inventory.instances.filters.all_dguv') }}</option>
+                <option value="dguv_enabled">{{ _('inventory.instances.filters.dguv_enabled') }}</option>
+                <option value="dguv_disabled">{{ _('inventory.instances.filters.dguv_disabled') }}</option>
+            </select>
+        </div>
+        <div>
+            <label for="instanceColorFilter" class="form-label mb-1">{{ _('inventory.instances.filters.color') }}</label>
+            <select class="form-select form-select-sm inventory-filter-control mod-pill-input" id="instanceColorFilter">
+                <option value="">{{ _('inventory.instances.filters.all_colors') }}</option>
+                {% for color in colors %}
+                <option value="{{ color.id }}" data-color-hex="{{ color.color_hex }}">{{ color.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{# Instance list #}
+<div class="inventory-instances-list">
+    <div class="inventory-instances-list-header d-none d-lg-flex">
+        <div class="inventory-instances-list-col inventory-instances-list-col--identifier">{{ _('inventory.instances.list.identifier') }}</div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--status">{{ _('inventory.instances.list.status') }}</div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--dguv">{{ _('inventory.instances.list.dguv') }}</div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--color">{{ _('inventory.instances.list.color') }}</div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--location">{{ _('inventory.instances.list.location') }}</div>
+        <div class="inventory-instances-list-col inventory-instances-list-col--actions">{{ _('inventory.instances.list.actions') }}</div>
+    </div>
+
+    <div class="inventory-instances-list-body" id="instancesList">
+        {% for instance in instances %}
+        {% include "inventory/_instance_item.html" %}
+        {% else %}
+        <div class="inventory-instances-empty">
+            <i class="bi bi-inbox" aria-hidden="true"></i>
+            <p>{{ _('inventory.instances.empty') }}</p>
+            <a href="{{ url_for('inventory.product_instances_create', product_id=product.id) }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.instances.add_first_instance') }}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if instances|length > 0 %}
+    <div class="inventory-instances-pagination mt-4">
+        <nav aria-label="{{ _('inventory.instances.pagination.label') }}">
+            <ul class="pagination justify-content-center">
+                {% if page > 1 %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('inventory.product_instances', product_id=product.id, page=page-1) }}" aria-label="{{ _('inventory.instances.pagination.previous') }}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                {% for p in range(1, total_pages + 1) %}
+                <li class="page-item {% if p == page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('inventory.product_instances', product_id=product.id, page=p) }}">{{ p }}</a>
+                </li>
+                {% endfor %}
+                {% if page < total_pages %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('inventory.product_instances', product_id=product.id, page=page+1) }}" aria-label="{{ _('inventory.instances.pagination.next') }}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>
+
+{# Instance detail modal #}
+<div class="modal fade" id="instanceDetailModal" tabindex="-1" aria-labelledby="instanceDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="instanceDetailModalLabel">{{ _('inventory.instances.detail.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body" id="instanceDetailModalBody">
+                {# Content will be loaded dynamically via JavaScript #}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.close') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Instance edit modal #}
+<div class="modal fade" id="instanceEditModal" tabindex="-1" aria-labelledby="instanceEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="instanceEditModalLabel">{{ _('inventory.instances.edit.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body" id="instanceEditModalBody">
+                {# Content will be loaded dynamically via JavaScript #}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="instanceEditSaveBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Status change modal #}
+<div class="modal fade" id="instanceStatusModal" tabindex="-1" aria-labelledby="instanceStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="instanceStatusModalLabel">{{ _('inventory.instances.status_change.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="instanceStatusForm">
+                    <input type="hidden" id="instanceStatusInstanceId" name="instance_id">
+                    <div class="mb-3">
+                        <label for="instanceStatusNewStatus" class="form-label">{{ _('inventory.instances.status_change.new_status') }}</label>
+                        <select class="form-select" id="instanceStatusNewStatus" name="status" required>
+                            <option value="">{{ _('inventory.instances.status_change.select') }}</option>
+                            <option value="available">{{ _('inventory.instances.status.available') }}</option>
+                            <option value="borrowed">{{ _('inventory.instances.status.borrowed') }}</option>
+                            <option value="defective">{{ _('inventory.instances.status.defective') }}</option>
+                            <option value="in_repair">{{ _('inventory.instances.status.in_repair') }}</option>
+                            <option value="lost">{{ _('inventory.instances.status.lost') }}</option>
+                            <option value="retired">{{ _('inventory.instances.status.retired') }}</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="instanceStatusReason" class="form-label">{{ _('inventory.instances.status_change.reason') }}</label>
+                        <textarea class="form-control" id="instanceStatusReason" name="reason" rows="2"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="instanceStatusSaveBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Confirm delete modal #}
+<div class="modal fade" id="instanceDeleteModal" tabindex="-1" aria-labelledby="instanceDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="instanceDeleteModalLabel">{{ _('inventory.instances.delete.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ _('inventory.instances.delete.confirm') }}</p>
+                <input type="hidden" id="instanceDeleteInstanceId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="instanceDeleteConfirmBtn">{{ _('common.delete') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Instance filtering and search
+(function() {
+    const instancesList = document.getElementById('instancesList');
+    const instanceSearchInput = document.getElementById('instanceSearchInput');
+    const instanceStatusFilter = document.getElementById('instanceStatusFilter');
+    const instanceDguvFilter = document.getElementById('instanceDguvFilter');
+    const instanceColorFilter = document.getElementById('instanceColorFilter');
+
+    function filterInstances() {
+        if (!instancesList) return;
+
+        const searchQuery = (instanceSearchInput?.value || '').toLowerCase();
+        const statusFilter = instanceStatusFilter?.value || '';
+        const dguvFilter = instanceDguvFilter?.value || '';
+        const colorFilter = instanceColorFilter?.value || '';
+
+        const instanceItems = instancesList.querySelectorAll('.inventory-instance-item');
+
+        instanceItems.forEach(item => {
+            let visible = true;
+
+            // Search filter
+            if (searchQuery) {
+                const identifier = (item.dataset.identifier || '').toLowerCase();
+                const serialNumber = (item.dataset.serialNumber || '').toLowerCase();
+                const dguvId = (item.dataset.dguvId || '').toLowerCase();
+                const location = (item.dataset.location || '').toLowerCase();
+                
+                if (!identifier.includes(searchQuery) && 
+                    !serialNumber.includes(searchQuery) && 
+                    !dguvId.includes(searchQuery) && 
+                    !location.includes(searchQuery)) {
+                    visible = false;
+                }
+            }
+
+            // Status filter
+            if (statusFilter && item.dataset.status !== statusFilter) {
+                visible = false;
+            }
+
+            // DGUV filter
+            if (dguvFilter === 'dguv_enabled' && item.dataset.dguvEnabled !== 'true') {
+                visible = false;
+            }
+            if (dguvFilter === 'dguv_disabled' && item.dataset.dguvEnabled !== 'false') {
+                visible = false;
+            }
+
+            // Color filter
+            if (colorFilter && item.dataset.colorId !== colorFilter) {
+                visible = false;
+            }
+
+            item.style.display = visible ? '' : 'none';
+        });
+    }
+
+    // Add event listeners
+    if (instanceSearchInput) {
+        instanceSearchInput.addEventListener('input', filterInstances);
+    }
+    if (instanceStatusFilter) {
+        instanceStatusFilter.addEventListener('change', filterInstances);
+    }
+    if (instanceDguvFilter) {
+        instanceDguvFilter.addEventListener('change', filterInstances);
+    }
+    if (instanceColorFilter) {
+        instanceColorFilter.addEventListener('change', filterInstances);
+    }
+
+    // Initialize filter
+    filterInstances();
+})();
+
+// Instance actions
+(function() {
+    // Load instance detail
+    function loadInstanceDetail(instanceId) {
+        fetch(`/inventory/api/instances/${instanceId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.instance) {
+                    const instance = data.instance;
+                    const modalBody = document.getElementById('instanceDetailModalBody');
+                    
+                    let html = `
+                        <div class="inventory-instance-detail">
+                            <div class="inventory-instance-detail-section">
+                                <h6>${window._('inventory.instances.detail.identification')}</h6>
+                                <div class="inventory-instance-detail-grid">
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.inventory_number')}</strong>
+                                        <div>${instance.inventory_number || window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.serial_number')}</strong>
+                                        <div>${instance.serial_number || window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.status')}</strong>
+                                        <div><span class="badge bg-${getStatusBadgeClass(instance.status)}">${window._(`inventory.instances.status.${instance.status}`)}</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inventory-instance-detail-section">
+                                <h6>${window._('inventory.instances.detail.dguv')}</h6>
+                                <div class="inventory-instance-detail-grid">
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.dguv_enabled')}</strong>
+                                        <div>${instance.dguv_enabled ? window._('common.yes') : window._('common.no')}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.dguv_id')}</strong>
+                                        <div>${instance.dguv_id || window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inventory-instance-detail-section">
+                                <h6>${window._('inventory.instances.detail.additional')}</h6>
+                                <div class="inventory-instance-detail-grid">
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.color')}</strong>
+                                        <div>${instance.effective_color ? `<span style="color: ${instance.effective_color}">${instance.color_override || (instance.color?.name || '')}</span>` : window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.location')}</strong>
+                                        <div>${instance.location || window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.notes')}</strong>
+                                        <div>${instance.notes || window._('inventory.instances.detail.not_set')}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="inventory-instance-detail-section">
+                                <h6>${window._('inventory.instances.detail.metadata')}</h6>
+                                <div class="inventory-instance-detail-grid">
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.created_at')}</strong>
+                                        <div>${instance.created_at ? new Date(instance.created_at).toLocaleString() : ''}</div>
+                                    </div>
+                                    <div>
+                                        <strong>${window._('inventory.instances.detail.updated_at')}</strong>
+                                        <div>${instance.updated_at ? new Date(instance.updated_at).toLocaleString() : ''}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    if (modalBody) {
+                        modalBody.innerHTML = html;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error loading instance detail:', error);
+                alert(window._('inventory.instances.detail.error'));
+            });
+    }
+
+    function getStatusBadgeClass(status) {
+        const classes = {
+            'available': 'success',
+            'borrowed': 'info',
+            'defective': 'warning',
+            'in_repair': 'warning',
+            'lost': 'danger',
+            'retired': 'secondary'
+        };
+        return classes[status] || 'secondary';
+    }
+
+    // Event listeners for action buttons
+    document.addEventListener('click', function(e) {
+        // View instance
+        if (e.target.closest('.instance-view-btn')) {
+            const btn = e.target.closest('.instance-view-btn');
+            const instanceId = btn.dataset.instanceId;
+            loadInstanceDetail(instanceId);
+            const modal = new bootstrap.Modal(document.getElementById('instanceDetailModal'));
+            modal.show();
+        }
+
+        // Edit instance
+        if (e.target.closest('.instance-edit-btn')) {
+            const btn = e.target.closest('.instance-edit-btn');
+            const instanceId = btn.dataset.instanceId;
+            window.location.href = `/inventory/product/${{{ product.id }}}/instance/${instanceId}/edit`;
+        }
+
+        // Change status
+        if (e.target.closest('.instance-status-btn')) {
+            const btn = e.target.closest('.instance-status-btn');
+            const instanceId = btn.dataset.instanceId;
+            document.getElementById('instanceStatusInstanceId').value = instanceId;
+            const modal = new bootstrap.Modal(document.getElementById('instanceStatusModal'));
+            modal.show();
+        }
+
+        // Delete instance
+        if (e.target.closest('.instance-delete-btn')) {
+            const btn = e.target.closest('.instance-delete-btn');
+            const instanceId = btn.dataset.instanceId;
+            document.getElementById('instanceDeleteInstanceId').value = instanceId;
+            const modal = new bootstrap.Modal(document.getElementById('instanceDeleteModal'));
+            modal.show();
+        }
+    });
+
+    // Status change form submission
+    document.getElementById('instanceStatusSaveBtn')?.addEventListener('click', function() {
+        const instanceId = document.getElementById('instanceStatusInstanceId').value;
+        const newStatus = document.getElementById('instanceStatusNewStatus').value;
+        const reason = document.getElementById('instanceStatusReason').value;
+
+        if (!newStatus) {
+            alert(window._('inventory.instances.status_change.select'));
+            return;
+        }
+
+        fetch(`/inventory/api/instances/${instanceId}/status`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify({ status: newStatus, reason: reason })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('instanceStatusModal'));
+                modal.hide();
+                // Reload the page to update the instance list
+                window.location.reload();
+            } else {
+                alert(data.error || window._('inventory.instances.status_change.error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error changing status:', error);
+            alert(window._('inventory.instances.status_change.error'));
+        });
+    });
+
+    // Delete confirmation
+    document.getElementById('instanceDeleteConfirmBtn')?.addEventListener('click', function() {
+        const instanceId = document.getElementById('instanceDeleteInstanceId').value;
+
+        fetch(`/inventory/api/instances/${instanceId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('instanceDeleteModal'));
+                modal.hide();
+                // Reload the page to update the instance list
+                window.location.reload();
+            } else {
+                alert(data.error || window._('inventory.instances.delete.error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting instance:', error);
+            alert(window._('inventory.instances.delete.error'));
+        });
+    });
+})();
+</script>
+{% endblock %}

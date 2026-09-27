@@ -1,0 +1,82 @@
+{# Color item row for the colors list #}
+<div class="inventory-color-item"
+     data-color-id="{{ color.id }}"
+     data-name="{{ color.name }}"
+     data-color-hex="{{ color.color_hex }}"
+     data-description="{{ color.description or '' }}">
+    
+    {# Mobile view #}
+    <div class="inventory-color-item-mobile d-lg-none">
+        <div class="inventory-color-item-mobile-header">
+            <div class="inventory-color-item-mobile-color" style="background-color: {{ color.color_hex }};"></div>
+            <div class="inventory-color-item-mobile-info">
+                <strong>{{ color.name }}</strong>
+                <div class="inventory-color-item-mobile-hex text-muted small">{{ color.color_hex }}</div>
+            </div>
+        </div>
+        <div class="inventory-color-item-mobile-body">
+            {% if color.description %}
+            <div class="inventory-color-item-mobile-field">
+                <span class="inventory-color-item-mobile-field-value">{{ color.description }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="inventory-color-item-mobile-actions">
+            <button type="button" class="btn btn-sm btn-outline-primary color-edit-btn" 
+                    data-color-id="{{ color.id }}" 
+                    title="{{ _('inventory.colors.list.edit') }}">
+                <i class="bi bi-pencil"></i>
+            </button>
+            {% if color.active %}
+            <button type="button" class="btn btn-sm btn-outline-danger color-delete-btn" 
+                    data-color-id="{{ color.id }}"
+                    data-color-name="{{ color.name }}"
+                    title="{{ _('inventory.colors.list.delete') }}">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    {# Desktop view #}
+    <div class="inventory-color-item-desktop d-none d-lg-flex">
+        <div class="inventory-colors-list-col inventory-colors-list-col--color">
+            <div class="inventory-color-color" style="background-color: {{ color.color_hex }};">
+                <span class="inventory-color-color-hex">{{ color.color_hex }}</span>
+            </div>
+        </div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--name">
+            <strong>{{ color.name }}</strong>
+        </div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--description">
+            {{ color.description or _('inventory.colors.list.no_description') }}
+        </div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--instances">
+            <span class="badge bg-info-subtle text-info-emphasis">{{ color.instances|length or 0 }}</span>
+        </div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--active">
+            {% if color.active %}
+            <span class="badge bg-success">{{ _('common.yes') }}</span>
+            {% else %}
+            <span class="badge bg-secondary">{{ _('common.no') }}</span>
+            {% endif %}
+        </div>
+        <div class="inventory-colors-list-col inventory-colors-list-col--actions">
+            <div class="inventory-color-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary color-edit-btn" 
+                        data-color-id="{{ color.id }}" 
+                        title="{{ _('inventory.colors.list.edit') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                {% if color.active %}
+                <button type="button" class="btn btn-sm btn-outline-danger color-delete-btn" 
+                        data-color-id="{{ color.id }}"
+                        data-color-name="{{ color.name }}"
+                        title="{{ _('inventory.colors.list.delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
