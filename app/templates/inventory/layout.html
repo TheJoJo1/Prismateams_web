@@ -24,7 +24,8 @@
     'inventory.inventory_complete', 'inventory.inventory_tool_pdf'
   ),
   'print_qr': ep.startswith('inventory.print_qr') or ep == 'inventory.print_color_codes',
-  'statistics': ep == 'inventory.statistics'
+  'statistics': ep == 'inventory.statistics',
+  'labels': ep.startswith('inventory.labels') or ep == 'inventory.labels_list'
 } %}
 {% set show_new = not (current_user.is_authenticated and current_user.is_guest) %}
 {% set show_view_toggle = inventory_show_view_toggle|default(false) %}
@@ -109,6 +110,11 @@
        href="{{ url_for('inventory.statistics') }}"
        {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
         <i class="bi bi-graph-up me-2"></i>{{ _('inventory.shell.nav.statistics') }}
+    </a>
+    <a class="nav-link mod-nav-link {% if inv_nav.labels %}active{% endif %}"
+       href="{{ url_for('inventory.labels_list') }}"
+       {% if dismiss_offcanvas %}data-inventory-dismiss-offcanvas="1"{% endif %}>
+        <i class="bi bi-tags me-2"></i>{{ _('inventory.shell.nav.labels') }}
     </a>
 </nav>
 {% endmacro %}

@@ -1288,3 +1288,42 @@ def colors_delete(color_id):
         flash(str(e), 'danger')
     
     return redirect(url_for('inventory.colors_list'))
+
+
+# ============================================================================
+# Label-Vorlagen (Label Management UI)
+# ============================================================================
+
+@inventory_bp.route('/labels')
+@login_required
+@check_module_access('module_inventory')
+def labels_list():
+    """Label-Vorlagen Übersicht."""
+    from app.models.label import LabelTemplate
+    
+    templates = LabelTemplate.query.filter_by(active=True).order_by(
+        LabelTemplate.name
+    ).all()
+    
+    return render_template(
+        'inventory/labels.html',
+        templates=templates,
+    )
+
+
+@inventory_bp.route('/labels/new', methods=['GET'])
+@inventory_bp.route('/labels/<int:template_id>/design', methods=['GET'])
+@login_required
+@check_module_access('module_inventory')
+def labels_design(template_id=None):
+    """Label-Designer."""
+    from app.models.label import LabelTemplate
+    
+    template = None
+    if template_id:
+        template = LabelTemplate.query.get_or_404(template_id)
+    
+    return render_template(
+        'inventory/label_designer.html',
+        template=template,
+    )
