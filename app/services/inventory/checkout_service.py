@@ -528,6 +528,27 @@ def find_active_checkout_item_for_product(
     return q.order_by(CheckoutItem.id.desc()).first()
 
 
+def find_active_checkout_item_for_product_instance(
+    instance_id: int,
+    *,
+    actor=None,
+) -> Optional[CheckoutItem]:
+    """Finds active checkout item for a specific product instance."""
+    q = (
+        CheckoutItem.query.join(Checkout)
+        .filter(
+            CheckoutItem.instance_id == instance_id,
+            CheckoutItem.returned_at.is_(None),
+            Checkout.status.in_(("active", "partially_returned")),
+        )
+    )
+    if actor is not None and not getattr(actor, "is_admin", False):
+        uid = getattr(actor, "id", None)
+        if uid is not None:
+            q = q.filter(or_(Checkout.borrower_id == uid, Checkout.created_by == uid))
+    return q.order_by(CheckoutItem.id.desc()).first()
+
+
 def looks_like_return_qr(ref: str) -> bool:
     """True if payload looks like a checkout/borrow return code."""
     if not ref:
