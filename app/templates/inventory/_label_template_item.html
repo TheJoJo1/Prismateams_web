@@ -1,0 +1,86 @@
+{# Label template item row for the labels list #}
+<div class="inventory-label-item"
+     data-template-id="{{ template.id }}"
+     data-name="{{ template.name }}"
+     data-description="{{ template.description or '' }}">
+    
+    {# Mobile view #}
+    <div class="inventory-label-item-mobile d-lg-none">
+        <div class="inventory-label-item-mobile-header">
+            <div class="inventory-label-item-mobile-info">
+                <strong>{{ template.name }}</strong>
+                <div class="inventory-label-item-mobile-meta text-muted small">
+                    {{ template.width_mm }} × {{ template.height_mm }} mm
+                </div>
+            </div>
+        </div>
+        <div class="inventory-label-item-mobile-body">
+            {% if template.description %}
+            <div class="inventory-label-item-mobile-field">
+                <span class="inventory-label-item-mobile-field-value">{{ template.description }}</span>
+            </div>
+            {% endif %}
+        </div>
+        <div class="inventory-label-item-mobile-actions">
+            <button type="button" class="btn btn-sm btn-outline-primary label-design-btn" 
+                    data-template-id="{{ template.id }}" 
+                    title="{{ _('inventory.labels.list.design') }}">
+                <i class="bi bi-pencil"></i>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline-secondary label-edit-btn" 
+                    data-template-id="{{ template.id }}" 
+                    title="{{ _('inventory.labels.list.edit') }}">
+                <i class="bi bi-gear"></i>
+            </button>
+            {% if template.active %}
+            <button type="button" class="btn btn-sm btn-outline-danger label-delete-btn" 
+                    data-template-id="{{ template.id }}"
+                    data-template-name="{{ template.name }}"
+                    title="{{ _('inventory.labels.list.delete') }}">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    
+    {# Desktop view #}
+    <div class="inventory-label-item-desktop d-none d-lg-flex">
+        <div class="inventory-labels-list-col inventory-labels-list-col--name">
+            <strong>{{ template.name }}</strong>
+            {% if template.description %}
+            <div class="text-muted small">{{ template.description }}</div>
+            {% endif %}
+        </div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--size">
+            {{ template.width_mm }} × {{ template.height_mm }} mm
+        </div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--elements">
+            <span class="badge bg-info-subtle text-info-emphasis">{{ template.element_count }}</span>
+        </div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--created">
+            {{ template.created_at.strftime('%d.%m.%Y %H:%M') if template.created_at else '' }}
+        </div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--actions">
+            <div class="inventory-label-actions">
+                <button type="button" class="btn btn-sm btn-outline-primary label-design-btn" 
+                        data-template-id="{{ template.id }}" 
+                        title="{{ _('inventory.labels.list.design') }}">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary label-edit-btn" 
+                        data-template-id="{{ template.id }}" 
+                        title="{{ _('inventory.labels.list.edit') }}">
+                    <i class="bi bi-gear"></i>
+                </button>
+                {% if template.active %}
+                <button type="button" class="btn btn-sm btn-outline-danger label-delete-btn" 
+                        data-template-id="{{ template.id }}"
+                        data-template-name="{{ template.name }}"
+                        title="{{ _('inventory.labels.list.delete') }}">
+                    <i class="bi bi-trash"></i>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

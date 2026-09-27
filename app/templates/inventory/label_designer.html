@@ -1,0 +1,1250 @@
+{% extends "inventory/layout.html" %}
+{% set inventory_show_view_toggle = false %}
+{% set inventory_show_stock_tools = false %}
+
+{% block title %}{% if template %}{{ _('inventory.labels.designer.page_title_edit') }}{% else %}{{ _('inventory.labels.designer.page_title_new') }}{% endif %}{% endblock %}
+{% block inventory_heading_icon %}bi-file-earmark-text{% endblock %}
+{% block inventory_heading %}{% if template %}{{ _('inventory.labels.designer.heading_edit') }}: {{ template.name }}{% else %}{{ _('inventory.labels.designer.heading_new') }}{% endif %}{% endblock %}
+
+{% block navbar_search %}{% endblock %}
+
+{% block inventory_mobile_actions %}
+<div class="dropdown">
+    <button class="btn mod-new-btn btn-sm flex-shrink-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus-lg"></i> {{ _('common.actions') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="#" id="addTextElement">{{ _('inventory.labels.designer.add.text') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addProductNameElement">{{ _('inventory.labels.designer.add.product_name') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addInstanceInvNumberElement">{{ _('inventory.labels.designer.add.instance_inv_number') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addInstanceSerialElement">{{ _('inventory.labels.designer.add.instance_serial') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addInstanceDguvElement">{{ _('inventory.labels.designer.add.instance_dguv') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addInstanceStatusElement">{{ _('inventory.labels.designer.add.instance_status') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addInstanceColorElement">{{ _('inventory.labels.designer.add.instance_color') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#" id="addQrCodeElement">{{ _('inventory.labels.designer.add.qr_code') }}</a></li>
+        <li><a class="dropdown-item" href="#" id="addBarcodeElement">{{ _('inventory.labels.designer.add.barcode') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="#" id="addDateElement">{{ _('inventory.labels.designer.add.date') }}</a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.labels_list') }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>{{ _('layout.nav.back') }}</span>
+    </a>
+</div>
+
+<div class="label-designer">
+    {# Template settings sidebar #}
+    <div class="label-designer-sidebar">
+        <div class="label-designer-sidebar-section">
+            <h3>{{ _('inventory.labels.designer.template_settings') }}</h3>
+            
+            <form id="templateSettingsForm">
+                <input type="hidden" id="templateId" value="{{ template.id if template else '' }}">
+                
+                <div class="mb-3">
+                    <label for="templateName" class="form-label">{{ _('inventory.labels.designer.template_name') }}</label>
+                    <input type="text" class="form-control mod-pill-input" id="templateName" 
+                           value="{{ template.name if template else '' }}" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="templateDescription" class="form-label">{{ _('inventory.labels.designer.template_description') }}</label>
+                    <textarea class="form-control mod-pill-input" id="templateDescription" rows="2">{{ template.description if template else '' }}</textarea>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">{{ _('inventory.labels.designer.template_size') }}</label>
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="number" class="form-control mod-pill-input" id="templateWidth" 
+                               value="{{ template.width_mm if template else 50 }}" step="0.1" min="10">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control mod-pill-input" id="templateHeight" 
+                               value="{{ template.height_mm if template else 30 }}" step="0.1" min="10">
+                        <span class="input-group-text">mm</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="templateBackground" class="form-label">{{ _('inventory.labels.designer.template_background') }}</label>
+                    <div class="input-group input-group-sm">
+                        <input type="color" class="form-control form-control-color" id="templateBackground" 
+                               value="{{ template.background_color if template else '#ffffff' }}">
+                        <input type="text" class="form-control mod-pill-input" id="templateBackgroundText" 
+                               value="{{ template.background_color if template else '#ffffff' }}" 
+                               placeholder="{{ _('inventory.labels.designer.color_hex') }}">
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">{{ _('inventory.labels.designer.template_margins') }}</label>
+                    <div class="label-designer-margins">
+                        <div class="label-designer-margin">
+                            <label for="marginTop" class="form-label small">{{ _('inventory.labels.designer.margin_top') }}</label>
+                            <input type="number" class="form-control form-control-sm mod-pill-input" id="marginTop" 
+                                   value="{{ template.margin_top_mm if template else 2 }}" step="0.1" min="0">
+                        </div>
+                        <div class="label-designer-margin">
+                            <label for="marginRight" class="form-label small">{{ _('inventory.labels.designer.margin_right') }}</label>
+                            <input type="number" class="form-control form-control-sm mod-pill-input" id="marginRight" 
+                                   value="{{ template.margin_right_mm if template else 2 }}" step="0.1" min="0">
+                        </div>
+                        <div class="label-designer-margin">
+                            <label for="marginBottom" class="form-label small">{{ _('inventory.labels.designer.margin_bottom') }}</label>
+                            <input type="number" class="form-control form-control-sm mod-pill-input" id="marginBottom" 
+                                   value="{{ template.margin_bottom_mm if template else 2 }}" step="0.1" min="0">
+                        </div>
+                        <div class="label-designer-margin">
+                            <label for="marginLeft" class="form-label small">{{ _('inventory.labels.designer.margin_left') }}</label>
+                            <input type="number" class="form-control form-control-sm mod-pill-input" id="marginLeft" 
+                                   value="{{ template.margin_left_mm if template else 2 }}" step="0.1" min="0">
+                        </div>
+                    </div>
+                </div>
+                
+                <button type="button" class="btn btn-primary w-100" id="saveTemplateBtn">
+                    <i class="bi bi-check2 me-1"></i> {{ _('common.save') }}
+                </button>
+            </form>
+        </div>
+        
+        <div class="label-designer-sidebar-section">
+            <h3>{{ _('inventory.labels.designer.elements') }}</h3>
+            <div class="label-designer-elements-list" id="elementsList">
+                {% if template %}
+                {% for element in template.elements %}
+                {% include "inventory/_label_element_item.html" %}
+                {% endif %}
+                {% else %}
+                <div class="label-designer-elements-empty">
+                    <p class="text-muted small">{{ _('inventory.labels.designer.no_elements') }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="label-designer-sidebar-section">
+            <h3>{{ _('inventory.labels.designer.placeholders') }}</h3>
+            <div class="label-designer-placeholders">
+                <h6>{{ _('inventory.labels.designer.placeholders_product') }}</h6>
+                <ul class="label-designer-placeholder-list">
+                    <li><code>{{{{ product.name }}}}</code></li>
+                    <li><code>{{{{ product.description }}}}</code></li>
+                    <li><code>{{{{ product.category }}}}</code></li>
+                    <li><code>{{{{ product.serial_number }}}}</code></li>
+                </ul>
+                <h6>{{ _('inventory.labels.designer.placeholders_instance') }}</h6>
+                <ul class="label-designer-placeholder-list">
+                    <li><code>{{{{ instance.inventory_number }}}}</code></li>
+                    <li><code>{{{{ instance.serial_number }}}}</code></li>
+                    <li><code>{{{{ instance.dguv_id }}}}</code></li>
+                    <li><code>{{{{ instance.status }}}}</code></li>
+                    <li><code>{{{{ instance.color }}}}</code></li>
+                    <li><code>{{{{ instance.location }}}}</code></li>
+                </ul>
+                <h6>{{ _('inventory.labels.designer.placeholders_date') }}</h6>
+                <ul class="label-designer-placeholder-list">
+                    <li><code>{{{{ date }}}}</code></li>
+                    <li><code>{{{{ date.long }}}}</code></li>
+                    <li><code>{{{{ date.short }}}}</code></li>
+                    <li><code>{{{{ time }}}}</code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    {# Label preview area #}
+    <div class="label-designer-canvas-area">
+        <div class="label-designer-canvas-container">
+            <div class="label-designer-canvas" id="labelCanvas">
+                {# Canvas content will be rendered by JavaScript #}
+                <div class="label-designer-canvas-background" id="canvasBackground"></div>
+                {% if template %}
+                {% for element in template.elements %}
+                <div class="label-designer-element" 
+                     data-element-id="{{ element.id }}"
+                     data-element-type="{{ element.element_type }}"
+                     style="
+                         left: {{ element.x_mm }}mm;
+                         top: {{ element.y_mm }}mm;
+                         width: {{ element.width_mm }}mm;
+                         height: {{ element.height_mm }}mm;
+                         z-index: {{ element.z_index }};
+                         {% if element.rotation_degrees != 0 %}transform: rotate({{ element.rotation_degrees }}deg);{% endif %}
+                         {% if element.background_color %}background-color: {{ element.background_color }};{% endif %}
+                         {% if element.border_width_mm > 0 %}border: {{ element.border_width_mm }}mm solid {{ element.border_color or '#000000' }};{% endif %}
+                         {% if element.border_radius_mm > 0 %}border-radius: {{ element.border_radius_mm }}mm;{% endif %}
+                     "
+                     {% if element.element_type in ['text', 'product_name', 'product_category', 'product_serial', 'instance_inventory_number', 'instance_serial_number', 'instance_dguv_id', 'instance_status', 'instance_color', 'instance_location', 'date', 'custom_field'] %}
+                     data-content="{{ element.content | e }}"
+                     data-font-family="{{ element.font_family }}"
+                     data-font-size="{{ element.font_size_pt }}"
+                     data-font-weight="{{ element.font_weight }}"
+                     data-font-style="{{ element.font_style }}"
+                     data-text-color="{{ element.text_color }}"
+                     data-text-align="{{ element.text_align }}"
+                     {% endif %}
+                     {% if element.element_type == 'qr_code' %}
+                     data-qr-content="{{ element.content | e }}"
+                     {% endif %}
+                     {% if element.element_type == 'barcode' %}
+                     data-barcode-content="{{ element.content | e }}"
+                     {% endif %}
+                >
+                    {% if element.element_type in ['text', 'product_name', 'product_category', 'product_serial', 'instance_inventory_number', 'instance_serial_number', 'instance_dguv_id', 'instance_status', 'instance_color', 'instance_location', 'date', 'custom_field'] %}
+                    <span class="label-designer-element-text" style="
+                        font-family: {{ element.font_family }};
+                        font-size: {{ element.font_size_pt }}pt;
+                        font-weight: {{ element.font_weight }};
+                        font-style: {{ element.font_style }};
+                        color: {{ element.text_color }};
+                        text-align: {{ element.text_align }};
+                    ">{{ element.content or element.element_type }}</span>
+                    {% endif %}
+                    {% if element.element_type == 'qr_code' %}
+                    <div class="label-designer-element-qr" style="width: 100%; height: 100%; background: #f0f0f0;">
+                        <i class="bi bi-qr-code" style="font-size: 24px; margin: 50% 0; transform: translateY(-50%);"></i>
+                    </div>
+                    {% endif %}
+                    {% if element.element_type == 'barcode' %}
+                    <div class="label-designer-element-barcode" style="width: 100%; height: 100%; background: #f0f0f0;">
+                        <i class="bi bi-barcode" style="font-size: 24px; margin: 50% 0; transform: translateY(-50%);"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="label-designer-canvas-controls">
+            <div class="label-designer-canvas-control">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomOutBtn" title="{{ _('inventory.labels.designer.zoom_out') }}">
+                    <i class="bi bi-zoom-out"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomResetBtn" title="{{ _('inventory.labels.designer.zoom_reset') }}">
+                    <i class="bi bi-arrows-fullscreen"></i>
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="zoomInBtn" title="{{ _('inventory.labels.designer.zoom_in') }}">
+                    <i class="bi bi-zoom-in"></i>
+                </button>
+            </div>
+            <div class="label-designer-canvas-control">
+                <button type="button" class="btn btn-sm btn-outline-primary" id="previewBtn">
+                    <i class="bi bi-eye me-1"></i> {{ _('inventory.labels.designer.preview') }}
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" id="printBtn">
+                    <i class="bi bi-printer me-1"></i> {{ _('inventory.labels.designer.print') }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Element edit modal #}
+<div class="modal fade" id="elementEditModal" tabindex="-1" aria-labelledby="elementEditModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="elementEditModalLabel">{{ _('inventory.labels.designer.edit_element') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="elementEditForm">
+                    <input type="hidden" id="elementEditId">
+                    <input type="hidden" id="elementEditType">
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="elementEditX" class="form-label">{{ _('inventory.labels.designer.element_position_x') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditX" step="0.1">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditY" class="form-label">{{ _('inventory.labels.designer.element_position_y') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditY" step="0.1">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditWidth" class="form-label">{{ _('inventory.labels.designer.element_width') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditWidth" step="0.1" min="1">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditHeight" class="form-label">{{ _('inventory.labels.designer.element_height') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditHeight" step="0.1" min="1">
+                                    <span class="input-group-text">mm</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditZIndex" class="form-label">{{ _('inventory.labels.designer.element_z_index') }}</label>
+                                <input type="number" class="form-control mod-pill-input" id="elementEditZIndex" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditRotation" class="form-label">{{ _('inventory.labels.designer.element_rotation') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditRotation" step="1" min="-360" max="360">
+                                    <span class="input-group-text">°</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="elementEditContent" class="form-label">{{ _('inventory.labels.designer.element_content') }}</label>
+                                <textarea class="form-control mod-pill-input" id="elementEditContent" rows="3"></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditFontFamily" class="form-label">{{ _('inventory.labels.designer.element_font_family') }}</label>
+                                <select class="form-select mod-pill-input" id="elementEditFontFamily">
+                                    <option value="Arial">Arial</option>
+                                    <option value="Helvetica">Helvetica</option>
+                                    <option value="Times New Roman">Times New Roman</option>
+                                    <option value="Courier New">Courier New</option>
+                                    <option value="Verdana">Verdana</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditFontSize" class="form-label">{{ _('inventory.labels.designer.element_font_size') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" class="form-control mod-pill-input" id="elementEditFontSize" step="0.1" min="1">
+                                    <span class="input-group-text">pt</span>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="elementEditTextColor" class="form-label">{{ _('inventory.labels.designer.element_text_color') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="color" class="form-control form-control-color" id="elementEditTextColor">
+                                    <input type="text" class="form-control mod-pill-input" id="elementEditTextColorText" 
+                                           placeholder="{{ _('inventory.labels.designer.color_hex') }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="elementEditTextAlign" class="form-label">{{ _('inventory.labels.designer.element_text_align') }}</label>
+                                <select class="form-select mod-pill-input" id="elementEditTextAlign">
+                                    <option value="left">{{ _('inventory.labels.designer.align_left') }}</option>
+                                    <option value="center">{{ _('inventory.labels.designer.align_center') }}</option>
+                                    <option value="right">{{ _('inventory.labels.designer.align_right') }}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="elementEditBackground" class="form-label">{{ _('inventory.labels.designer.element_background') }}</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="color" class="form-control form-control-color" id="elementEditBackground">
+                                    <input type="text" class="form-control mod-pill-input" id="elementEditBackgroundText" 
+                                           placeholder="{{ _('inventory.labels.designer.color_hex') }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger me-2" id="elementDeleteBtn">
+                    <i class="bi bi-trash me-1"></i> {{ _('common.delete') }}
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="elementSaveBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Save confirmation modal #}
+<div class="modal fade" id="saveConfirmationModal" tabindex="-1" aria-labelledby="saveConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="saveConfirmationModalLabel">{{ _('common.save') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{{ _('inventory.labels.designer.save_confirm') }}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="saveConfirmationBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<style>
+.label-designer {
+    display: flex;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+    gap: 20px;
+}
+
+.label-designer-sidebar {
+    width: 300px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.label-designer-sidebar-section {
+    background: var(--bs-card-bg);
+    border-radius: var(--bs-border-radius);
+    padding: 15px;
+    box-shadow: var(--bs-box-shadow-sm);
+}
+
+.label-designer-sidebar-section h3 {
+    font-size: 1rem;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+.label-designer-canvas-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.label-designer-canvas-container {
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--bs-border-color);
+    border-radius: var(--bs-border-radius);
+    position: relative;
+    background: #f8f9fa;
+}
+
+.label-designer-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.label-designer-canvas-background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    box-shadow: 0 0 0 1px #dee2e6;
+}
+
+.label-designer-element {
+    position: absolute;
+    cursor: move;
+    user-select: none;
+    overflow: hidden;
+}
+
+.label-designer-element:hover {
+    outline: 2px dashed var(--bs-primary);
+}
+
+.label-designer-element.selected {
+    outline: 2px solid var(--bs-primary);
+    z-index: 9999 !important;
+}
+
+.label-designer-element-text {
+    display: inline-block;
+    width: 100%;
+    padding: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.label-designer-element-qr,
+.label-designer-element-barcode {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    color: #666;
+}
+
+.label-designer-canvas-controls {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    gap: 10px;
+}
+
+.label-designer-canvas-control {
+    display: flex;
+    gap: 5px;
+}
+
+.label-designer-elements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.label-designer-element-item {
+    padding: 8px;
+    background: var(--bs-gray-100);
+    border-radius: var(--bs-border-radius-sm);
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.label-designer-element-item:hover {
+    background: var(--bs-gray-200);
+}
+
+.label-designer-element-item.selected {
+    background: var(--bs-primary-subtle);
+    border: 1px solid var(--bs-primary);
+}
+
+.label-designer-margins {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.label-designer-placeholder-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 0.8rem;
+}
+
+.label-designer-placeholder-list li {
+    margin-bottom: 5px;
+}
+
+.label-designer-placeholder-list code {
+    background: var(--bs-gray-100);
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-family: monospace;
+}
+</style>
+<script>
+// Label Designer functionality
+(function() {
+    const canvas = document.getElementById('labelCanvas');
+    const canvasBackground = document.getElementById('canvasBackground');
+    const elementsList = document.getElementById('elementsList');
+    const templateIdInput = document.getElementById('templateId');
+    
+    // Current state
+    let selectedElementId = null;
+    let zoomLevel = 1.0;
+    let isDragging = false;
+    let dragStartX, dragStartY, elementStartX, elementStartY;
+    let elements = [];
+    
+    // Template data
+    const templateData = {
+        id: templateIdInput ? parseInt(templateIdInput.value) || null : null,
+        name: document.getElementById('templateName').value,
+        description: document.getElementById('templateDescription').value,
+        width_mm: parseFloat(document.getElementById('templateWidth').value) || 50,
+        height_mm: parseFloat(document.getElementById('templateHeight').value) || 30,
+        background_color: document.getElementById('templateBackground').value || '#ffffff',
+        margin_top_mm: parseFloat(document.getElementById('marginTop').value) || 2,
+        margin_right_mm: parseFloat(document.getElementById('marginRight').value) || 2,
+        margin_bottom_mm: parseFloat(document.getElementById('marginBottom').value) || 2,
+        margin_left_mm: parseFloat(document.getElementById('marginLeft').value) || 2,
+    };
+    
+    // Initialize elements from existing template
+    function initElements() {
+        const elementItems = document.querySelectorAll('.label-designer-element');
+        elementItems.forEach(el => {
+            const elementId = parseInt(el.dataset.elementId);
+            elements.push({
+                id: elementId,
+                type: el.dataset.elementType,
+                x: parseFloat(el.style.left) || 0,
+                y: parseFloat(el.style.top) || 0,
+                width: parseFloat(el.style.width) || 20,
+                height: parseFloat(el.style.height) || 10,
+                zIndex: parseInt(el.style.zIndex) || 0,
+                rotation: parseFloat(el.dataset.rotation) || 0,
+            });
+        });
+    }
+    
+    // Update canvas background
+    function updateCanvasBackground() {
+        if (canvasBackground) {
+            canvasBackground.style.backgroundColor = templateData.background_color;
+        }
+    }
+    
+    // Update canvas size
+    function updateCanvasSize() {
+        if (canvas) {
+            canvas.style.width = `${templateData.width_mm * zoomLevel}px`;
+            canvas.style.height = `${templateData.height_mm * zoomLevel}px`;
+        }
+    }
+    
+    // Select element
+    function selectElement(elementId) {
+        // Remove selection from all elements
+        document.querySelectorAll('.label-designer-element').forEach(el => {
+            el.classList.remove('selected');
+        });
+        document.querySelectorAll('.label-designer-element-item').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
+        selectedElementId = elementId;
+        
+        // Add selection to clicked element
+        const element = document.querySelector(`[data-element-id="${elementId}"]`);
+        if (element) {
+            element.classList.add('selected');
+        }
+        
+        // Add selection to list item
+        const listItem = document.querySelector(`[data-element-id="${elementId}"]`);
+        if (listItem && listItem.classList.contains('label-designer-element-item')) {
+            listItem.classList.add('selected');
+        }
+        
+        // Load element data into edit form
+        loadElementData(elementId);
+    }
+    
+    // Load element data into edit form
+    function loadElementData(elementId) {
+        const element = document.querySelector(`[data-element-id="${elementId}"]`);
+        if (!element) return;
+        
+        document.getElementById('elementEditId').value = elementId;
+        document.getElementById('elementEditType').value = element.dataset.elementType;
+        document.getElementById('elementEditX').value = parseFloat(element.style.left) || 0;
+        document.getElementById('elementEditY').value = parseFloat(element.style.top) || 0;
+        document.getElementById('elementEditWidth').value = parseFloat(element.style.width) || 20;
+        document.getElementById('elementEditHeight').value = parseFloat(element.style.height) || 10;
+        document.getElementById('elementEditZIndex').value = parseInt(element.style.zIndex) || 0;
+        document.getElementById('elementEditRotation').value = parseFloat(element.dataset.rotation) || 0;
+        
+        if (element.dataset.content) {
+            document.getElementById('elementEditContent').value = element.dataset.content;
+        } else {
+            document.getElementById('elementEditContent').value = '';
+        }
+        
+        if (element.dataset.fontFamily) {
+            document.getElementById('elementEditFontFamily').value = element.dataset.fontFamily;
+        }
+        if (element.dataset.fontSize) {
+            document.getElementById('elementEditFontSize').value = element.dataset.fontSize;
+        }
+        if (element.dataset.textColor) {
+            document.getElementById('elementEditTextColor').value = element.dataset.textColor;
+            document.getElementById('elementEditTextColorText').value = element.dataset.textColor;
+        }
+        if (element.dataset.textAlign) {
+            document.getElementById('elementEditTextAlign').value = element.dataset.textAlign;
+        }
+        if (element.dataset.backgroundColor) {
+            document.getElementById('elementEditBackground').value = element.dataset.backgroundColor;
+            document.getElementById('elementEditBackgroundText').value = element.dataset.backgroundColor;
+        }
+    }
+    
+    // Add new element
+    function addElement(type, x = 10, y = 10, width = 20, height = 10) {
+        const elementId = Date.now();
+        
+        let content = '';
+        let fontFamily = 'Arial';
+        let fontSize = 10;
+        let textColor = '#000000';
+        let textAlign = 'left';
+        let backgroundColor = null;
+        
+        switch (type) {
+            case 'text':
+                content = window._('inventory.labels.designer.default_text');
+                break;
+            case 'product_name':
+                content = '{{product.name}}';
+                break;
+            case 'product_category':
+                content = '{{product.category}}';
+                break;
+            case 'product_serial':
+                content = '{{product.serial_number}}';
+                break;
+            case 'instance_inventory_number':
+                content = '{{instance.inventory_number}}';
+                break;
+            case 'instance_serial_number':
+                content = '{{instance.serial_number}}';
+                break;
+            case 'instance_dguv_id':
+                content = '{{instance.dguv_id}}';
+                break;
+            case 'instance_status':
+                content = '{{instance.status}}';
+                break;
+            case 'instance_color':
+                content = '{{instance.color}}';
+                break;
+            case 'instance_location':
+                content = '{{instance.location}}';
+                break;
+            case 'qr_code':
+                content = '{{product.id}}';
+                break;
+            case 'barcode':
+                content = '{{product.serial_number}}';
+                break;
+            case 'date':
+                content = '{{date}}';
+                break;
+        }
+        
+        // Create element HTML
+        const elementHtml = `
+            <div class="label-designer-element" 
+                 data-element-id="${elementId}"
+                 data-element-type="${type}"
+                 data-content="${content}"
+                 data-font-family="${fontFamily}"
+                 data-font-size="${fontSize}"
+                 data-text-color="${textColor}"
+                 data-text-align="${textAlign}"
+                 style="
+                     left: ${x}mm;
+                     top: ${y}mm;
+                     width: ${width}mm;
+                     height: ${height}mm;
+                     z-index: ${elements.length};
+                 "
+            >
+                ${type === 'qr_code' || type === 'barcode' ? 
+                    `<div class="label-designer-element-${type}" style="width: 100%; height: 100%; background: #f0f0f0;">
+                        <i class="bi bi-${type === 'qr_code' ? 'qr-code' : 'barcode'}" style="font-size: 24px; margin: 50% 0; transform: translateY(-50%);"></i>
+                    </div>` : 
+                    `<span class="label-designer-element-text" style="
+                        font-family: ${fontFamily};
+                        font-size: ${fontSize}pt;
+                        color: ${textColor};
+                        text-align: ${textAlign};
+                    ">${content || type}</span>`
+                }
+            </div>
+        `;
+        
+        canvas.insertAdjacentHTML('beforeend', elementHtml);
+        
+        // Add to elements list
+        elements.push({
+            id: elementId,
+            type: type,
+            x: x,
+            y: y,
+            width: width,
+            height: height,
+            zIndex: elements.length,
+            rotation: 0,
+            content: content,
+            fontFamily: fontFamily,
+            fontSize: fontSize,
+            textColor: textColor,
+            textAlign: textAlign,
+            backgroundColor: backgroundColor,
+            isNew: true,
+        });
+        
+        // Add to sidebar list
+        addElementToSidebar(elementId, type, content);
+        
+        // Select the new element
+        selectElement(elementId);
+        
+        // Show edit modal
+        const modal = new bootstrap.Modal(document.getElementById('elementEditModal'));
+        modal.show();
+    }
+    
+    // Add element to sidebar list
+    function addElementToSidebar(elementId, type, content) {
+        const typeLabels = {
+            'text': window._('inventory.labels.designer.element_type.text'),
+            'product_name': window._('inventory.labels.designer.element_type.product_name'),
+            'product_category': window._('inventory.labels.designer.element_type.product_category'),
+            'product_serial': window._('inventory.labels.designer.element_type.product_serial'),
+            'instance_inventory_number': window._('inventory.labels.designer.element_type.instance_inv_number'),
+            'instance_serial_number': window._('inventory.labels.designer.element_type.instance_serial'),
+            'instance_dguv_id': window._('inventory.labels.designer.element_type.instance_dguv'),
+            'instance_status': window._('inventory.labels.designer.element_type.instance_status'),
+            'instance_color': window._('inventory.labels.designer.element_type.instance_color'),
+            'instance_location': window._('inventory.labels.designer.element_type.instance_location'),
+            'qr_code': window._('inventory.labels.designer.element_type.qr_code'),
+            'barcode': window._('inventory.labels.designer.element_type.barcode'),
+            'date': window._('inventory.labels.designer.element_type.date'),
+        };
+        
+        const html = `
+            <div class="label-designer-element-item" data-element-id="${elementId}" onclick="selectElement(${elementId})">
+                <strong>${typeLabels[type] || type}</strong>
+                <div class="text-muted small">${content || window._('inventory.labels.designer.element_content_empty')}</div>
+            </div>
+        `;
+        
+        elementsList.insertAdjacentHTML('beforeend', html);
+    }
+    
+    // Update element position and size
+    function updateElement(elementId, updates) {
+        const element = document.querySelector(`[data-element-id="${elementId}"]`);
+        if (!element) return;
+        
+        const elemData = elements.find(e => e.id === elementId);
+        if (!elemData) return;
+        
+        if (updates.x !== undefined) {
+            element.style.left = `${updates.x}mm`;
+            elemData.x = updates.x;
+        }
+        if (updates.y !== undefined) {
+            element.style.top = `${updates.y}mm`;
+            elemData.y = updates.y;
+        }
+        if (updates.width !== undefined) {
+            element.style.width = `${updates.width}mm`;
+            elemData.width = updates.width;
+        }
+        if (updates.height !== undefined) {
+            element.style.height = `${updates.height}mm`;
+            elemData.height = updates.height;
+        }
+        if (updates.zIndex !== undefined) {
+            element.style.zIndex = updates.zIndex;
+            elemData.zIndex = updates.zIndex;
+        }
+        if (updates.rotation !== undefined) {
+            element.dataset.rotation = updates.rotation;
+            element.style.transform = `rotate(${updates.rotation}deg)`;
+            elemData.rotation = updates.rotation;
+        }
+        if (updates.content !== undefined) {
+            element.dataset.content = updates.content;
+            elemData.content = updates.content;
+            
+            // Update text content
+            const textSpan = element.querySelector('.label-designer-element-text');
+            if (textSpan) {
+                textSpan.textContent = updates.content || type;
+            }
+        }
+        if (updates.fontFamily !== undefined) {
+            element.dataset.fontFamily = updates.fontFamily;
+            elemData.fontFamily = updates.fontFamily;
+            const textSpan = element.querySelector('.label-designer-element-text');
+            if (textSpan) {
+                textSpan.style.fontFamily = updates.fontFamily;
+            }
+        }
+        if (updates.fontSize !== undefined) {
+            element.dataset.fontSize = updates.fontSize;
+            elemData.fontSize = updates.fontSize;
+            const textSpan = element.querySelector('.label-designer-element-text');
+            if (textSpan) {
+                textSpan.style.fontSize = `${updates.fontSize}pt`;
+            }
+        }
+        if (updates.textColor !== undefined) {
+            element.dataset.textColor = updates.textColor;
+            elemData.textColor = updates.textColor;
+            const textSpan = element.querySelector('.label-designer-element-text');
+            if (textSpan) {
+                textSpan.style.color = updates.textColor;
+            }
+        }
+        if (updates.textAlign !== undefined) {
+            element.dataset.textAlign = updates.textAlign;
+            elemData.textAlign = updates.textAlign;
+            const textSpan = element.querySelector('.label-designer-element-text');
+            if (textSpan) {
+                textSpan.style.textAlign = updates.textAlign;
+            }
+        }
+        if (updates.backgroundColor !== undefined) {
+            element.dataset.backgroundColor = updates.backgroundColor;
+            elemData.backgroundColor = updates.backgroundColor;
+            element.style.backgroundColor = updates.backgroundColor || '';
+        }
+        
+        // Update sidebar list
+        updateSidebarElement(elementId);
+    }
+    
+    // Update sidebar element
+    function updateSidebarElement(elementId) {
+        const elemData = elements.find(e => e.id === elementId);
+        if (!elemData) return;
+        
+        const listItem = document.querySelector(`.label-designer-element-item[data-element-id="${elementId}"]`);
+        if (!listItem) return;
+        
+        const typeLabels = {
+            'text': window._('inventory.labels.designer.element_type.text'),
+            'product_name': window._('inventory.labels.designer.element_type.product_name'),
+            'product_category': window._('inventory.labels.designer.element_type.product_category'),
+            'product_serial': window._('inventory.labels.designer.element_type.product_serial'),
+            'instance_inventory_number': window._('inventory.labels.designer.element_type.instance_inv_number'),
+            'instance_serial_number': window._('inventory.labels.designer.element_type.instance_serial'),
+            'instance_dguv_id': window._('inventory.labels.designer.element_type.instance_dguv'),
+            'instance_status': window._('inventory.labels.designer.element_type.instance_status'),
+            'instance_color': window._('inventory.labels.designer.element_type.instance_color'),
+            'instance_location': window._('inventory.labels.designer.element_type.instance_location'),
+            'qr_code': window._('inventory.labels.designer.element_type.qr_code'),
+            'barcode': window._('inventory.labels.designer.element_type.barcode'),
+            'date': window._('inventory.labels.designer.element_type.date'),
+        };
+        
+        const html = `
+            <strong>${typeLabels[elemData.type] || elemData.type}</strong>
+            <div class="text-muted small">${elemData.content || window._('inventory.labels.designer.element_content_empty')}</div>
+        `;
+        
+        listItem.innerHTML = html;
+    }
+    
+    // Delete element
+    function deleteElement(elementId) {
+        const element = document.querySelector(`[data-element-id="${elementId}"]`);
+        if (element) {
+            element.remove();
+        }
+        
+        const listItem = document.querySelector(`.label-designer-element-item[data-element-id="${elementId}"]`);
+        if (listItem) {
+            listItem.remove();
+        }
+        
+        elements = elements.filter(e => e.id !== elementId);
+        
+        if (selectedElementId === elementId) {
+            selectedElementId = null;
+        }
+    }
+    
+    // Zoom functions
+    function zoomIn() {
+        zoomLevel = Math.min(zoomLevel + 0.25, 3.0);
+        updateCanvasSize();
+    }
+    
+    function zoomOut() {
+        zoomLevel = Math.max(zoomLevel - 0.25, 0.25);
+        updateCanvasSize();
+    }
+    
+    function zoomReset() {
+        zoomLevel = 1.0;
+        updateCanvasSize();
+    }
+    
+    // Save template
+    function saveTemplate() {
+        const templateData = {
+            id: templateIdInput ? parseInt(templateIdInput.value) || null : null,
+            name: document.getElementById('templateName').value,
+            description: document.getElementById('templateDescription').value,
+            width_mm: parseFloat(document.getElementById('templateWidth').value) || 50,
+            height_mm: parseFloat(document.getElementById('templateHeight').value) || 30,
+            background_color: document.getElementById('templateBackground').value || '#ffffff',
+            margin_top_mm: parseFloat(document.getElementById('marginTop').value) || 2,
+            margin_right_mm: parseFloat(document.getElementById('marginRight').value) || 2,
+            margin_bottom_mm: parseFloat(document.getElementById('marginBottom').value) || 2,
+            margin_left_mm: parseFloat(document.getElementById('marginLeft').value) || 2,
+            elements: elements.filter(e => !e.isNew).map(e => ({
+                id: e.id,
+                element_type: e.type,
+                x_mm: e.x,
+                y_mm: e.y,
+                width_mm: e.width,
+                height_mm: e.height,
+                content: e.content,
+                font_family: e.fontFamily,
+                font_size_pt: e.fontSize,
+                text_color: e.textColor,
+                text_align: e.textAlign,
+                background_color: e.backgroundColor,
+                z_index: e.zIndex,
+                rotation_degrees: e.rotation,
+            })),
+        };
+        
+        const url = templateData.id ? `/inventory/api/label-templates/${templateData.id}` : '/inventory/api/label-templates';
+        const method = templateData.id ? 'PUT' : 'POST';
+        
+        fetch(url, {
+            method: method,
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            body: JSON.stringify(templateData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update template ID if new
+                if (!templateData.id && data.template && data.template.id) {
+                    templateIdInput.value = data.template.id;
+                    templateData.id = data.template.id;
+                }
+                
+                // Mark new elements as saved
+                elements.forEach(e => {
+                    if (e.isNew && data.template && data.template.elements) {
+                        const savedElement = data.template.elements.find(el => el.content === e.content && el.element_type === e.type);
+                        if (savedElement) {
+                            e.id = savedElement.id;
+                            e.isNew = false;
+                        }
+                    }
+                });
+                
+                const modal = bootstrap.Modal.getInstance(document.getElementById('saveConfirmationModal'));
+                modal.hide();
+                
+                // Show success message
+                alert(window._('inventory.labels.designer.save_success'));
+            } else {
+                alert(data.error || window._('inventory.labels.designer.save_error'));
+            }
+        })
+        .catch(error => {
+            console.error('Error saving template:', error);
+            alert(window._('inventory.labels.designer.save_error'));
+        });
+    }
+    
+    // Event listeners
+    document.getElementById('addTextElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('text');
+    });
+    
+    document.getElementById('addProductNameElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('product_name');
+    });
+    
+    document.getElementById('addInstanceInvNumberElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('instance_inventory_number');
+    });
+    
+    document.getElementById('addInstanceSerialElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('instance_serial_number');
+    });
+    
+    document.getElementById('addInstanceDguvElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('instance_dguv_id');
+    });
+    
+    document.getElementById('addInstanceStatusElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('instance_status');
+    });
+    
+    document.getElementById('addInstanceColorElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('instance_color');
+    });
+    
+    document.getElementById('addQrCodeElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('qr_code', 10, 10, 30, 30);
+    });
+    
+    document.getElementById('addBarcodeElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('barcode', 10, 10, 50, 20);
+    });
+    
+    document.getElementById('addDateElement')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        addElement('date');
+    });
+    
+    document.getElementById('zoomInBtn')?.addEventListener('click', zoomIn);
+    document.getElementById('zoomOutBtn')?.addEventListener('click', zoomOut);
+    document.getElementById('zoomResetBtn')?.addEventListener('click', zoomReset);
+    
+    document.getElementById('saveTemplateBtn')?.addEventListener('click', () => {
+        const modal = new bootstrap.Modal(document.getElementById('saveConfirmationModal'));
+        modal.show();
+    });
+    
+    document.getElementById('saveConfirmationBtn')?.addEventListener('click', () => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('saveConfirmationModal'));
+        modal.hide();
+        saveTemplate();
+    });
+    
+    // Element edit modal
+    const elementEditModal = document.getElementById('elementEditModal');
+    const elementEditForm = document.getElementById('elementEditForm');
+    const elementSaveBtn = document.getElementById('elementSaveBtn');
+    const elementDeleteBtn = document.getElementById('elementDeleteBtn');
+    
+    elementSaveBtn?.addEventListener('click', () => {
+        const elementId = parseInt(document.getElementById('elementEditId').value);
+        if (!elementId) return;
+        
+        const updates = {
+            x: parseFloat(document.getElementById('elementEditX').value) || 0,
+            y: parseFloat(document.getElementById('elementEditY').value) || 0,
+            width: parseFloat(document.getElementById('elementEditWidth').value) || 20,
+            height: parseFloat(document.getElementById('elementEditHeight').value) || 10,
+            zIndex: parseInt(document.getElementById('elementEditZIndex').value) || 0,
+            rotation: parseFloat(document.getElementById('elementEditRotation').value) || 0,
+            content: document.getElementById('elementEditContent').value,
+            fontFamily: document.getElementById('elementEditFontFamily').value,
+            fontSize: parseFloat(document.getElementById('elementEditFontSize').value) || 10,
+            textColor: document.getElementById('elementEditTextColor').value,
+            textAlign: document.getElementById('elementEditTextAlign').value,
+            backgroundColor: document.getElementById('elementEditBackground').value,
+        };
+        
+        updateElement(elementId, updates);
+        
+        const modal = bootstrap.Modal.getInstance(elementEditModal);
+        modal.hide();
+    });
+    
+    elementDeleteBtn?.addEventListener('click', () => {
+        const elementId = parseInt(document.getElementById('elementEditId').value);
+        if (!elementId) return;
+        
+        if (confirm(window._('inventory.labels.designer.delete_confirm'))) {
+            deleteElement(elementId);
+            const modal = bootstrap.Modal.getInstance(elementEditModal);
+            modal.hide();
+        }
+    });
+    
+    // Color picker synchronization
+    const colorPairs = [
+        ['templateBackground', 'templateBackgroundText'],
+        ['elementEditTextColor', 'elementEditTextColorText'],
+        ['elementEditBackground', 'elementEditBackgroundText'],
+    ];
+    
+    colorPairs.forEach(([colorId, textId]) => {
+        const colorInput = document.getElementById(colorId);
+        const textInput = document.getElementById(textId);
+        
+        if (colorInput && textInput) {
+            colorInput.addEventListener('input', () => {
+                textInput.value = colorInput.value;
+            });
+            textInput.addEventListener('input', () => {
+                const value = textInput.value.trim();
+                if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                    colorInput.value = value;
+                }
+            });
+        }
+    });
+    
+    // Element click on canvas
+    canvas?.addEventListener('click', (e) => {
+        if (e.target === canvas || e.target === canvasBackground) {
+            selectElement(null);
+            return;
+        }
+        
+        const element = e.target.closest('.label-designer-element');
+        if (element) {
+            const elementId = parseInt(element.dataset.elementId);
+            selectElement(elementId);
+            
+            // Show edit modal
+            const modal = new bootstrap.Modal(elementEditModal);
+            modal.show();
+        }
+    });
+    
+    // Element drag and drop
+    canvas?.addEventListener('mousedown', (e) => {
+        const element = e.target.closest('.label-designer-element');
+        if (element && selectedElementId === parseInt(element.dataset.elementId)) {
+            isDragging = true;
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            elementStartX = parseFloat(element.style.left) || 0;
+            elementStartY = parseFloat(element.style.top) || 0;
+            e.preventDefault();
+        }
+    });
+    
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging || !selectedElementId) return;
+        
+        const element = document.querySelector(`[data-element-id="${selectedElementId}"]`);
+        if (!element) return;
+        
+        const dx = (e.clientX - dragStartX) / zoomLevel;
+        const dy = (e.clientY - dragStartY) / zoomLevel;
+        
+        const newX = Math.max(0, elementStartX + dx);
+        const newY = Math.max(0, elementStartY + dy);
+        
+        updateElement(selectedElementId, { x: newX, y: newY });
+    });
+    
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    
+    // Initialize
+    updateCanvasBackground();
+    updateCanvasSize();
+    initElements();
+    
+    // Make selectElement available globally
+    window.selectElement = selectElement;
+})();
+</script>
+{% endblock %}

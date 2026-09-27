@@ -1,0 +1,399 @@
+{% extends "inventory/layout.html" %}
+{% set inventory_show_view_toggle = false %}
+{% set inventory_show_stock_tools = false %}
+
+{% block title %}{{ _('inventory.labels.page_title') }}{% endblock %}
+{% block inventory_heading_icon %}bi-file-earmark-text{% endblock %}
+{% block inventory_heading %}{{ _('inventory.labels.heading') }}{% endblock %}
+
+{% block navbar_search %}
+<div class="mod-search" role="search">
+    <label class="mod-search-field" for="labelSearchInput">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search"
+               id="labelSearchInput"
+               class="mod-search-input"
+               placeholder="{{ _('inventory.labels.search.placeholder') }}"
+               aria-label="{{ _('inventory.labels.search.label') }}"
+               autocomplete="off"
+               enterkeyhint="search">
+    </label>
+</div>
+{% endblock %}
+
+{% block inventory_mobile_actions %}
+<div class="dropdown">
+    <button class="btn mod-new-btn btn-sm flex-shrink-0 dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="bi bi-plus-lg"></i> {{ _('common.actions') }}
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('inventory.labels_create') }}">{{ _('inventory.labels.add_template') }}</a></li>
+        <li><hr class="dropdown-divider"></li>
+        <li><a class="dropdown-item" href="{{ url_for('inventory.stock') }}">{{ _('inventory.labels.back_to_stock') }}</a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block inventory_content %}
+<div class="mod-back-row mb-3">
+    <a href="{{ url_for('inventory.stock') }}" class="mod-back-link" aria-label="{{ _('layout.nav.back') }}">
+        <i class="bi bi-arrow-left" aria-hidden="true"></i>
+        <span>{{ _('layout.nav.back') }}</span>
+    </a>
+</div>
+
+{# Labels header #}
+<div class="inventory-labels-header mb-4">
+    <div class="inventory-labels-header-main">
+        <h1 class="inventory-labels-header-title">
+            <i class="bi bi-file-earmark-text me-2"></i>
+            {{ _('inventory.labels.heading') }}
+        </h1>
+        <div class="inventory-labels-header-description">
+            {{ _('inventory.labels.description') }}
+        </div>
+    </div>
+    <div class="inventory-labels-header-actions">
+        <a href="{{ url_for('inventory.labels_create') }}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.labels.add_template') }}
+        </a>
+    </div>
+</div>
+
+{# Labels list #}
+<div class="inventory-labels-list">
+    <div class="inventory-labels-list-header d-none d-lg-flex">
+        <div class="inventory-labels-list-col inventory-labels-list-col--name">{{ _('inventory.labels.list.name') }}</div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--size">{{ _('inventory.labels.list.size') }}</div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--elements">{{ _('inventory.labels.list.elements') }}</div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--created">{{ _('inventory.labels.list.created') }}</div>
+        <div class="inventory-labels-list-col inventory-labels-list-col--actions">{{ _('inventory.labels.list.actions') }}</div>
+    </div>
+
+    <div class="inventory-labels-list-body" id="labelsList">
+        {% for template in templates %}
+        {% include "inventory/_label_template_item.html" %}
+        {% else %}
+        <div class="inventory-labels-empty">
+            <i class="bi bi-file-earmark-text" aria-hidden="true"></i>
+            <p>{{ _('inventory.labels.empty') }}</p>
+            <a href="{{ url_for('inventory.labels_create') }}" class="btn btn-primary">
+                <i class="bi bi-plus-lg me-1"></i> {{ _('inventory.labels.add_first_template') }}
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{# Template form modal (for create and edit) #}
+<div class="modal fade" id="templateFormModal" tabindex="-1" aria-labelledby="templateFormModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="templateFormModalLabel">{{ _('inventory.labels.form.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <form id="templateForm" class="inventory-form">
+                    <input type="hidden" id="templateFormId" name="template_id">
+                    <div class="inventory-form-fields">
+                        <div class="inventory-form-field">
+                            <label for="templateFormName" class="form-label">{{ _('inventory.labels.form.name') }} <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control mod-pill-input" id="templateFormName" name="name" required>
+                            <div class="form-text">{{ _('inventory.labels.form.name_help') }}</div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <label for="templateFormDescription" class="form-label">{{ _('inventory.labels.form.description') }}</label>
+                            <textarea class="form-control mod-pill-input" id="templateFormDescription" name="description" rows="2"></textarea>
+                            <div class="form-text">{{ _('inventory.labels.form.description_help') }}</div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="inventory-form-field">
+                                    <label for="templateFormWidth" class="form-label">{{ _('inventory.labels.form.width') }}</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control mod-pill-input" id="templateFormWidth" name="width_mm" step="0.1" min="10">
+                                        <span class="input-group-text">mm</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="inventory-form-field">
+                                    <label for="templateFormHeight" class="form-label">{{ _('inventory.labels.form.height') }}</label>
+                                    <div class="input-group input-group-sm">
+                                        <input type="number" class="form-control mod-pill-input" id="templateFormHeight" name="height_mm" step="0.1" min="10">
+                                        <span class="input-group-text">mm</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="inventory-form-field">
+                            <label for="templateFormBackground" class="form-label">{{ _('inventory.labels.form.background') }}</label>
+                            <div class="input-group input-group-sm">
+                                <input type="color" class="form-control form-control-color" id="templateFormBackground" name="background_color">
+                                <input type="text" class="form-control mod-pill-input" id="templateFormBackgroundText" 
+                                       placeholder="{{ _('inventory.labels.form.color_hex') }}">
+                            </div>
+                            <div class="form-text">{{ _('inventory.labels.form.background_help') }}</div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-primary" id="templateFormSaveBtn">{{ _('common.save') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{# Delete confirmation modal #}
+<div class="modal fade" id="templateDeleteModal" tabindex="-1" aria-labelledby="templateDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="templateDeleteModalLabel">{{ _('inventory.labels.delete.title') }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('common.close') }}"></button>
+            </div>
+            <div class="modal-body">
+                <p id="templateDeleteMessage">{{ _('inventory.labels.delete.confirm') }}</p>
+                <input type="hidden" id="templateDeleteId">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="templateDeleteConfirmCheckbox">
+                    <label class="form-check-label" for="templateDeleteConfirmCheckbox">
+                        {{ _('inventory.labels.delete.confirm_text') }}
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{{ _('common.cancel') }}</button>
+                <button type="button" class="btn btn-danger" id="templateDeleteConfirmBtn" disabled>{{ _('common.delete') }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+// Label search and filtering
+(function() {
+    const labelsList = document.getElementById('labelsList');
+    const labelSearchInput = document.getElementById('labelSearchInput');
+
+    function filterLabels() {
+        if (!labelsList) return;
+
+        const searchQuery = (labelSearchInput?.value || '').toLowerCase();
+
+        const labelItems = labelsList.querySelectorAll('.inventory-label-item');
+
+        labelItems.forEach(item => {
+            let visible = true;
+
+            if (searchQuery) {
+                const name = (item.dataset.name || '').toLowerCase();
+                const description = (item.dataset.description || '').toLowerCase();
+                
+                if (!name.includes(searchQuery) && !description.includes(searchQuery)) {
+                    visible = false;
+                }
+            }
+
+            item.style.display = visible ? '' : 'none';
+        });
+    }
+
+    if (labelSearchInput) {
+        labelSearchInput.addEventListener('input', filterLabels);
+    }
+
+    filterLabels();
+})();
+
+// Template form handling
+(function() {
+    const templateFormModal = document.getElementById('templateFormModal');
+    const templateForm = document.getElementById('templateForm');
+    const templateFormSaveBtn = document.getElementById('templateFormSaveBtn');
+    const templateFormId = document.getElementById('templateFormId');
+    const templateFormName = document.getElementById('templateFormName');
+    const templateFormDescription = document.getElementById('templateFormDescription');
+    const templateFormWidth = document.getElementById('templateFormWidth');
+    const templateFormHeight = document.getElementById('templateFormHeight');
+    const templateFormBackground = document.getElementById('templateFormBackground');
+    const templateFormBackgroundText = document.getElementById('templateFormBackgroundText');
+
+    // Color picker synchronization
+    if (templateFormBackground && templateFormBackgroundText) {
+        templateFormBackground.addEventListener('input', function() {
+            templateFormBackgroundText.value = this.value;
+        });
+        templateFormBackgroundText.addEventListener('input', function() {
+            const value = this.value.trim();
+            if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                templateFormBackground.value = value;
+            }
+        });
+    }
+
+    // Open modal for create
+    function openTemplateForm(template = null) {
+        if (!templateFormModal) return;
+
+        // Reset form
+        templateFormId.value = '';
+        templateFormName.value = '';
+        templateFormDescription.value = '';
+        templateFormWidth.value = 50;
+        templateFormHeight.value = 30;
+        templateFormBackground.value = '#ffffff';
+        templateFormBackgroundText.value = '#ffffff';
+
+        // Set values if editing
+        if (template) {
+            templateFormId.value = template.id;
+            templateFormName.value = template.name;
+            templateFormDescription.value = template.description || '';
+            templateFormWidth.value = template.width_mm || 50;
+            templateFormHeight.value = template.height_mm || 30;
+            templateFormBackground.value = template.background_color || '#ffffff';
+            templateFormBackgroundText.value = template.background_color || '#ffffff';
+        }
+
+        const modal = new bootstrap.Modal(templateFormModal);
+        modal.show();
+    }
+
+    // Save form
+    if (templateFormSaveBtn && templateForm) {
+        templateFormSaveBtn.addEventListener('click', function() {
+            const templateId = templateFormId.value;
+            const name = templateFormName.value.trim();
+            const description = templateFormDescription.value.trim();
+            const width = parseFloat(templateFormWidth.value) || 50;
+            const height = parseFloat(templateFormHeight.value) || 30;
+            const background = templateFormBackground.value;
+
+            if (!name) {
+                alert(window._('inventory.labels.form.name_required'));
+                return;
+            }
+
+            const url = templateId ? `/inventory/api/label-templates/${templateId}` : '/inventory/api/label-templates';
+            const method = templateId ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description,
+                    width_mm: width,
+                    height_mm: height,
+                    background_color: background,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(templateFormModal);
+                    modal.hide();
+                    // Reload the page
+                    window.location.reload();
+                } else {
+                    alert(data.error || window._('inventory.labels.form.error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error saving template:', error);
+                alert(window._('inventory.labels.form.error'));
+            });
+        });
+    }
+
+    // Event listeners for action buttons
+    document.addEventListener('click', function(e) {
+        // Edit template
+        if (e.target.closest('.label-edit-btn')) {
+            const btn = e.target.closest('.label-edit-btn');
+            const templateId = btn.dataset.templateId;
+            fetch(`/inventory/api/label-templates/${templateId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.template) {
+                        openTemplateForm(data.template);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading template:', error);
+                    alert(window._('inventory.labels.form.error'));
+                });
+        }
+
+        // Delete template
+        if (e.target.closest('.label-delete-btn')) {
+            const btn = e.target.closest('.label-delete-btn');
+            const templateId = btn.dataset.templateId;
+            const templateName = btn.dataset.templateName;
+            
+            document.getElementById('templateDeleteId').value = templateId;
+            document.getElementById('templateDeleteMessage').textContent = 
+                window._('inventory.labels.delete.confirm_with_name', { name: templateName });
+            
+            const modal = new bootstrap.Modal(document.getElementById('templateDeleteModal'));
+            modal.show();
+        }
+
+        // Design template (go to designer)
+        if (e.target.closest('.label-design-btn')) {
+            const btn = e.target.closest('.label-design-btn');
+            const templateId = btn.dataset.templateId;
+            window.location.href = `/inventory/labels/${templateId}/design`;
+        }
+    });
+
+    // Delete confirmation
+    const templateDeleteConfirmBtn = document.getElementById('templateDeleteConfirmBtn');
+    const templateDeleteConfirmCheckbox = document.getElementById('templateDeleteConfirmCheckbox');
+    const templateDeleteId = document.getElementById('templateDeleteId');
+
+    if (templateDeleteConfirmBtn && templateDeleteConfirmCheckbox) {
+        templateDeleteConfirmCheckbox.addEventListener('change', function() {
+            templateDeleteConfirmBtn.disabled = !this.checked;
+        });
+
+        templateDeleteConfirmBtn.addEventListener('click', function() {
+            const templateId = templateDeleteId.value;
+            
+            fetch(`/inventory/api/label-templates/${templateId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('templateDeleteModal'));
+                    modal.hide();
+                    window.location.reload();
+                } else {
+                    alert(data.error || window._('inventory.labels.delete.error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting template:', error);
+                alert(window._('inventory.labels.delete.error'));
+            });
+        });
+    }
+})();
+</script>
+{% endblock %}
