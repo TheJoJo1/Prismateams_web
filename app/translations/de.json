@@ -5706,6 +5706,49 @@
         "dguv": "DGUV-Prüfbericht",
         "other": "Sonstiges"
       }
+    },
+    "labels": {
+      "page_title": "Label-Designer",
+      "heading": "Label-Vorlagen",
+      "description": "Erstellen und verwalten Sie Label-Vorlagen für Ihre Inventarartikel.",
+      "empty": "Keine Label-Vorlagen vorhanden.",
+      "add_template": "Vorlage hinzufügen",
+      "add_first_template": "Erste Vorlage erstellen",
+      "back_to_stock": "Zurück zum Lager",
+      "search": {
+        "label": "Label-Vorlagen durchsuchen",
+        "placeholder": "Name, Beschreibung..."
+      },
+      "list": {
+        "name": "Name",
+        "size": "Größe",
+        "elements": "Elemente",
+        "created": "Erstellt",
+        "actions": "Aktionen",
+        "edit": "Bearbeiten",
+        "delete": "Löschen",
+        "design": "Designen"
+      },
+      "form": {
+        "title": "Label-Vorlage",
+        "name": "Name",
+        "name_help": "Ein eindeutiger Name für die Vorlage",
+        "name_required": "Bitte geben Sie einen Namen ein",
+        "width": "Breite",
+        "height": "Höhe",
+        "description": "Beschreibung",
+        "description_help": "Optionale Beschreibung der Vorlage",
+        "background": "Hintergrundfarbe",
+        "background_help": "Hintergrundfarbe im Hex-Format (z. B. #FFFFFF)",
+        "color_hex": "Farbwert",
+        "error": "Bitte korrigieren Sie die markierten Felder"
+      },
+      "delete": {
+        "title": "Vorlage löschen",
+        "confirm": "Sind Sie sicher, dass Sie diese Vorlage löschen möchten?",
+        "confirm_text": "Diese Aktion kann nicht rückgängig gemacht werden.",
+        "error": "Die Vorlage konnte nicht gelöscht werden."
+      }
     }
   },
   "music": {

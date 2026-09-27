@@ -5706,6 +5706,49 @@
         "dguv": "DGUV inspection report",
         "other": "Other"
       }
+    },
+    "labels": {
+      "page_title": "Label Designer",
+      "heading": "Label Templates",
+      "description": "Create and manage label templates for your inventory items.",
+      "empty": "No label templates found.",
+      "add_template": "Add Template",
+      "add_first_template": "Create First Template",
+      "back_to_stock": "Back to Inventory",
+      "search": {
+        "label": "Search label templates",
+        "placeholder": "Name, description..."
+      },
+      "list": {
+        "name": "Name",
+        "size": "Size",
+        "elements": "Elements",
+        "created": "Created",
+        "actions": "Actions",
+        "edit": "Edit",
+        "delete": "Delete",
+        "design": "Design"
+      },
+      "form": {
+        "title": "Label Template",
+        "name": "Name",
+        "name_help": "A unique name for the template",
+        "name_required": "Please enter a name",
+        "width": "Width",
+        "height": "Height",
+        "description": "Description",
+        "description_help": "Optional description of the template",
+        "background": "Background Color",
+        "background_help": "Background color in hex format (e.g. #FFFFFF)",
+        "color_hex": "Color Value",
+        "error": "Please correct the highlighted fields"
+      },
+      "delete": {
+        "title": "Delete Template",
+        "confirm": "Are you sure you want to delete this template?",
+        "confirm_text": "This action cannot be undone.",
+        "error": "The template could not be deleted."
+      }
     }
   },
   "music": {
