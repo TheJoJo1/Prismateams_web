@@ -4834,7 +4834,8 @@
         "sets": "Produktsets",
         "inventory_tool": "Inventur",
         "print_qr": "QR / Etiketten",
-        "statistics": "Statistik"
+        "statistics": "Statistik",
+        "labels": "Label-Designer"
       },
       "view_toggle": {
         "label": "Ansicht umschalten",

@@ -4834,7 +4834,8 @@
         "sets": "Product sets",
         "inventory_tool": "Inventory count",
         "print_qr": "QR / Labels",
-        "statistics": "Statistics"
+        "statistics": "Statistics",
+        "labels": "Label Designer"
       },
       "view_toggle": {
         "label": "Toggle view",
