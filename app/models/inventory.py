@@ -106,10 +106,15 @@ class Product(db.Model):
 
     @property
     def total_on_hand(self):
-        """Summierter physischer Bestand über alle Lots."""
-        if self.item_type != 'consumable':
+        """Summierter physischer Bestand über alle Lots und Instanzen."""
+        if self.item_type == 'consumable':
+            return int(sum((lot.quantity_on_hand or 0) for lot in self.lots))
+        else:
+            # Bei Assets: Wenn Instanzen existieren, zähle aktive Instanzen
+            if self.uses_instances:
+                return self.total_instances
+            # Legacy-Verhalten für Assets ohne Instanzen
             return 1 if self.status not in {'retired'} else 0
-        return int(sum((lot.quantity_on_hand or 0) for lot in self.lots))
 
     @property
     def total_reserved(self):
@@ -121,9 +126,14 @@ class Product(db.Model):
     @property
     def total_available(self):
         """Verfügbarer Bestand nach Reservierungen."""
-        if self.item_type != 'consumable':
+        if self.item_type == 'consumable':
+            return max(0, self.total_on_hand - self.total_reserved)
+        else:
+            # Bei Assets: Wenn Instanzen existieren, zähle verfügbare Instanzen
+            if self.uses_instances:
+                return self.instances_available
+            # Legacy-Verhalten für Assets ohne Instanzen
             return 1 if self.status == 'available' else 0
-        return max(0, self.total_on_hand - self.total_reserved)
 
     @property
     def needs_reorder(self):
