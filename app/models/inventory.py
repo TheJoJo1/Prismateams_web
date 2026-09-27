@@ -76,6 +76,7 @@ class Product(db.Model):
     lots = db.relationship('ProductLot', back_populates='product', cascade='all, delete-orphan')
     status_history = db.relationship('ProductStatusHistory', back_populates='product', cascade='all, delete-orphan')
     stock_movements = db.relationship('StockMovement', back_populates='product', cascade='all, delete-orphan')
+    instances = db.relationship('ProductInstance', back_populates='product', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Product {self.name}>'
@@ -130,6 +131,87 @@ class Product(db.Model):
         if self.item_type != 'consumable':
             return False
         return self.total_available <= max(0, self.min_stock or 0)
+    
+    @property
+    def uses_instances(self):
+        """Ob dieses Produkt individuelle Instanzen verwendet."""
+        return self.item_type != 'consumable'
+    
+    @property
+    def total_instances(self):
+        """Anzahl der aktiven Instanzen dieses Produkts."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True
+        ).count()
+    
+    @property
+    def instances_available(self):
+        """Anzahl der verfügbaren Instanzen."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='available'
+        ).count()
+    
+    @property
+    def instances_borrowed(self):
+        """Anzahl der ausgeliehenen Instanzen."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='borrowed'
+        ).count()
+    
+    @property
+    def instances_defective(self):
+        """Anzahl der defekten Instanzen."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='defective'
+        ).count()
+    
+    @property
+    def instances_in_repair(self):
+        """Anzahl der Instanzen in Reparatur."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='in_repair'
+        ).count()
+    
+    @property
+    def instances_lost(self):
+        """Anzahl der verlorenen Instanzen."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='lost'
+        ).count()
+    
+    @property
+    def instances_retired(self):
+        """Anzahl der außer Betrieb genommenen Instanzen."""
+        if not self.uses_instances:
+            return 0
+        return ProductInstance.query.filter_by(
+            product_id=self.id,
+            active=True,
+            status='retired'
+        ).count()
 
 
 class BorrowTransaction(db.Model):
@@ -139,6 +221,7 @@ class BorrowTransaction(db.Model):
     transaction_number = db.Column(db.String(50), unique=True, nullable=False, index=True)  # Ausleihvorgangsnummer
     borrow_group_id = db.Column(db.String(50), nullable=True, index=True)  # Gruppierungs-ID für Mehrfachausleihen
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False)
+    instance_id = db.Column(db.Integer, db.ForeignKey('product_instances.id'), nullable=True, index=True)
     borrower_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Wer leiht aus
     borrowed_by_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)  # Wer registriert die Ausleihe
     borrow_date = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -152,6 +235,7 @@ class BorrowTransaction(db.Model):
     
     # Relationships
     product = db.relationship('Product', back_populates='borrow_transactions')
+    instance = db.relationship('ProductInstance', back_populates='borrow_transactions')
     borrower = db.relationship('User', foreign_keys=[borrower_id])
     borrowed_by = db.relationship('User', foreign_keys=[borrowed_by_id])
     
@@ -242,6 +326,7 @@ class CheckoutItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     checkout_id = db.Column(db.Integer, db.ForeignKey('checkouts.id'), nullable=False, index=True)
     product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    instance_id = db.Column(db.Integer, db.ForeignKey('product_instances.id'), nullable=True, index=True)
     source_set_id = db.Column(db.Integer, db.ForeignKey('product_sets.id'), nullable=True, index=True)
     returned_at = db.Column(db.DateTime, nullable=True)
     return_email_sent = db.Column(db.Boolean, default=False, nullable=False)
@@ -250,6 +335,7 @@ class CheckoutItem(db.Model):
 
     checkout = db.relationship('Checkout', back_populates='items')
     product = db.relationship('Product', back_populates='checkout_items')
+    instance = db.relationship('ProductInstance', back_populates='checkout_items')
     source_set = db.relationship('ProductSet', foreign_keys=[source_set_id])
 
     def __repr__(self):
@@ -563,3 +649,126 @@ class InventoryItemLock(db.Model):
 
     def __repr__(self):
         return f'<InventoryItemLock inv={self.inventory_id} product={self.product_id} by={self.locked_by}>'
+
+
+class ProductInstance(db.Model):
+    """
+    Individuelles physisches Exemplar eines Produkts.
+    
+    Ermöglicht die Verwaltung einzelner Inventarstücke mit eigenen
+    Eigenschaften wie Inventarnummer, Seriennummer, Status, DGUV-ID und Farbe.
+    
+    Ein Produkt kann entweder:
+    - Als reiner Mengenartikel verwaltet werden (keine Instanzen)
+    - Als Artikel mit individuellen Exemplaren verwaltet werden (mit Instanzen)
+    
+    Die Gesamtmenge eines Artikels wird dann aus der Summe seiner aktiven Instanzen
+    berechnet, oder aus dem quantity Feld bei Mengenartikeln.
+    """
+    __tablename__ = 'product_instances'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('products.id'), nullable=False, index=True)
+    
+    # Identifikation
+    inventory_number = db.Column(db.String(100), nullable=True, index=True)  # Interne Inventarnummer
+    serial_number = db.Column(db.String(100), nullable=True, index=True)  # Hersteller-Seriennummer
+    
+    # Status
+    status = db.Column(db.String(20), default='available', nullable=False, index=True)
+    # Mögliche Werte: available, borrowed, defective, in_repair, lost, retired
+    
+    # DGUV (Deutsche Gesetzliche Unfallversicherung)
+    dguv_enabled = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    dguv_id = db.Column(db.String(100), nullable=True, index=True)  # Individuelle DGUV-ID
+    
+    # Farbe
+    color_id = db.Column(db.Integer, db.ForeignKey('inventory_colors.id'), nullable=True, index=True)
+    color_override = db.Column(db.String(7), nullable=True)  # Hex-Farbe direkt am Exemplar
+    
+    # Standort
+    location = db.Column(db.String(255), nullable=True, index=True)
+    
+    # Zuordnung
+    assigned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True, index=True)
+    
+    # Metadaten
+    notes = db.Column(db.Text, nullable=True)
+    active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    product = db.relationship('Product', back_populates='instances')
+    color = db.relationship('InventoryColor', foreign_keys=[color_id])
+    assigned_user = db.relationship('User', foreign_keys=[assigned_user_id])
+    creator = db.relationship('User', foreign_keys=[created_by])
+    borrow_transactions = db.relationship('BorrowTransaction', back_populates='instance', cascade='all, delete-orphan')
+    checkout_items = db.relationship('CheckoutItem', back_populates='instance', cascade='all, delete-orphan')
+    status_history = db.relationship('ProductInstanceStatusHistory', back_populates='instance', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<ProductInstance {self.inventory_number or self.serial_number or self.id} of Product {self.product_id}>'
+    
+    @property
+    def is_available(self):
+        """Prüft ob das Exemplar verfügbar ist."""
+        return self.status == 'available' and self.active
+    
+    @property
+    def display_identifier(self):
+        """Gibt eine lesbare Identifikation zurück."""
+        return self.inventory_number or self.serial_number or f'#{self.id}'
+    
+    @property
+    def effective_color(self):
+        """Gibt die effektive Farbe zurück (Override oder aus Color-Tabelle)."""
+        return self.color_override or (self.color.color_hex if self.color else None)
+
+
+class InventoryColor(db.Model):
+    """
+    Benutzerdefinierte Farben für die Inventarverwaltung.
+    
+    Ermöglicht die Zuordnung von Farben zu Exemplaren für visuelle
+    Unterscheidung und Filterung.
+    """
+    __tablename__ = 'inventory_colors'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    color_hex = db.Column(db.String(7), nullable=False)  # Hex-Farbwert (z.B. "#FF0000")
+    description = db.Column(db.String(255), nullable=True)
+    sort_order = db.Column(db.Integer, default=0, nullable=False)
+    active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    creator = db.relationship('User', foreign_keys=[created_by])
+    instances = db.relationship('ProductInstance', back_populates='color', cascade='all, delete-orphan')
+    
+    def __repr__(self):
+        return f'<InventoryColor {self.name} ({self.color_hex})>'
+
+
+class ProductInstanceStatusHistory(db.Model):
+    """Historie von Statuswechseln für Produktinstanzen."""
+    __tablename__ = 'product_instance_status_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+    instance_id = db.Column(db.Integer, db.ForeignKey('product_instances.id'), nullable=False, index=True)
+    old_status = db.Column(db.String(20), nullable=True, index=True)
+    new_status = db.Column(db.String(20), nullable=False, index=True)
+    reason = db.Column(db.String(255), nullable=True)
+    note = db.Column(db.Text, nullable=True)
+    changed_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    changed_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    instance = db.relationship('ProductInstance', back_populates='status_history')
+    changer = db.relationship('User', foreign_keys=[changed_by])
+
+    def __repr__(self):
+        return f'<ProductInstanceStatusHistory instance={self.instance_id} {self.old_status}->{self.new_status}>'
