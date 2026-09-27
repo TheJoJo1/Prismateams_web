@@ -6,6 +6,7 @@ from .legacy_aliases import legacy_aliases_bp
 from .maintenance import maintenance_bp
 from .products import products_bp
 from .stock import stock_bp
+from .instances import instances_bp
 
 inventory_vnext_bp = Blueprint("inventory_api", __name__, url_prefix="/inventory/api")
 
@@ -16,6 +17,7 @@ inventory_vnext_bp.register_blueprint(products_bp)
 inventory_vnext_bp.register_blueprint(stock_bp)
 inventory_vnext_bp.register_blueprint(inventory_sessions_bp)
 inventory_vnext_bp.register_blueprint(maintenance_bp)
+inventory_vnext_bp.register_blueprint(instances_bp)
 
 
 @inventory_vnext_bp.before_request
