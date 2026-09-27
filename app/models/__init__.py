@@ -12,6 +12,7 @@ from .cookie_consent import CookieConsentLog
 from .whitelist import WhitelistEntry
 from .notification import NotificationSettings, ChatNotificationSettings, PushSubscription, NotificationLog, PushDeliveryLog
 from .inventory import Product, BorrowTransaction, Checkout, CheckoutItem, ProductFolder, ProductSet, ProductSetItem, ProductDocument, SavedFilter, ProductFavorite, Inventory, InventoryItem, ProductLot, StockMovement, ProductStatusHistory, InventoryItemLock, ProductInstance, InventoryColor, ProductInstanceStatusHistory
+from .label import LabelTemplate, LabelTemplateElement, LabelPrintJob, LABEL_ELEMENT_TYPES
 from .api_token import ApiToken
 from .wiki import WikiPage, WikiPageVersion, WikiCategory, WikiTag, WikiFavorite
 from .comment import Comment, CommentMention
@@ -92,6 +93,7 @@ __all__ = [
     'WhitelistEntry',
     'NotificationSettings', 'ChatNotificationSettings', 'PushSubscription', 'NotificationLog', 'PushDeliveryLog',
     'Product', 'BorrowTransaction', 'Checkout', 'CheckoutItem', 'ProductFolder', 'ProductSet', 'ProductSetItem', 'ProductDocument', 'SavedFilter', 'ProductFavorite', 'Inventory', 'InventoryItem', 'ProductLot', 'StockMovement', 'ProductStatusHistory', 'InventoryItemLock', 'ProductInstance', 'InventoryColor', 'ProductInstanceStatusHistory',
+    'LabelTemplate', 'LabelTemplateElement', 'LabelPrintJob', 'LABEL_ELEMENT_TYPES',
     'ApiToken',
     'WikiPage', 'WikiPageVersion', 'WikiCategory', 'WikiTag', 'WikiFavorite',
     'Comment', 'CommentMention',
