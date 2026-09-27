@@ -131,14 +131,15 @@ def normalize_addresses(addresses):
 
 def build_plain_quote_header(email_msg: EmailMessage) -> str:
     sent_at = email_msg.received_at or email_msg.sent_at or datetime.utcnow()
+    cc_line = f"CC: {email_msg.cc}\n" if email_msg.cc else ""
+
     header = (
         f"Von: {email_msg.sender}\n"
         f"An: {email_msg.recipients or ''}\n"
-        f"{'CC: ' + email_msg.cc + '\n' if email_msg.cc else ''}"
+        f"{cc_line}"
         f"Datum: {format_datetime(sent_at, '%d.%m.%Y %H:%M')}\n"
         f"Betreff: {email_msg.subject}\n\n"
     )
-    return header
 
 
 def quote_plain(email_msg: EmailMessage) -> str:
