@@ -96,7 +96,7 @@ install_basics() {
 
 create_app_user() {
     if ! id "$APP_USER" >/dev/null 2>&1; then
-        useradd -r -m -d "$APP_HOME" -s /bin/bash "$APP_USER"
+        useradd -r -m -d "$APP_HOME" -s /bin/bash -g "$APP_GROUP" "$APP_USER"
     fi
     mkdir -p "$APP_HOME" "$DATA_DIR" "$UPLOADS_DIR"
     chown -R "$APP_USER:$APP_GROUP" "$APP_HOME" "$DATA_DIR" "$UPLOADS_DIR"
@@ -115,12 +115,27 @@ setup_mysql() {
     if [[ -z "$DB_PASSWORD" ]]; then
         DB_PASSWORD="$(openssl rand -base64 24 | tr -d '\n')"
     fi
-    mysql -u root <<SQL
+    if ! mysql -u root -e "SELECT 1" >/dev/null 2>&1; then
+        log_warn "MySQL root access failed, trying alternative methods"
+        if command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; then
+            sudo mysql -u root <<SQL
 CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 SQL
+        else
+            log_warn "Cannot access MySQL as root. Please set up database manually."
+            log_warn "DB_NAME=${DB_NAME}, DB_USER=${DB_USER}, DB_PASSWORD=${DB_PASSWORD}"
+        fi
+    else
+        mysql -u root <<SQL
+CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+GRANT ALL PRIVILEGES ON \`${DB_NAME}\`.* TO '${DB_USER}'@'localhost';
+FLUSH PRIVILEGES;
+SQL
+    fi
     log_ok "MySQL/MariaDB ready"
 }
 
@@ -135,6 +150,7 @@ setup_postgres() {
 CREATE DATABASE "${DB_NAME}" WITH ENCODING 'UTF8';
 CREATE USER "${DB_USER}" WITH ENCRYPTED PASSWORD '${DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON DATABASE "${DB_NAME}" TO "${DB_USER}";
+ALTER USER "${DB_USER}" CREATEDB;
 SQL
     log_ok "PostgreSQL ready"
 }
@@ -143,7 +159,7 @@ setup_database() {
     case "$DB_TYPE" in
         mysql|mariadb) setup_mysql ;;
         postgres|postgresql) setup_postgres ;;
-        sqlite) mkdir -p "$DATA_DIR" ;;
+        sqlite) mkdir -p "$DATA_DIR" ; chown -R "${APP_USER}:${APP_GROUP}" "$DATA_DIR" ;;
         *) fail "Unsupported DB type: $DB_TYPE" ;;
     esac
 }
@@ -179,11 +195,24 @@ create_env() {
     local secret_key
     secret_key="$(openssl rand -base64 48 | tr -d '\n')"
 
+    local db_uri
+    case "$DB_TYPE" in
+        mysql|mariadb)
+            db_uri="mysql+pymysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+            ;;
+        postgres|postgresql)
+            db_uri="postgresql+psycopg2://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+            ;;
+        sqlite)
+            db_uri="sqlite:///${DATA_DIR}/prismateams.db"
+            ;;
+    esac
+
     cat > "$env_file" <<EOF
 FLASK_ENV=production
 DEBUG=False
 SECRET_KEY=${secret_key}
-DATABASE_URI=mysql+pymysql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+DATABASE_URI=${db_uri}
 REDIS_ENABLED=${INSTALL_REDIS}
 REDIS_URL=redis://localhost:6379/0
 SESSION_COOKIE_SECURE=True
